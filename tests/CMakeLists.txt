@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.10)
+project(TerraduinoHostTests CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+enable_testing()
+
+file(GLOB_RECURSE TERRADUINO_SOURCES CONFIGURE_DEPENDS ../src/*.cpp)
+
+add_library(terraduino_host STATIC ${TERRADUINO_SOURCES})
+target_include_directories(terraduino_host PUBLIC ../src ../src/shared ../src/shared/screens ../src/min ../src/full)
+target_compile_options(terraduino_host PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
+
+add_executable(terraduino_tests host/test_terraduino.cpp)
+target_link_libraries(terraduino_tests PRIVATE terraduino_host)
+target_compile_options(terraduino_tests PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
+add_test(NAME terraduino_tests COMMAND terraduino_tests)
+
+function(add_terraduino_example target example_name)
+    add_executable(${target} host/examples/${example_name}.cpp)
+    target_link_libraries(${target} PRIVATE terraduino_host)
+    target_include_directories(${target} PRIVATE host)
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
+endfunction()
+
+add_terraduino_example(example_basic_homestead BasicHomestead)
+add_terraduino_example(example_cistern_management CisternManagement)
+add_terraduino_example(example_rainwater_collection RainwaterCollection)
+add_terraduino_example(example_thermal_storage ThermalStorage)
+add_terraduino_example(example_weather_station WeatherStation)
+add_terraduino_example(example_remote_sensor RemoteSensor)
+add_terraduino_example(example_full_system FullSystem)
+add_terraduino_example(example_ui_setup UISetup)
+add_terraduino_example(devtest_enum_conversion EnumConversionTests)
+add_terraduino_example(devtest_enum_trie_export EnumTrieExportToCPP)
+add_terraduino_example(devtest_json_export JSONExportTests)

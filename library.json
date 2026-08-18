@@ -1,0 +1,89 @@
+{
+    "name": "Simple-Homestead-Arduino",
+    "version": "0.7.0.0",
+    "keywords": "homestead,water,rainwater,rainwater-harvesting,cistern,well,thermal,weather,weather-station,environment,resource-management,scheduler,logging,diy,automation,controller,monitor,system",
+    "description": "Terraduino: Simple automation controller for homestead resource and environmental systems using Arduino-compatible microcontrollers.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "NachtRaveVL",
+            "email": "nachtravevl@gmail.com",
+            "url": "https://github.com/NachtRaveVL",
+            "maintainer": true
+        }
+    ],
+    "homepage": "https://github.com/NachtRaveVL/Simple-Homestead-Arduino/",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/NachtRaveVL/Simple-Homestead-Arduino.git"
+    },
+    "examples": [
+        {
+            "name": "BasicHomestead",
+            "base": "examples/BasicHomestead",
+            "files": [
+                "BasicHomestead.ino"
+            ]
+        },
+        {
+            "name": "CisternManagement",
+            "base": "examples/CisternManagement",
+            "files": [
+                "CisternManagement.ino"
+            ]
+        },
+        {
+            "name": "RainwaterCollection",
+            "base": "examples/RainwaterCollection",
+            "files": [
+                "RainwaterCollection.ino"
+            ]
+        },
+        {
+            "name": "ThermalStorage",
+            "base": "examples/ThermalStorage",
+            "files": [
+                "ThermalStorage.ino"
+            ]
+        },
+        {
+            "name": "WeatherStation",
+            "base": "examples/WeatherStation",
+            "files": [
+                "WeatherStation.ino"
+            ]
+        },
+        {
+            "name": "RemoteSensor",
+            "base": "examples/RemoteSensor",
+            "files": [
+                "RemoteSensor.ino"
+            ]
+        },
+        {
+            "name": "FullSystem",
+            "base": "examples/FullSystem",
+            "files": [
+                "FullSystem.ino"
+            ]
+        },
+        {
+            "name": "UISetup",
+            "base": "examples/UISetup",
+            "files": [
+                "UISetup.ino"
+            ]
+        }
+    ],
+    "frameworks": [
+        "arduino"
+    ],
+    "platforms": [
+        "avr",
+        "sam",
+        "samd",
+        "teensy",
+        "espressif8266",
+        "espressif32"
+    ]
+}

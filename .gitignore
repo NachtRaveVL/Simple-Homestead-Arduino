@@ -1,0 +1,12 @@
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.o
+*.obj
+*.a
+*.exe
+build/
+build-*/
+tests/build/
+.pio/
