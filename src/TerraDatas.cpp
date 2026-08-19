@@ -175,22 +175,30 @@ bool TerraSensorData::fromJSON(const TerraString &json)
 TerraActuatorData::TerraActuatorData()
     : TerraObjectData(), actuatorType(Terra_ActuatorType_Undefined),
       enableMode(Terra_EnableMode_Highest), maxContinuousMs(0), hasPinDriver(false),
-      pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false), maximumRaw(255)
+      pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false), maximumRaw(255),
+      sumpStartPercent(TERRA_SUMP_START_LEVEL_PERCENT), sumpStopPercent(TERRA_SUMP_STOP_LEVEL_PERCENT),
+      sumpAlarmPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT)
 {
     objectType = Terra_ObjectType_Actuator;
 }
 
 TerraString TerraActuatorData::toJSON() const
 {
-    return TerraString("{") + objectFields(*this) +
-           ",\"actuatorType\":\"" + terraActuatorTypeToString(actuatorType) +
-           "\",\"enableMode\":\"" + terraEnableModeToString(enableMode) +
-           "\",\"maxContinuousMs\":" + terraUnsigned(maxContinuousMs) +
-           ",\"hasPinDriver\":" + terraBool(hasPinDriver) +
-           ",\"pin\":" + terraNumber(pinSetup.pin) +
-           ",\"pinMode\":\"" + terraPinModeToString(pinSetup.mode) +
-           "\",\"activeLow\":" + terraBool(pinSetup.activeLow) +
-           ",\"maximumRaw\":" + terraNumber(maximumRaw) + "}";
+    TerraString json = TerraString("{") + objectFields(*this) +
+                       ",\"actuatorType\":\"" + terraActuatorTypeToString(actuatorType) +
+                       "\",\"enableMode\":\"" + terraEnableModeToString(enableMode) +
+                       "\",\"maxContinuousMs\":" + terraUnsigned(maxContinuousMs) +
+                       ",\"hasPinDriver\":" + terraBool(hasPinDriver) +
+                       ",\"pin\":" + terraNumber(pinSetup.pin) +
+                       ",\"pinMode\":\"" + terraPinModeToString(pinSetup.mode) +
+                       "\",\"activeLow\":" + terraBool(pinSetup.activeLow) +
+                       ",\"maximumRaw\":" + terraNumber(maximumRaw);
+    if (actuatorType == Terra_ActuatorType_SumpPump) {
+        json += ",\"sumpStartPercent\":" + terraNumber(sumpStartPercent) +
+                ",\"sumpStopPercent\":" + terraNumber(sumpStopPercent) +
+                ",\"sumpAlarmPercent\":" + terraNumber(sumpAlarmPercent);
+    }
+    return json + "}";
 }
 
 bool TerraActuatorData::fromJSON(const TerraString &json)
@@ -214,6 +222,13 @@ bool TerraActuatorData::fromJSON(const TerraString &json)
     if (!terraStringEqualsIgnoreCase(enableModeStr, terraEnableModeToString(enableMode))) return false;
     if (!terraStringEqualsIgnoreCase(pinModeStr, terraPinModeToString(pinSetup.mode))) return false;
     if (hasPinDriver && (!pinSetup.isValid() || !pinSetup.isOutput())) return false;
+    if (actuatorType == Terra_ActuatorType_SumpPump) {
+        if (!terraJsonExtractFloat(json, "sumpStartPercent", sumpStartPercent) ||
+            !terraJsonExtractFloat(json, "sumpStopPercent", sumpStopPercent) ||
+            !terraJsonExtractFloat(json, "sumpAlarmPercent", sumpAlarmPercent) ||
+            sumpStopPercent < 0.0f || sumpStopPercent >= sumpStartPercent ||
+            sumpStartPercent >= sumpAlarmPercent || sumpAlarmPercent > 100.0f) return false;
+    }
     maxContinuousMs = (uint32_t)maxRuntime;
     maximumRaw = (int)maxRaw;
     return true;

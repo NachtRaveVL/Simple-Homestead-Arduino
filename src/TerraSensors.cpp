@@ -123,5 +123,8 @@ bool TerraRemoteSensor::isOnline(uint32_t now) const {
 }
 
 void TerraRemoteSensor::update(uint32_t now) {
-    if (_hasReport && terraElapsed(now, _lastReportAt, _staleAfterMs)) setFault(TerraString("remote sensor stale"));
+    if (_hasReport && terraElapsed(now, _lastReportAt, _staleAfterMs)) {
+        _measurement.valid = false;
+        setFault(TerraString("remote sensor stale"));
+    }
 }

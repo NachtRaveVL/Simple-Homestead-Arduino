@@ -131,6 +131,21 @@ void setup() {
     pass &= pumpDataCopy.fromJSON(pumpData.toJSON());
     pass &= pumpDataCopy.hasPinDriver && pumpDataCopy.pinSetup.pin == 9 && pumpDataCopy.pinSetup.activeLow;
 
+    TerraActuatorData sumpData;
+    sumpData.key = 1006;
+    sumpData.name = F("Basement Sump");
+    sumpData.actuatorType = Terra_ActuatorType_SumpPump;
+    sumpData.maxContinuousMs = 45000;
+    sumpData.sumpStartPercent = 72.0f;
+    sumpData.sumpStopPercent = 18.0f;
+    sumpData.sumpAlarmPercent = 93.0f;
+    TerraActuatorData sumpDataCopy;
+    pass &= sumpDataCopy.fromJSON(sumpData.toJSON());
+    pass &= sumpDataCopy.actuatorType == Terra_ActuatorType_SumpPump;
+    pass &= isFPEqual(sumpDataCopy.sumpStartPercent, sumpData.sumpStartPercent);
+    pass &= isFPEqual(sumpDataCopy.sumpStopPercent, sumpData.sumpStopPercent);
+    pass &= isFPEqual(sumpDataCopy.sumpAlarmPercent, sumpData.sumpAlarmPercent);
+
     TerraThermalStoreData thermal;
     thermal.key = 2001;
     thermal.name = F("Thermal Store");

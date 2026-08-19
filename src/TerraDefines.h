@@ -20,6 +20,9 @@
 #define TERRA_DEFAULT_REMOTE_STALE_MS   300000UL
 #define TERRA_DEFAULT_PUBLISH_INTERVAL   60000UL
 #define TERRA_DEFAULT_LOG_INTERVAL       60000UL
+#define TERRA_SUMP_STOP_LEVEL_PERCENT      20.0f       // Default sump pump stop level
+#define TERRA_SUMP_START_LEVEL_PERCENT     70.0f       // Default sump pump start level
+#define TERRA_SUMP_ALARM_LEVEL_PERCENT     90.0f       // Default sump high-water alarm level
 #ifndef TERRA_FLT_EPSILON
 #define TERRA_FLT_EPSILON                  0.00001f      // Single-precision floating point error tolerance
 #endif

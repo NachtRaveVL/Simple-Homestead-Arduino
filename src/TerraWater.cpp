@@ -34,7 +34,7 @@ TerraCistern::TerraCistern(float capacityLiters, uint32_t key, const TerraString
 
 bool TerraCistern::configureFillBand(float startPercent, float stopPercent, float overflowPercent) {
     if (startPercent < 0.0f || startPercent >= stopPercent ||
-        stopPercent > overflowPercent || overflowPercent > 100.0f) return false;
+        stopPercent >= overflowPercent || overflowPercent > 100.0f) return false;
     _fillStartPercent = startPercent;
     _fillStopPercent = stopPercent;
     _overflowPercent = overflowPercent;

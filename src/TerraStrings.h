@@ -59,6 +59,7 @@ enum Terra_String : uint16_t {
     TStr_Diverter,                        ///< "Diverter"
     TStr_Heater,                          ///< "Heater"
     TStr_Circulator,                      ///< "Circulator"
+    TStr_SumpPump,                        ///< "SumpPump"
     TStr_raw,                             ///< "raw"
     TStr_Percent,                         ///< "%"
     TStr_C,                               ///< "C"

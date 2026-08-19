@@ -89,7 +89,8 @@ enum Terra_ActuatorType : uint8_t {
     Terra_ActuatorType_Valve,                   ///< On/off valve
     Terra_ActuatorType_Diverter,                ///< Two-way or proportional diverter
     Terra_ActuatorType_Heater,                  ///< Heater output
-    Terra_ActuatorType_Circulator               ///< Thermal circulation pump
+    Terra_ActuatorType_Circulator,              ///< Thermal circulation pump
+    Terra_ActuatorType_SumpPump                 ///< Level-controlled sump pump
 };
 
 // Preferred reporting system.

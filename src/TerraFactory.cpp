@@ -159,6 +159,7 @@ TerraActuator *TerraFactory::newActuator(Terra_ActuatorType actuatorType, uint32
         case Terra_ActuatorType_Diverter: return new TerraDiverter(key, name);
         case Terra_ActuatorType_Heater: return new TerraHeater(key, name);
         case Terra_ActuatorType_Circulator: return new TerraCirculator(key, name);
+        case Terra_ActuatorType_SumpPump: return new TerraSumpPump(key, name);
         case Terra_ActuatorType_Undefined:
         default: return nullptr;
     }
@@ -264,6 +265,14 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
                     static_cast<TerraPump *>(actuator)->setMaxContinuousRuntime(data->maxContinuousMs);
                 else if (data->actuatorType == Terra_ActuatorType_Circulator)
                     static_cast<TerraCirculator *>(actuator)->setMaxContinuousRuntime(data->maxContinuousMs);
+                else if (data->actuatorType == Terra_ActuatorType_SumpPump) {
+                    TerraSumpPump *sump = static_cast<TerraSumpPump *>(actuator);
+                    sump->setMaxContinuousRuntime(data->maxContinuousMs);
+                    if (!sump->configureLevels(data->sumpStartPercent, data->sumpStopPercent, data->sumpAlarmPercent)) {
+                        delete actuator;
+                        return nullptr;
+                    }
+                }
                 if (data->hasPinDriver) {
                     TerraOutputDriver *driver = nullptr;
                     if (data->pinSetup.mode == Terra_PinMode_Digital_Output)
@@ -419,6 +428,13 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
                 out->maxContinuousMs = static_cast<const TerraPump *>(actuator)->getMaxContinuousRuntime();
             else if (actuator->getActuatorType() == Terra_ActuatorType_Circulator)
                 out->maxContinuousMs = static_cast<const TerraCirculator *>(actuator)->getMaxContinuousRuntime();
+            else if (actuator->getActuatorType() == Terra_ActuatorType_SumpPump) {
+                const TerraSumpPump *sump = static_cast<const TerraSumpPump *>(actuator);
+                out->maxContinuousMs = sump->getMaxContinuousRuntime();
+                out->sumpStartPercent = sump->getStartLevelPercent();
+                out->sumpStopPercent = sump->getStopLevelPercent();
+                out->sumpAlarmPercent = sump->getAlarmLevelPercent();
+            }
             data = out;
         } break;
 

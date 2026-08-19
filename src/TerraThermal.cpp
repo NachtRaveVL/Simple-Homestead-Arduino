@@ -13,10 +13,9 @@ TerraThermalStore::TerraThermalStore(uint32_t key, const TerraString &name)
 }
 
 bool TerraThermalStore::setTargetRange(float minimumC, float maximumC) {
-    if (minimumC > maximumC) return false;
+    if (minimumC > maximumC || maximumC > _absoluteMaximumC) return false;
     _minimumTargetC = minimumC;
     _maximumTargetC = maximumC;
-    if (_absoluteMaximumC < maximumC) _absoluteMaximumC = maximumC;
     return true;
 }
 

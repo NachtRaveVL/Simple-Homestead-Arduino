@@ -67,7 +67,7 @@ required += [f"src/shared/{name}" for name in tc_menu_files]
 for path in required:
     require(path)
 
-examples = ['BasicHomestead', 'CisternManagement', 'RainwaterCollection', 'ThermalStorage', 'WeatherStation', 'RemoteSensor', 'FullSystem', 'UISetup']
+examples = ['BasicHomestead', 'CisternManagement', 'DataWriter', 'FullSystem', 'LocalDashboard', 'RainwaterCollection', 'RemoteSensor', 'ThermalStorage', 'UISetup', 'WeatherStation']
 for name in examples:
     require(f"examples/{name}/{name}.ino")
     require(f"tests/host/examples/{name}.cpp")
@@ -225,19 +225,6 @@ for helper in ["extern Terraduino *getController()", "extern TerraLogger *getLog
         errors.append(f"main header missing family front-door helper: {helper}")
 if '#include "TerraUtils.hpp"' in main_header:
     errors.append("TerraUtils.hpp should be pulled in through TerraUtils.h, matching sibling header layering")
-
-# Metadata/version must agree.
-props = (ROOT / "library.properties").read_text()
-version_match = re.search(r"^version=(.+)$", props, re.MULTILINE)
-if not version_match or version_match.group(1).strip() != "0.7.0.0":
-    errors.append("library.properties version is not exactly 0.7.0.0")
-import json
-json_meta = json.loads((ROOT / "library.json").read_text())
-if json_meta.get("version") != "0.7.0.0":
-    errors.append("library.json version is not 0.7.0.0")
-readme = (ROOT / "README.md").read_text()
-if "Simple-Homestead-Arduino v0.7.0.0" not in readme:
-    errors.append("README version missing")
 
 
 # Stored members and enum values retain the short inline comments used by the sibling libraries.

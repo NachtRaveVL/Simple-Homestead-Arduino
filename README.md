@@ -1,7 +1,7 @@
 # Terraduino
 Terraduino: Simple Homestead Automation Controller.
 
-**Simple-Homestead-Arduino v0.7.0.0**
+**Simple-Homestead-Arduino v0.7.1.0**
 
 Simple automation controller for homestead resource and environmental systems.  
 Licensed under the non-restrictive MIT license.
@@ -19,6 +19,7 @@ Our Keep-It-Simple controller system:
   * Rainwater, wells, surface water, reclaimed water, and other sources can be represented without changing the routing logic.
   * Cisterns track capacity, protected reserve, fill bands, overflow state, inflow, outflow, and usable stored volume.
   * Source priority, transfer hysteresis, minimum/maximum flow, and flow-fault checks help avoid rapid cycling and bad transfer states.
+  * `TerraSumpPump` adds high-level start, low-level stop hysteresis, high-water alarm state, invalid-level fail-safe shutdown, and maximum-runtime protection for sump applications.
 * Supports rainwater harvesting as a first-class workflow.
   * Roof catchment, first-flush diversion, cistern fill limits, and overflow-aware storage can be modeled together.
 * Supports stored heat and hydronic-style circulation.
@@ -43,8 +44,6 @@ Our Keep-It-Simple controller system:
   * Pressure relief, pump overload protection, dry-run protection, thermal cutoffs, combustion controls, mains isolation, backflow prevention, and similar safety functions still belong in suitable hardware.
 
 Made primarily for Arduino microcontrollers / build environments, but should also fit PlatformIO, Espressif, Teensy, STM32, Pico/RP2040/RP2350, GIGA, Portenta, and similar MCU platforms. The practical size of a build depends heavily on how many sensors, actuators, stored objects, UI features, and network options are enabled.
-
-Core operation is intentionally dependency-light. Arduino builds use the normal platform SD/SPI/Wire support where needed, with optional TaskManagerIO/IoAbstraction multitasking, Adafruit GPS, MQTT, tcMenu, and WiFi/Ethernet libraries enabled only when selected.
 
 *If you value the work that we do, our small team always appreciates a subscription to our [Patreon](www.patreon.com/nachtrave).*
 
@@ -86,6 +85,8 @@ Storage-constrained MCUs should start with a small object count and only the fea
 Terraduino separates measurements from the control decisions that use them. Water level, flow, temperature, weather, and remote readings are represented as sensors or environment/resource state. Balancers and routes then make decisions from those values.
 
 Cisterns are first-class storage objects rather than generic level readings. They keep capacity, fill thresholds, reserve levels, stored volume, and transfer state together. Rainwater catchment adds first-flush and overflow-aware collection on top of that storage model.
+
+Sump control uses the same pump output model with dedicated level hysteresis. A valid rising level starts the pump at the configured start point, falling level stops it at the lower threshold, and bad level data shuts the pump down instead of allowing it to run blind.
 
 Thermal stores follow the same pattern. A store represents the heat resource, while differential-control logic determines when circulation is useful.
 
@@ -161,15 +162,34 @@ Terraduino-specific menu behavior is still TODO work, so the shared UI header do
 
 #### External Libraries
 
-Certain setups require extra libraries depending on the selected hardware.
+Terraduino keeps the core controller fairly dependency-light. Arduino builds use the following libraries depending on the enabled hardware and features:
 
-* **TaskManagerIO / IoAbstraction** provide the optional multitasking and interrupt-oriented infrastructure used by the family.
-* **tcMenu** and its display/input dependencies are optional. The common adapter layer is present while Terraduino-specific menus remain under development.
-* **Adafruit GPS** is optional for installations that want GPS-derived time/location.
-* **MQTT** and the selected WiFi/Ethernet library are only needed when a network transport or publishing path is enabled.
-* **SD, SPI, and Wire** use the platform-provided Arduino libraries where those devices are present.
+* **TaskManagerIO** and **IoAbstraction** for multitasking and I/O support when multitasking is enabled.
+* **Adafruit GPS** when GPS-derived time or location is enabled.
+* **MQTT** when MQTT publishing is enabled.
+* **SD** plus the platform SPI/Wire support for local storage and buses.
+* **WiFi101**, **WiFiNINA_Generic**, **WiFiEspAT**, or **Ethernet** when the matching optional network path is enabled.
 
-A remote sensor does not require MQTT specifically. MQTT, ESP-NOW, LoRa, RS-485, CAN, serial radio, or another transport can feed the same remote-sensor object through application code.
+Networking is optional. Remote sensors are transport-neutral and do not require MQTT specifically. MQTT, ESP-NOW, LoRa, RS-485, CAN, serial radio, or another application transport can feed the same remote-sensor object.
+
+#### External UI Libraries
+
+The optional tcMenu UI layer can use the same display and input libraries across the controller family:
+
+* **tcMenu** for the menu, remote-control, and display abstraction layer.
+* **Adafruit GFX**, **Adafruit ILI9341**, and **Adafruit ST7735 and ST7789 Library** for supported color displays.
+* **Adafruit FT6206**, **Adafruit TouchScreen**, and optional **XPT2046_Touchscreen** for touch input.
+* **LiquidCrystalIO** for character LCD displays.
+* **U8g2** for monochrome OLED and LCD displays.
+* **TFT_eSPI** for supported advanced TFT configurations.
+* **tcUnicodeHelper** for Unicode-capable tcMenu display paths.
+
+* **U8g2** custom display setups use the selected U8g2 device class and are statically linked to that display configuration.
+* **TFT_eSPI** uses its `TFT_eSPI\User_Setup.h` configuration and therefore requires a rebuild when that hardware setup changes.
+* **BSP LCD / BSP Touch** support can use the included ChromaArt/BSP adapter layer on supported STM32/mbed targets. This is an advanced hardware-specific path.
+* **ST7789 custom TFT / TFT_eSPI** setups use statically configured screen dimensions and require a rebuild when those values change.
+
+Terraduino-specific menus and overview screens are still TODO work. The shared tcMenu adapter files are already present so the project-specific UI can use the same plumbing as the sibling libraries.
 
 ### Initialization
 
@@ -303,13 +323,19 @@ Sensors that foul, drift, freeze, get wet, or age should be treated as measureme
 
 ## Example Usage
 
-Below are several examples of controller usage.
+Below are several of the main examples of controller usage. The example sketches in the repository remain the source of truth.
 
 ### Cistern Management Example
 
-The `CisternManagement` example demonstrates fill hysteresis, a protected reserve, source limits, routing, and pump control. The pump callback remains generic so the real installation can use an isolated relay, motor controller, or another suitable interface.
+`CisternManagement` demonstrates fill hysteresis, protected reserve, source limits, routing, and pump control.
 
 ```Arduino
+// Simple-Homestead-Arduino Cistern Management Example
+//
+// Demonstrates fill hysteresis, protected reserve, source selection, and pump control for
+// a primary cistern. The pump callback is intentionally generic so the real installation
+// can use an isolated relay, motor controller, or another suitable low-voltage interface.
+
 #include <Terraduino.h>
 
 Terraduino terraController;
@@ -319,23 +345,39 @@ TerraWaterRoute fillRoute(0, "Cistern Fill");
 TerraPump fillPump(0, "Fill Pump");
 TerraWaterBalancer waterBalancer;
 
+void driveFillPump(void *context, float output)
+{
+    (void)context;
+    Serial.print(F("Fill pump output: "));
+    Serial.println(output, 2);
+    // Drive the real isolated pump-control interface here.
+}
+
 void setup()
 {
-    terraController.init();
+    Serial.begin(115200);
 
+    terraController.init();
     terraController.registerObject(&well);
     terraController.registerObject(&cistern);
     terraController.registerObject(&fillRoute);
     terraController.registerObject(&fillPump);
 
     well.setPriority(0);
+    well.setLevel(100.0f);
     well.setReserveLevel(10.0f);
+    well.setMaximumFlowLpm(20.0f);
 
     cistern.setThresholds(15.0f, 30.0f, 95.0f);
     cistern.configureFillBand(30.0f, 90.0f, 99.0f);
+    cistern.setLevel(28.0f);
 
     fillRoute.configure(well.getKey(), cistern.getKey(), 30.0f, 90.0f);
+    fillRoute.setMinimumFlow(0.5f);
+    fillRoute.setMaximumFlow(20.0f);
 
+    fillPump.setMaxContinuousRuntime(15UL * 60UL * 1000UL);
+    fillPump.setWriteCallback(driveFillPump);
     terraController.launch();
 }
 
@@ -350,10 +392,205 @@ void loop()
     }
 
     terraController.update();
+    delay(1000);
 }
 ```
 
-A real installation still needs to connect the pump output to suitable isolated pump-control hardware.
+### Rainwater Collection Example
+
+`RainwaterCollection` shows roof catchment, first-flush diversion, and storage into a cistern without allowing the modeled storage level to run past its overflow band.
+
+```Arduino
+// Simple-Homestead-Arduino Rainwater Collection Example
+//
+// Converts incremental roof rainfall into cistern inflow, applies a first-flush discard,
+// and respects the configured cistern overflow band. A real rain gauge should supply the
+// rainfall accumulated since the previous collection update.
+
+#include <Terraduino.h>
+
+Terraduino terraController;
+TerraRainCatchment roofCatchment(180.0f, 0.85f, 0, "Roof Catchment");
+TerraCistern rainCistern(5000.0f, 0, "Rain Cistern");
+TerraFirstFlushController firstFlush(20.0f);
+
+void setup()
+{
+    Serial.begin(115200);
+
+    terraController.init();
+    terraController.registerObject(&roofCatchment);
+    terraController.registerObject(&rainCistern);
+
+    rainCistern.setThresholds(15.0f, 30.0f, 95.0f);
+    rainCistern.configureFillBand(30.0f, 95.0f, 99.0f);
+    rainCistern.setLevel(25.0f);
+    terraController.launch();
+}
+
+void loop()
+{
+    // Replace with incremental rainfall from the installed rain gauge.
+    const float rainfallMm = 0.0f;
+    TerraRainCollectionResult result = roofCatchment.collectInto(rainCistern, rainfallMm, &firstFlush);
+
+    if (result.storedLiters > 0.0f) {
+        Serial.print(F("Stored rainwater, L: "));
+        Serial.println(result.storedLiters, 2);
+    }
+
+    terraController.update();
+    delay(1000);
+}
+```
+
+### Full System Example
+
+`FullSystem` combines the main water, thermal, environmental, remote-sensor, scheduling, logging, and publishing pieces in one controller.
+
+```Arduino
+// Simple-Homestead-Arduino Full System Example
+//
+// Combines weather observations, source selection, cistern filling, thermal storage, a
+// remote sensor, logging/publishing, and normal controller updates. The final hardware
+// adapters remain application supplied so the example is not tied to one shield or board.
+
+#include <Terraduino.h>
+
+Terraduino terraController;
+TerraEnvironment weather(0, "Outside");
+TerraWaterSource rain(Terra_WaterSourceType_Rainwater, 0, 0, "Rainwater");
+TerraWaterSource well(Terra_WaterSourceType_Well, 1, 0, "Well");
+TerraCistern cistern(4000.0f, 0, "Cistern");
+TerraWaterRoute fillRoute(0, "Cistern Fill");
+TerraPump transferPump(0, "Transfer Pump");
+TerraThermalStore thermalStore(0, "Thermal Store");
+TerraThermalLoop thermalLoop(0, "Thermal Loop");
+TerraRemoteSensor barnTemp(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Barn Temp");
+TerraWaterBalancer waterBalancer;
+TerraThermalBalancer thermalBalancer;
+
+void actuatorWrite(void *context, float value)
+{
+    (void)context;
+    Serial.print(F("Pump command: "));
+    Serial.println(value, 2);
+    // Replace with a suitable isolated driver for the real load.
+}
+
+void publishValue(void *context, const char *channel, const TerraMeasurement &measurement)
+{
+    (void)context;
+    Serial.print(channel);
+    Serial.print('=');
+    Serial.print(measurement.value);
+    Serial.print(' ');
+    Serial.println(terraUnitToString(measurement.unit));
+}
+
+void setup()
+{
+    Serial.begin(115200);
+
+    TerraSystemSetup setup;
+    setup.systemName = "Full Homestead";
+    setup.updateIntervalMs = 250;
+    terraController.init(setup);
+
+    terraController.registerObject(&weather);
+    terraController.registerObject(&rain);
+    terraController.registerObject(&well);
+    terraController.registerObject(&cistern);
+    terraController.registerObject(&fillRoute);
+    terraController.registerObject(&transferPump);
+    terraController.registerObject(&thermalStore);
+    terraController.registerObject(&thermalLoop);
+    terraController.registerObject(&barnTemp);
+
+    cistern.setThresholds(15.0f, 30.0f, 95.0f);
+    cistern.configureFillBand(30.0f, 95.0f, 99.0f);
+    cistern.setLevel(25.0f);
+    rain.setLevel(80.0f);
+    well.setLevel(100.0f);
+    fillRoute.configure(rain.getKey(), cistern.getKey(), 30.0f, 95.0f);
+    fillRoute.setMinimumFlow(0.5f);
+    transferPump.setMaxContinuousRuntime(10UL * 60UL * 1000UL);
+    transferPump.setWriteCallback(actuatorWrite);
+
+    thermalStore.setTargetRange(45.0f, 65.0f);
+    thermalStore.setAbsoluteMaximum(90.0f);
+    thermalLoop.configure(8.0f, 3.0f, 80.0f);
+
+    barnTemp.setStaleAfter(5UL * 60UL * 1000UL);
+    terraController.publisher.setCallback(publishValue);
+    terraController.publisher.addChannel("barn-temp", &barnTemp, Terra_Unit_Celsius);
+    terraController.launch();
+}
+
+void loop()
+{
+    weather.setAirTemperature(8.0f);
+    weather.setRelativeHumidity(78.0f);
+
+    const TerraWaterSource *sources[] = { &rain, &well };
+    const TerraWaterSource *selected = waterBalancer.selectSource(sources, 2);
+
+    if (selected) {
+        fillRoute.configure(selected->getKey(), cistern.getKey(), 30.0f, 95.0f);
+        TerraTransferDecision decision = waterBalancer.evaluate(fillRoute, *selected, cistern);
+        if (decision.shouldRun) { transferPump.setOutput(1.0f); }
+        else { transferPump.off(); }
+    } else {
+        transferPump.off();
+    }
+
+    thermalStore.setTemperature(52.0f);
+    thermalBalancer.evaluate(thermalLoop, 70.0f, thermalStore.getTemperature());
+
+    terraController.update();
+    delay(250);
+}
+```
+
+### Data Writer Example
+
+`DataWriter` exports persisted object data as JSON and is the main reference for external-data and storage workflows.
+
+```Arduino
+#include <Terraduino.h>
+
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) { }
+
+    TerraCisternData cistern;
+    cistern.key = 1001;
+    cistern.name = "Main Cistern";
+    cistern.capacityLiters = 5000.0f;
+    cistern.level = 63.5f;
+    cistern.reserveLevel = 15.0f;
+    cistern.lowLevel = 30.0f;
+    cistern.highLevel = 95.0f;
+    cistern.fillStartPercent = 35.0f;
+    cistern.fillStopPercent = 90.0f;
+    cistern.overflowPercent = 99.0f;
+
+    Serial.println(cistern.toJSON());
+
+    TerraThermalStoreData thermal;
+    thermal.key = 2001;
+    thermal.name = "Thermal Store";
+    thermal.level = 70.0f;
+    thermal.temperatureC = 58.0f;
+    thermal.minimumTargetC = 45.0f;
+    thermal.maximumTargetC = 65.0f;
+    thermal.absoluteMaximumC = 90.0f;
+
+    Serial.println(thermal.toJSON());
+}
+
+void loop() { }
+```
 
 ### Main System Examples
 
@@ -363,11 +600,11 @@ A real installation still needs to connect the pump output to suitable isolated 
 * **ThermalStorage** shows differential circulation into a stored-heat system.
 * **WeatherStation** shows environmental observations for monitoring and control.
 * **RemoteSensor** shows the transport-neutral remote measurement path.
-* **FullSystem** combines the main water, thermal, environmental, remote-sensor, and publishing pieces.
-* **UISetup** keeps the tcMenu setup pattern visible while the Terraduino-specific menus remain TODO work.
-* **DataWriter** provides a development/export path for persisted data.
+* **FullSystem** combines the main controller subsystems.
+* **UISetup** keeps the tcMenu setup pattern visible while project-specific menus remain TODO work.
+* **DataWriter** exports persisted data for external-storage workflows.
 
-The examples are intended to show controller patterns without requiring one particular brand of pump, valve, sensor, radio, or display.
+The examples show controller patterns without requiring one particular brand of pump, valve, sensor, radio, or display.
 
 ## Homestead Callouts
 

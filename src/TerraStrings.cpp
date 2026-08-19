@@ -258,6 +258,10 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Circulator";
             return flashStr;
         }
+        case TStr_SumpPump: {
+            static const char flashStr[] PROGMEM = "SumpPump";
+            return flashStr;
+        }
         case TStr_raw: {
             static const char flashStr[] PROGMEM = "raw";
             return flashStr;
@@ -842,6 +846,7 @@ TerraString terraActuatorTypeToString(Terra_ActuatorType value)
         case Terra_ActuatorType_Diverter: return SFP(TStr_Diverter);
         case Terra_ActuatorType_Heater: return SFP(TStr_Heater);
         case Terra_ActuatorType_Circulator: return SFP(TStr_Circulator);
+        case Terra_ActuatorType_SumpPump: return SFP(TStr_SumpPump);
     }
     return SFP(TStr_Undefined);
 }

@@ -186,7 +186,7 @@ void setup()
     buildEnumTree<Terra_WaterSourceType>(Terra_WaterSourceType_Undefined, Terra_WaterSourceType_Stored, Terra_WaterSourceType_Undefined, terraWaterSourceTypeToString, "waterSourceTypeStr", "Terra_WaterSourceType");
     buildEnumTree<Terra_WaterStorageType>(Terra_WaterStorageType_Undefined, Terra_WaterStorageType_Reservoir, Terra_WaterStorageType_Undefined, terraWaterStorageTypeToString, "waterStorageTypeStr", "Terra_WaterStorageType");
     buildEnumTree<Terra_SensorType>(Terra_SensorType_Undefined, Terra_SensorType_Remote, Terra_SensorType_Undefined, terraSensorTypeToString, "sensorTypeStr", "Terra_SensorType");
-    buildEnumTree<Terra_ActuatorType>(Terra_ActuatorType_Undefined, Terra_ActuatorType_Circulator, Terra_ActuatorType_Undefined, terraActuatorTypeToString, "actuatorTypeStr", "Terra_ActuatorType");
+    buildEnumTree<Terra_ActuatorType>(Terra_ActuatorType_Undefined, Terra_ActuatorType_SumpPump, Terra_ActuatorType_Undefined, terraActuatorTypeToString, "actuatorTypeStr", "Terra_ActuatorType");
     buildEnumTree<Terra_MeasurementMode>(Terra_MeasurementMode_Undefined, Terra_MeasurementMode_Count, Terra_MeasurementMode_Undefined, terraMeasurementModeToString, "measurementModeStr", "Terra_MeasurementMode");
     buildEnumTree<Terra_EnableMode>(Terra_EnableMode_Undefined, Terra_EnableMode_Count, Terra_EnableMode_Undefined, terraEnableModeToString, "enableModeStr", "Terra_EnableMode");
     buildEnumTree<Terra_PinMode>(Terra_PinMode_Undefined, Terra_PinMode_Count, Terra_PinMode_Undefined, terraPinModeToString, "pinModeStr", "Terra_PinMode");

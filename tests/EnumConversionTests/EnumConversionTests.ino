@@ -45,7 +45,7 @@ void setup() {
     pass &= checkEnumRange<Terra_WaterSourceType>("WaterSourceType", Terra_WaterSourceType_Undefined, Terra_WaterSourceType_Stored, terraWaterSourceTypeToString, terraWaterSourceTypeFromString);
     pass &= checkEnumRange<Terra_WaterStorageType>("WaterStorageType", Terra_WaterStorageType_Undefined, Terra_WaterStorageType_Reservoir, terraWaterStorageTypeToString, terraWaterStorageTypeFromString);
     pass &= checkEnumRange<Terra_SensorType>("SensorType", Terra_SensorType_Undefined, Terra_SensorType_Remote, terraSensorTypeToString, terraSensorTypeFromString);
-    pass &= checkEnumRange<Terra_ActuatorType>("ActuatorType", Terra_ActuatorType_Undefined, Terra_ActuatorType_Circulator, terraActuatorTypeToString, terraActuatorTypeFromString);
+    pass &= checkEnumRange<Terra_ActuatorType>("ActuatorType", Terra_ActuatorType_Undefined, Terra_ActuatorType_SumpPump, terraActuatorTypeToString, terraActuatorTypeFromString);
     pass &= checkEnumRange<Terra_MeasurementMode>("MeasurementMode", Terra_MeasurementMode_Undefined, Terra_MeasurementMode_Count, terraMeasurementModeToString, terraMeasurementModeFromString);
     pass &= checkEnumRange<Terra_EnableMode>("EnableMode", Terra_EnableMode_Undefined, Terra_EnableMode_Count, terraEnableModeToString, terraEnableModeFromString);
     pass &= checkEnumRange<Terra_PinMode>("PinMode", Terra_PinMode_Undefined, Terra_PinMode_Count, terraPinModeToString, terraPinModeFromString);

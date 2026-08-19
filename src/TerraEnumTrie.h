@@ -161,27 +161,29 @@ inline Terra_SensorType terraDecodeSensorType(const TerraString &sensorTypeStr)
 
 inline Terra_ActuatorType terraDecodeActuatorType(const TerraString &actuatorTypeStr)
 {
-    switch (terraTrieChar(actuatorTypeStr, 2)) {
-        case 'a':
-            return Terra_ActuatorType_Heater;
-        case 'd':
-            return Terra_ActuatorType_Undefined;
-        case 'g':
-            return Terra_ActuatorType_Digital;
-        case 'l':
-            return Terra_ActuatorType_Valve;
-        case 'm':
+    switch (terraTrieChar(actuatorTypeStr, 4)) {
+        case '\0':
             return Terra_ActuatorType_Pump;
-        case 'r':
+        case 'a':
+            return Terra_ActuatorType_Variable;
+        case 'e':
             switch (terraTrieChar(actuatorTypeStr, 0)) {
-                case 'c':
-                    return Terra_ActuatorType_Circulator;
+                case 'h':
+                    return Terra_ActuatorType_Heater;
                 case 'v':
-                    return Terra_ActuatorType_Variable;
+                    return Terra_ActuatorType_Valve;
             }
             return Terra_ActuatorType_Undefined;
-        case 'v':
+        case 'f':
+            return Terra_ActuatorType_Undefined;
+        case 'p':
+            return Terra_ActuatorType_SumpPump;
+        case 'r':
             return Terra_ActuatorType_Diverter;
+        case 't':
+            return Terra_ActuatorType_Digital;
+        case 'u':
+            return Terra_ActuatorType_Circulator;
     }
     return Terra_ActuatorType_Undefined;
 }

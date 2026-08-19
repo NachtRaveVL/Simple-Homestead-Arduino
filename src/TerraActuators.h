@@ -60,6 +60,33 @@ protected:
     uint32_t _startedAt;                                    // Continuous run start timestamp
 };
 
+// Sump Pump Actuator
+// Adds level hysteresis, high-water alarm state, invalid-level fail-safe shutdown,
+// and continuous-runtime protection to a normal pump output.
+class TerraSumpPump : public TerraPump {
+public:
+    TerraSumpPump(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
+
+    bool configureLevels(float startPercent, float stopPercent,
+                         float alarmPercent = TERRA_SUMP_ALARM_LEVEL_PERCENT);
+    bool updateLevel(float levelPercent, bool valid = true, uint32_t now = terraMillis());
+
+    float getStartLevelPercent() const { return _startLevelPercent; }
+    float getStopLevelPercent() const { return _stopLevelPercent; }
+    float getAlarmLevelPercent() const { return _alarmLevelPercent; }
+    float getLastLevelPercent() const { return _lastLevelPercent; }
+    bool hasValidLevel() const { return _levelValid; }
+    bool hasHighWaterAlarm() const { return _highWaterAlarm; }
+
+protected:
+    float _startLevelPercent;                               // Pump start level, percent
+    float _stopLevelPercent;                                // Pump stop level, percent
+    float _alarmLevelPercent;                               // High-water alarm level, percent
+    float _lastLevelPercent;                                // Latest valid sump level, percent
+    bool _levelValid;                                       // Latest level validity state
+    bool _highWaterAlarm;                                   // High-water alarm state
+};
+
 class TerraVariableActuator : public TerraActuator {
 public:
     TerraVariableActuator(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())

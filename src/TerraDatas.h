@@ -58,6 +58,9 @@ struct TerraActuatorData : public TerraObjectData {
     bool hasPinDriver;                                      // Pin-backed driver configured flag
     TerraPinSetup pinSetup;                                 // Saved pin setup
     int maximumRaw;                                         // Maximum raw output value
+    float sumpStartPercent;                                 // Sump pump start level, percent
+    float sumpStopPercent;                                  // Sump pump stop level, percent
+    float sumpAlarmPercent;                                 // Sump high-water alarm level, percent
 
     TerraActuatorData();
     TerraString toJSON() const;

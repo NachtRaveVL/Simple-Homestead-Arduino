@@ -82,7 +82,7 @@ static void test_measurements_and_strings() {
         Terra_SensorType v = (Terra_SensorType)i;
         assert(terraSensorTypeFromString(terraSensorTypeToString(v)) == v);
     }
-    for (int i = Terra_ActuatorType_Undefined; i <= Terra_ActuatorType_Circulator; ++i) {
+    for (int i = Terra_ActuatorType_Undefined; i <= Terra_ActuatorType_SumpPump; ++i) {
         Terra_ActuatorType v = (Terra_ActuatorType)i;
         assert(terraActuatorTypeFromString(terraActuatorTypeToString(v)) == v);
     }
@@ -155,6 +155,7 @@ static void test_resource_water() {
     TerraCistern cistern(1000, 2, "cistern");
     cistern.setThresholds(20, 35, 90);
     assert(cistern.configureFillBand(40, 90, 99));
+    assert(!cistern.configureFillBand(40, 99, 99));
     cistern.setStoredLiters(500);
     assert(isFPEqual(cistern.getLevel(), 50));
     assert(isFPEqual(cistern.availableAboveReserveLiters(), 300));
@@ -219,6 +220,8 @@ static void test_thermal_environment() {
     assert(store.setTargetRange(45, 65));
     assert(!store.setTargetRange(70, 60));
     store.setAbsoluteMaximum(90);
+    assert(!store.setTargetRange(45, 95));
+    assert(isFPEqual(store.getAbsoluteMaximum(), 90));
     store.setTemperature(40); assert(store.needsHeat());
     store.setTemperature(70); assert(store.isOverTemperature());
     store.setTemperature(90); assert(store.isSafetyLimitExceeded());
@@ -252,6 +255,7 @@ static void test_sensors_actuators_triggers() {
     assert(remote.isOnline(500));
     assert(!remote.isOnline(1200));
     remote.update(1200); assert(remote.hasFault());
+    assert(!remote.getMeasurement().valid);
     remote.receiveReport(22, Terra_Unit_Celsius, 1300, true); assert(!remote.hasFault());
     remote.receiveReport(0, Terra_Unit_Celsius, 1400, false); assert(remote.hasFault());
 
@@ -296,6 +300,26 @@ static void test_sensors_actuators_triggers() {
     assert(t.evaluate(TerraMeasurement(9, Terra_Unit_Raw, 0, true)) == Terra_TriggerState_Active);
     assert(t.evaluate(TerraMeasurement(7, Terra_Unit_Raw, 0, true)) == Terra_TriggerState_Inactive);
     assert(t.evaluate(TerraMeasurement(NAN, Terra_Unit_Raw, 0, false)) == Terra_TriggerState_Fault);
+
+    TerraSumpPump sump(26, "basement sump");
+    lastActuatorValue = -1.0f;
+    sump.setWriteCallback(actuatorCallback);
+    sump.setMaxContinuousRuntime(1000);
+    assert(sump.configureLevels(70.0f, 20.0f, 90.0f));
+    assert(!sump.configureLevels(20.0f, 70.0f, 90.0f));
+    assert(sump.updateLevel(75.0f, true, 100));
+    assert(sump.isActive() && isFPEqual(lastActuatorValue, 1.0f));
+    assert(sump.updateLevel(50.0f, true, 500));
+    assert(!sump.updateLevel(15.0f, true, 600));
+    assert(!sump.isActive() && isFPEqual(lastActuatorValue, 0.0f));
+    assert(sump.updateLevel(95.0f, true, 700));
+    assert(sump.hasHighWaterAlarm());
+    assert(!sump.updateLevel(95.0f, false, 800));
+    assert(sump.hasFault() && !sump.hasValidLevel() && !sump.isActive());
+    assert(sump.updateLevel(75.0f, true, 900));
+    assert(!sump.hasFault() && sump.hasValidLevel());
+    sump.update(2000);
+    assert(sump.hasFault() && !sump.isActive());
 }
 
 static void test_data_roundtrips() {
@@ -431,6 +455,21 @@ static void test_data_roundtrips() {
     assert(pumpData2.enableMode == Terra_EnableMode_Average);
     assert(pumpData2.maxContinuousMs == 120000);
 
+    TerraActuatorData sumpData;
+    sumpData.key = 110;
+    sumpData.name = "Basement Sump";
+    sumpData.actuatorType = Terra_ActuatorType_SumpPump;
+    sumpData.maxContinuousMs = 45000;
+    sumpData.sumpStartPercent = 72.0f;
+    sumpData.sumpStopPercent = 18.0f;
+    sumpData.sumpAlarmPercent = 93.0f;
+    TerraActuatorData sumpData2;
+    assert(sumpData2.fromJSON(sumpData.toJSON()));
+    assert(sumpData2.actuatorType == Terra_ActuatorType_SumpPump);
+    assert(isFPEqual(sumpData2.sumpStartPercent, 72.0f));
+    assert(isFPEqual(sumpData2.sumpStopPercent, 18.0f));
+    assert(isFPEqual(sumpData2.sumpAlarmPercent, 93.0f));
+
     TerraThermalLoopData loopData;
     loopData.key = 108;
     loopData.name = "Solar Loop";
@@ -565,6 +604,26 @@ static void test_factory_persistence_reconstruction() {
     assert(pumpPin.pin == 9 && pumpPin.mode == Terra_PinMode_Digital_Output && pumpPin.activeLow);
     delete pumpCopyObject;
     delete pumpData;
+
+    TerraSumpPump sumpPersist(208, "sump-persist");
+    sumpPersist.setMaxContinuousRuntime(45000);
+    assert(sumpPersist.configureLevels(72.0f, 18.0f, 93.0f));
+    TerraObjectData *sumpDataBase = TerraFactory::newDataFromObject(&sumpPersist);
+    TerraActuatorData *sumpData = static_cast<TerraActuatorData *>(sumpDataBase);
+    assert(sumpData && sumpData->actuatorType == Terra_ActuatorType_SumpPump);
+    assert(isFPEqual(sumpData->sumpStartPercent, 72.0f));
+    TerraString sumpJson = sumpData->toJSON();
+    TerraActuatorData parsedSumpData;
+    assert(parsedSumpData.fromJSON(sumpJson));
+    TerraObject *sumpCopyObject = TerraFactory::newObjectFromData(&parsedSumpData);
+    TerraSumpPump *sumpCopy = static_cast<TerraSumpPump *>(sumpCopyObject);
+    assert(sumpCopy && sumpCopy->getActuatorType() == Terra_ActuatorType_SumpPump);
+    assert(isFPEqual(sumpCopy->getStartLevelPercent(), 72.0f));
+    assert(isFPEqual(sumpCopy->getStopLevelPercent(), 18.0f));
+    assert(isFPEqual(sumpCopy->getAlarmLevelPercent(), 93.0f));
+    assert(sumpCopy->getMaxContinuousRuntime() == 45000);
+    delete sumpCopyObject;
+    delete sumpDataBase;
 
     TerraThermalLoop loop(203, "thermal-loop");
     assert(loop.configure(10, 4, 84));
