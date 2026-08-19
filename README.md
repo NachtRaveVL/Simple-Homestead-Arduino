@@ -633,7 +633,3 @@ The `TerraRemoteSensor` tracks the reported sensor type, last update, expected f
 ### Safety Boundary
 
 Terraduino can supervise infrastructure, but it cannot make an unsafe plumbing, electrical, pressure, or heating system safe. Code-required and manufacturer-required protective hardware should operate independently of the Arduino whenever a failure could create a dangerous condition.
-
-## License
-
-Terraduino is released under the MIT License. See `LICENSE` for details.
