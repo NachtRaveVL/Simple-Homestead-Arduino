@@ -1,4 +1,4 @@
-#ifndef TerraMenuWater_H
-#define TerraMenuWater_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Water
+    // TODO: Implement Terraduino water screen.
+*/
+#pragma once

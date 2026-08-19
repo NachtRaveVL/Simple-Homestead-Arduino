@@ -1,4 +1,4 @@
-#ifndef TerraMenuPowerRails_H
-#define TerraMenuPowerRails_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Power Rails
+    // TODO: Implement Terraduino power rails screen.
+*/
+#pragma once

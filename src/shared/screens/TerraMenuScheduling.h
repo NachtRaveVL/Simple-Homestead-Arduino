@@ -1,4 +1,4 @@
-#ifndef TerraMenuScheduling_H
-#define TerraMenuScheduling_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Scheduling
+    // TODO: Implement Terraduino scheduling screen.
+*/
+#pragma once

@@ -1,4 +1,4 @@
-#ifndef TerraMenuSensors_H
-#define TerraMenuSensors_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Sensors
+    // TODO: Implement Terraduino sensors screen.
+*/
+#pragma once

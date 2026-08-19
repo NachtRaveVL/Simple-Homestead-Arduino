@@ -1,4 +1,4 @@
-#ifndef TerraMenuActuators_H
-#define TerraMenuActuators_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Actuators
+    // TODO: Implement Terraduino actuators screen.
+*/
+#pragma once

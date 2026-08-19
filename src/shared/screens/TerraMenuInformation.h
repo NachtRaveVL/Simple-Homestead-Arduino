@@ -1,4 +1,4 @@
-#ifndef TerraMenuInformation_H
-#define TerraMenuInformation_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Information
+    // TODO: Implement Terraduino information screen.
+*/
+#pragma once

@@ -1,4 +1,4 @@
-#ifndef TerraMenuAlerts_H
-#define TerraMenuAlerts_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Alerts
+    // TODO: Implement Terraduino alerts screen.
+*/
+#pragma once

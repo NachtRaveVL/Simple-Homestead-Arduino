@@ -1,4 +1,4 @@
-#ifndef TerraMenuHome_H
-#define TerraMenuHome_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Home
+    // TODO: Implement Terraduino home screen.
+*/
+#pragma once

@@ -1,4 +1,4 @@
-#ifndef TerraMenuSettings_H
-#define TerraMenuSettings_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Settings
+    // TODO: Implement Terraduino settings screen.
+*/
+#pragma once

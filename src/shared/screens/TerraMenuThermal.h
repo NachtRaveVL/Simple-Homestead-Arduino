@@ -1,4 +1,4 @@
-#ifndef TerraMenuThermal_H
-#define TerraMenuThermal_H
-#include "TerraMenuScreens.h"
-#endif
+/*  Terraduino UI Screen: Thermal
+    // TODO: Implement Terraduino thermal screen.
+*/
+#pragma once

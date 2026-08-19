@@ -1,199 +1,103 @@
-#include "Astruino.h"
-#include <cmath>
+#include "Terraduino.h"
 #include <cstdlib>
 #include <iostream>
-#include <vector>
 
 static void check(bool condition, const char *message)
 {
-    if (!condition) { std::cerr << "FAIL: " << message << std::endl; std::exit(1); }
+    if (!condition) {
+        std::cerr << "FAIL: " << message << std::endl;
+        std::exit(1);
+    }
 }
 
-struct TriggerState { int starts = 0; int stops = 0; };
-static void cameraTrigger(void *context, bool active)
-{
-    TriggerState *state = (TriggerState *)context;
-    if (active) { ++state->starts; } else { ++state->stops; }
-}
+struct OutputState {
+    float value = 0.0f;
+    int writes = 0;
+};
 
-struct LogState { int count = 0; };
-static void logSink(void *context, const AstroLogEvent &) { ++((LogState *)context)->count; }
-
-struct ActuatorState { float power = 0.0f; int writes = 0; };
-static void actuatorWrite(void *context, float power)
+static void writeOutput(void *context, float value)
 {
-    ActuatorState *state = (ActuatorState *)context;
-    state->power = power; ++state->writes;
-}
-
-struct AxisState { int writes = 0; double primary = 0.0; double secondary = 0.0; };
-static void axisWrite(void *context, uint8_t axisIndex, double targetDegrees)
-{
-    AxisState *state = (AxisState *)context;
+    OutputState *state = static_cast<OutputState *>(context);
+    state->value = value;
     ++state->writes;
-    if (axisIndex == 0) { state->primary = targetDegrees; } else { state->secondary = targetDegrees; }
 }
 
-struct AxisFeedbackState { double primary = 0.0; double secondary = 0.0; bool available = true; };
-static bool axisRead(void *context, uint8_t axisIndex, double *positionDegreesOut)
-{
-    AxisFeedbackState *state = (AxisFeedbackState *)context;
-    if (!state->available || !positionDegreesOut) { return false; }
-    *positionDegreesOut = axisIndex == 0 ? state->primary : state->secondary;
-    return true;
-}
-
-struct PublishState { int count = 0; uint8_t columns = 0; };
-static void publishSink(void *context, int64_t, const AstroDataColumn *, uint8_t columnCount)
-{
-    PublishState *state = (PublishState *)context;
-    ++state->count; state->columns = columnCount;
-}
+static int dailyRuns = 0;
+static void dailyTask(void *) { ++dailyRuns; }
 
 int main()
 {
-    double dew = AstroThermalBalancer::calculateDewPoint(10.0, 90.0);
-    check(dew > 8.0 && dew < 9.5, "dew point");
+    TerraCistern cistern(1000.0f, 1, "Main Cistern");
+    check(cistern.setThresholds(20.0f, 30.0f, 90.0f), "cistern thresholds configure");
+    check(cistern.configureFillBand(40.0f, 90.0f, 99.0f), "cistern fill band configures");
+    check(!cistern.configureFillBand(40.0f, 99.0f, 99.0f), "cistern rejects fill stop at overflow limit");
+    cistern.setStoredLiters(980.0f);
+    check(isFPEqual(cistern.receiveWater(50.0f), 10.0f), "cistern accepts only safe fill capacity");
+    check(isFPEqual(cistern.getStoredLiters(), 990.0f), "cistern stops at overflow safety band");
+    check(isFPEqual(cistern.getOverflowLiters(), 40.0f), "cistern accounts rejected overflow water");
 
-    AstroThermalBalancer thermal;
-    thermal.setMode(Astro_ThermalMode_NightObserving);
-    thermal.setCameraTarget(-10.0);
-    thermal.setCameraCoolingRamp(120.0);
-    AstroThermalReadings readings;
-    readings.ambientTemperatureC = 10.0;
-    readings.humidityPercent = 90.0;
-    readings.opticsTemperatureC = 8.0;
-    readings.cameraSensorTemperatureC = 5.0;
-    readings.cameraBodyTemperatureC = 10.0;
-    ActuatorState dewActState, coolActState, fanActState;
-    AstroCallbackActuator dewAct(actuatorWrite, &dewActState);
-    AstroCallbackActuator coolAct(actuatorWrite, &coolActState);
-    AstroCallbackActuator fanAct(actuatorWrite, &fanActState);
-    thermal.setDewHeater(&dewAct);
-    thermal.setCameraCooler(&coolAct);
-    thermal.setCameraFan(&fanAct);
-    AstroThermalOutputs out = thermal.update(readings, 10.0);
-    check(out.dewHeaterPower > 0.0f, "dew heater balances upward");
-    check(out.cameraCoolingPower > 0.0f, "camera cooling demand");
-    check(out.opticsTargetC <= readings.ambientTemperatureC + 4.01, "optics heat capped near ambient");
-    check(dewActState.writes == 1 && isFPEqual(dewActState.power, out.dewHeaterPower), "dew heater actuator output");
-    check(coolActState.writes == 1 && isFPEqual(coolActState.power, out.cameraCoolingPower), "camera cooler actuator output");
+    TerraWaterSource rain(Terra_WaterSourceType_Rainwater, 0, 2, "Rainwater");
+    TerraWaterSource well(Terra_WaterSourceType_Well, 1, 3, "Well");
+    rain.setLevel(8.0f);
+    rain.setReserveLevel(10.0f);
+    well.setLevel(75.0f);
+    well.setReserveLevel(20.0f);
+    const TerraWaterSource *sources[] = { &rain, &well };
+    TerraWaterBalancer waterBalancer;
+    check(waterBalancer.selectSource(sources, 2) == &well, "water balancer skips source at reserve");
 
-    AstroCover cover;
-    ActuatorState coverActState; AstroCallbackActuator coverAct(actuatorWrite, &coverActState); cover.setActuator(&coverAct);
-    cover.setTravelRate(1.0f); cover.open(); cover.update(1.0);
-    check(cover.isOpen(), "cover opens");
-    check(coverActState.writes >= 1, "cover actuator driven");
-    cover.close(); cover.update(1.0);
-    check(cover.isClosed(), "cover closes");
+    TerraWaterRoute route(4, "Fill Route");
+    route.configure(well.getKey(), cistern.getKey(), 40.0f, 90.0f);
+    cistern.setLevel(35.0f);
+    TerraTransferDecision decision = route.evaluate(well, cistern);
+    check(decision.shouldRun && decision.state == Terra_RouteState_Requested, "route requests fill below start level");
+    cistern.setLevel(91.0f);
+    decision = route.evaluate(well, cistern);
+    check(!decision.shouldRun && decision.state == Terra_RouteState_Complete, "route stops above fill target");
 
-    AstroValueSensor openLimit(Astro_SensorType_LimitSwitch, Astro_UnitsType_Raw_1, ASTRO_POS_SEARCH_FROMBEG, 0.0);
-    AstroValueSensor closedLimit(Astro_SensorType_LimitSwitch, Astro_UnitsType_Raw_1, ASTRO_POS_SEARCH_FROMBEG, 1.0);
-    AstroCover feedbackCover;
-    ActuatorState feedbackCoverActState; AstroCallbackActuator feedbackCoverAct(actuatorWrite, &feedbackCoverActState);
-    feedbackCover.setActuator(&feedbackCoverAct); feedbackCover.setOpenSensor(&openLimit); feedbackCover.setClosedSensor(&closedLimit);
-    feedbackCover.open(); feedbackCover.update(1.0);
-    check(!feedbackCover.isOpen() && feedbackCoverActState.power > 0.0f, "cover waits for open limit");
-    closedLimit.setValue(0.0); openLimit.setValue(1.0); feedbackCover.update(0.1);
-    check(feedbackCover.isOpen() && isFPEqual(feedbackCoverActState.power, 0.0f), "cover stops on open limit");
-    closedLimit.setValue(1.0); feedbackCover.update(0.1);
-    check(feedbackCover.isFaulted(), "contradictory cover limits fault");
+    TerraSumpPump sump(5, "Basement Sump");
+    OutputState sumpOutput;
+    sump.setWriteCallback(writeOutput, &sumpOutput);
+    sump.setMaxContinuousRuntime(1000);
+    check(sump.configureLevels(70.0f, 20.0f, 90.0f), "sump levels configure");
+    check(!sump.configureLevels(20.0f, 70.0f, 90.0f), "sump rejects reversed hysteresis");
+    check(sump.updateLevel(75.0f, true, 100), "sump starts at high level");
+    check(sump.isActive() && isFPEqual(sumpOutput.value, 1.0f), "sump output turns on");
+    check(sump.updateLevel(50.0f, true, 500), "sump stays on through hysteresis band");
+    check(!sump.updateLevel(15.0f, true, 600), "sump stops at low level");
+    check(!sump.isActive() && isFPEqual(sumpOutput.value, 0.0f), "sump output turns off");
+    check(sump.updateLevel(95.0f, true, 700), "sump runs at high-water level");
+    check(sump.hasHighWaterAlarm(), "sump raises high-water alarm");
+    check(!sump.updateLevel(95.0f, false, 800), "invalid sump level stops pump");
+    check(sump.hasFault() && !sump.hasValidLevel() && !sump.isActive(), "invalid sump level fails safe");
+    check(sump.updateLevel(75.0f, true, 900), "valid sump level recovers invalid-level fault");
+    sump.update(2000);
+    check(sump.hasFault() && !sump.isActive(), "sump maximum runtime stops pump");
 
-    AstroCover timeoutCover;
-    AstroValueSensor timeoutOpen(Astro_SensorType_LimitSwitch, Astro_UnitsType_Raw_1, ASTRO_POS_SEARCH_FROMBEG, 0.0);
-    timeoutCover.setOpenSensor(&timeoutOpen); timeoutCover.setTravelTimeout(0.25); timeoutCover.open(); timeoutCover.update(0.5);
-    check(timeoutCover.isFaulted(), "cover travel timeout faults");
+    TerraThermalStore thermal(6, "Thermal Store");
+    check(thermal.setAbsoluteMaximum(90.0f), "thermal absolute maximum configures");
+    check(thermal.setTargetRange(45.0f, 65.0f), "thermal target range configures");
+    check(!thermal.setTargetRange(45.0f, 95.0f), "normal target cannot raise safety ceiling");
+    thermal.setTemperature(90.0f);
+    check(thermal.isSafetyLimitExceeded(), "thermal safety ceiling trips");
 
-    AstroMount mount(Astro_MountType_Equatorial);
-    mount.setObserver(AstroObserver(49.2827, -123.1207));
-    mount.setAxisRates(360.0, 360.0);
-    AxisState axisState; mount.setAxisTargetCallback(axisWrite, &axisState);
-    mount.unpark(); mount.setTarget(Astro_Target_M42); mount.track(); mount.update(1787011200, 1.0);
-    check(mount.isAligned(0.01), "mount slews to target");
-    check(axisState.writes == 2, "mount axis targets exported");
-    mount.park(); mount.update(1787011201, 1.0);
-    check(mount.isParked(), "mount parks");
+    TerraThermalLoop loop(7, "Collector Loop");
+    check(loop.configure(8.0f, 3.0f, 80.0f), "thermal loop configures");
+    TerraThermalBalancer thermalBalancer;
+    check(thermalBalancer.evaluate(loop, 70.0f, 50.0f), "thermal loop starts on useful differential");
+    check(!thermalBalancer.evaluate(loop, 85.0f, 80.0f), "thermal loop stops at storage maximum");
 
-    AstroMount parkedFeedbackMount(Astro_MountType_Equatorial);
-    AxisFeedbackState parkedFeedbackState; parkedFeedbackState.primary = 15.0; parkedFeedbackState.secondary = 5.0;
-    parkedFeedbackMount.setAxisPositionCallback(axisRead, &parkedFeedbackState); parkedFeedbackMount.update(1787011200, 0.0);
-    check(!parkedFeedbackMount.isParked(), "position feedback invalidates stale parked state");
-    parkedFeedbackMount.park();
-    check(parkedFeedbackMount.isParking(), "feedback mount begins park movement");
+    TerraScheduler scheduler;
+    check(scheduler.addDailyTask(dailyTask, nullptr, 360) >= 0, "daily task added");
+    scheduler.update(0, 359, 10);
+    check(dailyRuns == 0, "daily task waits for scheduled minute");
+    scheduler.update(0, 360, 10);
+    check(dailyRuns == 1, "daily task runs at scheduled minute");
+    scheduler.update(0, 500, 10);
+    check(dailyRuns == 1, "daily task runs once per day");
+    scheduler.update(0, 360, 11);
+    check(dailyRuns == 2, "daily task runs again next day");
 
-    AstroMount feedbackMount(Astro_MountType_Equatorial);
-    feedbackMount.setObserver(AstroObserver(49.2827, -123.1207)); feedbackMount.setAxisRates(360.0, 360.0);
-    AxisFeedbackState feedbackState; feedbackMount.setAxisPositionCallback(axisRead, &feedbackState);
-    feedbackMount.unpark(); feedbackMount.setTarget(Astro_Target_M31); feedbackMount.track(); feedbackMount.update(1787011200, 1.0);
-    check(!feedbackMount.isAligned(0.01), "mount honors external position feedback");
-    feedbackState.primary = feedbackMount.getPrimaryAxis().targetDegrees; feedbackState.secondary = feedbackMount.getSecondaryAxis().targetDegrees;
-    feedbackMount.update(1787011200, 0.0);
-    check(feedbackMount.isAligned(0.01), "mount aligns from external position feedback");
-
-    AstroMount wrapMount(Astro_MountType_AltAz);
-    wrapMount.setAxisRates(1.0, 360.0); wrapMount.setAxisPosition(0, 359.0); wrapMount.setAxisPosition(1, 0.0);
-    wrapMount.setParkPosition(1.0, 0.0); wrapMount.unpark(); wrapMount.park(); wrapMount.update(1787011200, 1.0);
-    check(isFPEqual(wrapMount.getPrimaryAxis().positionDegrees, 0.0), "altaz axis crosses zero by shortest path");
-    wrapMount.update(1787011201, 1.0); check(wrapMount.isParked(), "altaz park completes across wrap");
-
-    AstroMount limitedMount(Astro_MountType_Equatorial);
-    limitedMount.setAxisLimits(0, -10.0, 10.0); limitedMount.setParkPosition(20.0, 0.0); limitedMount.unpark(); limitedMount.park();
-    check(limitedMount.isLimitHit() && isFPEqual(limitedMount.getPrimaryAxis().targetDegrees, 10.0), "mount software limit clamps unsafe target");
-
-    AstroMount singleAxis(Astro_MountType_SingleAxis);
-    AxisState singleAxisState; singleAxis.setAxisTargetCallback(axisWrite, &singleAxisState); singleAxis.unpark(); singleAxis.track();
-    singleAxis.pulseGuide(0, Astro_DirectionMode_Forward, 1000, 1.0); singleAxis.update(1787011200, 0.0);
-    check(isFPEqual(singleAxis.getPrimaryAxis().targetDegrees, ASTRO_MOUNT_SIDEREAL_RATE_DEGPS), "pulse guide adds sidereal offset");
-    singleAxis.update(1787011201, 10.0);
-    check(singleAxisState.writes == 2, "single-axis mount exports one axis per update");
-    check(singleAxis.getPrimaryAxis().targetDegrees > ASTRO_MOUNT_SIDEREAL_RATE_DEGPS, "single-axis mount advances at sidereal rate");
-
-    TriggerState triggerState;
-    AstroCameraTrigger camera(cameraTrigger, &triggerState);
-    AstroLogger logger; LogState logState; logger.setSink(logSink, &logState);
-    AstroScheduler scheduler;
-    scheduler.setMount(&mount); scheduler.setCover(&cover); scheduler.setObservationDevice(&camera); scheduler.setThermalBalancer(&thermal); scheduler.setLogger(&logger);
-    scheduler.setTarget(Astro_Target_M31);
-    AstroSchedulerConfig config; config.settleSeconds = 2; config.deploySunAltitudeDegrees = -6.0; config.stowSunAltitudeDegrees = -3.0; scheduler.setConfig(config);
-
-    int64_t t = 1787011200;
-    readings.cameraSensorTemperatureC = 10.0;
-    scheduler.update(t++, 1.0, -10.0, true, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_Deploying, "night deployment begins");
-    scheduler.update(t++, 1.0, -10.0, true, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_Cooling, "cover opens before cooling");
-    readings.cameraSensorTemperatureC = -10.0;
-    scheduler.update(t++, 10.0, -10.0, true, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_Slewing, "cooling completes");
-    scheduler.update(t++, 1.0, -10.0, true, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_Settling, "slew completes");
-    scheduler.update(t++, 1.0, -10.0, true, readings);
-    scheduler.update(t++, 1.0, -10.0, true, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_Observing, "settle enters observation");
-    check(camera.isCapturing() && triggerState.starts == 1, "camera signaled");
-
-    scheduler.update(t++, 1.0, -10.0, false, readings);
-    check(scheduler.getStage() == Astro_SchedulerStage_SafeStowed, "unsafe condition forces safe state");
-    check(!camera.isCapturing(), "unsafe condition stops camera");
-    scheduler.update(t++, 1.0, -10.0, false, readings);
-    scheduler.update(t++, 1.0, -10.0, false, readings);
-    check(mount.isParked() && cover.isClosed(), "safe stow completes before enclosure closure");
-
-    AstroScheduler faultScheduler; faultScheduler.setCover(&timeoutCover); faultScheduler.update(t++, 0.1, -10.0, true, readings);
-    check(faultScheduler.getStage() == Astro_SchedulerStage_Fault, "cover fault enters scheduler fault state");
-
-    AstroLogger filterLogger; LogState filterState; filterLogger.setSink(logSink, &filterState); filterLogger.setLogLevel(Astro_LogLevel_Errors);
-    filterLogger.logMessage(t, "hidden"); filterLogger.logWarning(t, "hidden"); filterLogger.logError(t, "shown");
-    check(filterState.count == 1, "logger filtering");
-
-    AstroPublisher publisher; PublishState publishState; publisher.setSink(publishSink, &publishState);
-    check(publisher.addColumn(1) && publisher.addColumn(2), "publisher columns");
-    publisher.publishData(1, 10.0, 5, t);
-    check(publishState.count == 0, "publisher waits for frame");
-    publisher.publishData(2, 20.0, 5, t);
-    check(publishState.count == 1 && publishState.columns == 2, "publisher emits complete frame");
-
-    check(logState.count > 0, "scheduler reporting/logging active");
-    std::cout << "PASS automation" << std::endl;
+    std::cout << "PASS Terraduino automation" << std::endl;
     return 0;
 }

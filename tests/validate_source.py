@@ -42,7 +42,8 @@ required = [
     "src/shared/TerraduinoUI.h", "src/shared/TerraduinoUI.cpp", "src/min/TerraduinoUI.h", "src/min/TerraduinoUI.cpp",
     "src/full/TerraduinoUI.h", "src/full/TerraduinoUI.cpp",
     "tests/CMakeLists.txt", "tests/README.md", "tests/run_tests.sh", "tests/generate_enum_trie.py", "tests/validate_examples.py",
-    "tests/host/test_terraduino.cpp", "tests/EnumConversionTests/EnumConversionTests.ino",
+    "tests/host/test_terraduino.cpp", "tests/host/test_automation.cpp", "tests/host/test_infrastructure.cpp",
+    "tests/EnumConversionTests/EnumConversionTests.ino",
     "tests/EnumTrieExportToCPP/EnumTrieExportToCPP.ino", "tests/JSONExportTests/JSONExportTests.ino",
 ]
 tc_menu_files = [
@@ -87,16 +88,19 @@ for base in (SRC, ROOT / "examples"):
         if match:
             errors.append(f"unfinished-work marker in {p.relative_to(ROOT)}: {match.group(0)}")
 
-# Do not leave copied sibling branding in production source.
+# Do not leave copied sibling branding in production source, examples, or tests.
+# Repository-local wiki content is intentionally excluded because it may discuss sibling libraries.
 foreign_names = ["Hy" + "druino", "He" + "lioduino", "As" + "truino", "As" + "tro"]
 foreign_re = re.compile(r"\b(" + "|".join(map(re.escape, foreign_names)) + r")\b", re.IGNORECASE)
-for p in ROOT.rglob("*"):
-    if p.is_file():
+for base in (SRC, ROOT / "examples", ROOT / "tests"):
+    for p in base.rglob("*"):
+        if not p.is_file() or p == Path(__file__):
+            continue
         rel = str(p.relative_to(ROOT))
         path_match = foreign_re.search(rel)
         if path_match:
             errors.append(f"stale sibling name in file path: {rel}")
-        if p.suffix.lower() in {".h", ".hh", ".hpp", ".cpp", ".ino", ".md", ".txt", ".json", ".properties", ".py"} and p.name != Path(__file__).name:
+        if p.suffix.lower() in {".h", ".hh", ".hpp", ".cpp", ".ino", ".md", ".txt", ".json", ".properties", ".py"}:
             match = foreign_re.search(p.read_text(errors="ignore"))
             if match:
                 errors.append(f"stale sibling name in {rel}: {match.group(0)}")
