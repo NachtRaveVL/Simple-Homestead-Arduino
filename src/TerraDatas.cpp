@@ -296,7 +296,7 @@ bool TerraWaterStorageData::fromJSON(const TerraString &json) {
     storageType = terraWaterStorageTypeFromString(type);
     if (!terraStringEqualsIgnoreCase(type, terraWaterStorageTypeToString(storageType))) return false;
     if (fillStartPercent < 0.0f || fillStartPercent >= fillStopPercent ||
-        fillStopPercent > overflowPercent || overflowPercent > 100.0f) return false;
+        fillStopPercent >= overflowPercent || overflowPercent > 100.0f) return false;
     copyObjectFields(base, *this); objectType = Terra_ObjectType_WaterStorage;
     resourceType = Terra_ResourceType_Water; level = base.level; reserveLevel = base.reserveLevel;
     lowLevel = base.lowLevel; highLevel = base.highLevel;

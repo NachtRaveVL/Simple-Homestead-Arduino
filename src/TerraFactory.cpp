@@ -292,23 +292,29 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
         case Terra_ObjectType_Resource: {
             const TerraResourceData *data = static_cast<const TerraResourceData *>(dataIn);
             TerraResource *resource = newResource(data->resourceType, data->key, data->name);
-            if (resource) {
-                resource->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
-                resource->setLevel(data->level);
+            if (resource && !resource->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel)) {
+                delete resource;
+                resource = nullptr;
             }
+            if (resource) { resource->setLevel(data->level); }
             object = resource;
         } break;
 
         case Terra_ObjectType_WaterStorage: {
             const TerraWaterStorageData *data = static_cast<const TerraWaterStorageData *>(dataIn);
             TerraWaterStorage *storage = newWaterStorage(data->storageType, data->capacityLiters, data->key, data->name);
+            if (storage && !storage->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel)) {
+                delete storage;
+                storage = nullptr;
+            }
             if (storage) {
-                storage->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
                 storage->setLevel(data->level);
-                if (data->storageType == Terra_WaterStorageType_Cistern) {
-                    static_cast<TerraCistern *>(storage)->configureFillBand(data->fillStartPercent,
-                                                                           data->fillStopPercent,
-                                                                           data->overflowPercent);
+                if (data->storageType == Terra_WaterStorageType_Cistern &&
+                    !static_cast<TerraCistern *>(storage)->configureFillBand(data->fillStartPercent,
+                                                                             data->fillStopPercent,
+                                                                             data->overflowPercent)) {
+                    delete storage;
+                    storage = nullptr;
                 }
             }
             object = storage;
@@ -344,18 +350,34 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
         case Terra_ObjectType_ThermalStore: {
             const TerraThermalStoreData *data = static_cast<const TerraThermalStoreData *>(dataIn);
             TerraThermalStore *store = new TerraThermalStore(data->key, data->name);
-            store->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
-            store->setLevel(data->level);
-            store->setTargetRange(data->minimumTargetC, data->maximumTargetC);
-            store->setAbsoluteMaximum(data->absoluteMaximumC);
-            store->setTemperature(data->temperatureC);
+            bool configured = store->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
+            if (configured) { store->setLevel(data->level); }
+
+            if (configured && data->absoluteMaximumC > store->getAbsoluteMaximum()) {
+                configured = store->setAbsoluteMaximum(data->absoluteMaximumC);
+            }
+            if (configured) {
+                configured = store->setTargetRange(data->minimumTargetC, data->maximumTargetC);
+            }
+            if (configured && !isFPEqual(store->getAbsoluteMaximum(), data->absoluteMaximumC)) {
+                configured = store->setAbsoluteMaximum(data->absoluteMaximumC);
+            }
+            if (!configured) {
+                delete store;
+                store = nullptr;
+            } else {
+                store->setTemperature(data->temperatureC);
+            }
             object = store;
         } break;
 
         case Terra_ObjectType_ThermalLoop: {
             const TerraThermalLoopData *data = static_cast<const TerraThermalLoopData *>(dataIn);
             TerraThermalLoop *loop = new TerraThermalLoop(data->key, data->name);
-            loop->configure(data->onDifferentialC, data->offDifferentialC, data->maxStoreTempC);
+            if (!loop->configure(data->onDifferentialC, data->offDifferentialC, data->maxStoreTempC)) {
+                delete loop;
+                loop = nullptr;
+            }
             object = loop;
         } break;
 

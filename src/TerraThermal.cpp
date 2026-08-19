@@ -31,7 +31,7 @@ bool TerraThermalStore::setAbsoluteMaximum(float maximumC) {
 }
 
 bool TerraThermalLoop::configure(float onDifferentialC, float offDifferentialC, float maxStoreTempC) {
-    if (offDifferentialC < 0.0f || onDifferentialC < offDifferentialC) return false;
+    if (offDifferentialC < 0.0f || onDifferentialC <= offDifferentialC) return false;
     _onDifferentialC = onDifferentialC;
     _offDifferentialC = offDifferentialC;
     _maxStoreTempC = maxStoreTempC;

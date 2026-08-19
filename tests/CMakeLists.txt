@@ -28,6 +28,11 @@ target_link_libraries(terraduino_infrastructure_tests PRIVATE terraduino_host)
 target_compile_options(terraduino_infrastructure_tests PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
 add_test(NAME terraduino_infrastructure_tests COMMAND terraduino_infrastructure_tests)
 
+add_executable(terraduino_hardening_tests host/test_hardening.cpp)
+target_link_libraries(terraduino_hardening_tests PRIVATE terraduino_host)
+target_compile_options(terraduino_hardening_tests PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
+add_test(NAME terraduino_hardening_tests COMMAND terraduino_hardening_tests)
+
 function(add_terraduino_example target example_name)
     add_executable(${target} host/examples/${example_name}.cpp)
     target_link_libraries(${target} PRIVATE terraduino_host)
