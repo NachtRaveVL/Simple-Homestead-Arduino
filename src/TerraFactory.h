@@ -28,11 +28,10 @@ class TerraEnvironment;                                     // Terra Environment
 class TerraPowerRail;                                       // Terra Power Rail
 
 // Object Factory
-// Contains convenience builders for system objects. Objects created through these helpers
-// are registered with the controller's shared object collection for attachment-point resolution.
+// Contains convenience builders for system objects and stores registered main objects in
+// the controller's shared object collection for attachment-point resolution.
 class TerraFactory {
 public:
-    TerraFactory() { }
     virtual ~TerraFactory() { }
 
     // Convenience builders for common sensors (shared, nullptr return -> failure).

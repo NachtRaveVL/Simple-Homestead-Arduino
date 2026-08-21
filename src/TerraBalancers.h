@@ -11,6 +11,7 @@
 class TerraWaterRoute;
 class TerraWaterSource;
 class TerraWaterStorage;
+class TerraCistern;
 class TerraThermalLoop;
 class TerraThermalStore;
 
@@ -28,6 +29,13 @@ public:
     template<class T> inline void setFlowSensor(const SharedPtr<T> &sensor) { _flowSensor.setObject(sensor); }
     void update(uint32_t now = terraMillis());
     void unresolveAny(TerraObject *object);
+
+    // Selects the usable source with the lowest numeric priority value.
+    // Sources at or below their reserve level are not considered usable.
+    const TerraWaterSource *selectSource(const TerraWaterSource *const *sources, uint8_t count) const;
+    TerraCistern *selectFillCistern(TerraCistern *const *cisterns, uint8_t count) const;
+    const TerraCistern *selectSupplyCistern(const TerraCistern *const *cisterns, uint8_t count) const;
+    float transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const;
 
     TerraAttachment<TerraWaterSource> &getSourceAttachment() { return _source; }
     const TerraAttachment<TerraWaterSource> &getSourceAttachment() const { return _source; }

@@ -4,6 +4,7 @@
 */
 
 #include "TerraBalancers.h"
+#include "TerraCoreLogic.h"
 #include "TerraActuators.h"
 #include "TerraSensors.h"
 #include "TerraThermal.h"
@@ -88,6 +89,50 @@ void TerraWaterBalancer::unresolveAny(TerraObject *object)
     _destination.unresolveAny(object);
     _pump.unresolveAny(object);
     _flowSensor.unresolveAny(object);
+}
+
+const TerraWaterSource *TerraWaterBalancer::selectSource(const TerraWaterSource *const *sources, uint8_t count) const
+{
+    if (!sources || !count) return nullptr;
+    const TerraWaterSource *selected = nullptr;
+    for (uint8_t index = 0; index < count; ++index) {
+        const TerraWaterSource *source = sources[index];
+        if (!source || !source->isAvailable() || source->getLevel() <= source->getReserveLevel()) continue;
+        if (!selected || source->getPriority() < selected->getPriority()) selected = source;
+    }
+    return selected;
+}
+
+TerraCistern *TerraWaterBalancer::selectFillCistern(TerraCistern *const *cisterns, uint8_t count) const
+{
+    if (!cisterns || !count) return nullptr;
+    TerraCistern *selected = nullptr;
+    for (uint8_t index = 0; index < count; ++index) {
+        TerraCistern *cistern = cisterns[index];
+        if (!cistern || !cistern->needsFill(false)) continue;
+        if (!selected || cistern->getLevel() < selected->getLevel()) selected = cistern;
+    }
+    return selected;
+}
+
+const TerraCistern *TerraWaterBalancer::selectSupplyCistern(const TerraCistern *const *cisterns, uint8_t count) const
+{
+    if (!cisterns || !count) return nullptr;
+    const TerraCistern *selected = nullptr;
+    for (uint8_t index = 0; index < count; ++index) {
+        const TerraCistern *cistern = cisterns[index];
+        if (!cistern || !cistern->canSupplyWater()) continue;
+        if (!selected || cistern->availableAboveReserveLiters() > selected->availableAboveReserveLiters()) selected = cistern;
+    }
+    return selected;
+}
+
+float TerraWaterBalancer::transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const
+{
+    if (!source.canSupplyWater() || !destination.canAcceptWater()) return 0.0f;
+    const float sourceReserve = source.getCapacityLiters() * (source.getReserveLevel() / 100.0f);
+    const float destinationTarget = destination.getCapacityLiters() * (destination.getFillStopPercent() / 100.0f);
+    return terraCisternTransferLiters(source.getStoredLiters(), sourceReserve, destination.getStoredLiters(), destinationTarget, requestedLiters);
 }
 
 TerraThermalBalancer::TerraThermalBalancer(TerraThermalLoop *loop)

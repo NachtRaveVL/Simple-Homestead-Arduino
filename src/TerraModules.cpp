@@ -1,100 +1,11 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Modules
+    Terraduino Controller Modules
 */
 
 #include "TerraModules.h"
 #include "TerraObject.h"
 #include "TerraUtils.h"
-
-
-TerraObjectRegistration::TerraObjectRegistration()
-    : _objects(), _nextKey(1)
-{ }
-
-bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
-{
-    if (!object || _objects.size() >= TERRA_MAX_OBJECTS) return false;
-    if (object->getKey() == TERRA_INVALID_KEY) object->setKey(allocateKey(object->getName()));
-    if (_objects.find(object->getKey()) != _objects.end()) return false;
-    _objects[object->getKey()] = object;
-    return true;
-}
-
-bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
-{
-    if (!object) return false;
-    auto iter = _objects.find(object->getKey());
-    if (iter == _objects.end() || iter->second.get() != object.get()) return false;
-    object->unresolve();
-    _objects.erase(iter);
-    return true;
-}
-
-SharedPtr<TerraObject> TerraObjectRegistration::sharedObjectByKey(uint32_t key) const
-{
-    auto iter = _objects.find(key);
-    return iter != _objects.end() ? iter->second : SharedPtr<TerraObject>();
-}
-
-TerraObject *TerraObjectRegistration::findObjectByKey(uint32_t key) const
-{
-    return sharedObjectByKey(key).get();
-}
-
-TerraObject *TerraObjectRegistration::findObjectByName(const TerraString &name) const
-{
-    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->getName() == name) { return iter->second.get(); }
-    }
-    return nullptr;
-}
-
-TerraObject *TerraObjectRegistration::findFirstByType(Terra_ObjectType type) const
-{
-    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->getObjectType() == type) { return iter->second.get(); }
-    }
-    return nullptr;
-}
-
-uint8_t TerraObjectRegistration::findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const
-{
-    if (!output || !capacity) return 0;
-    uint8_t found = 0;
-    for (auto iter = _objects.begin(); iter != _objects.end() && found < capacity; ++iter) {
-        if (iter->second && iter->second->getObjectType() == type) { output[found++] = iter->second.get(); }
-    }
-    return found;
-}
-
-TerraObject *TerraObjectRegistration::objectAt(uint8_t index) const
-{
-    if (index >= _objects.size()) return nullptr;
-    auto iter = _objects.begin();
-    while (index--) { ++iter; }
-    return iter->second.get();
-}
-
-uint32_t TerraObjectRegistration::allocateKey(const TerraString &name)
-{
-    uint32_t candidate = 0;
-#if defined(ARDUINO)
-    if (name.length()) { candidate = terraHashString(name.c_str()); }
-#else
-    if (!name.empty()) { candidate = terraHashString(name.c_str()); }
-#endif
-    if (candidate && _objects.find(candidate) == _objects.end()) return candidate;
-    while (!_nextKey || _objects.find(_nextKey) != _objects.end()) { ++_nextKey; }
-    return _nextKey++;
-}
-
-void TerraObjectRegistration::updateObjects(uint32_t now)
-{
-    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
-    }
-}
 
 TerraModuleRegistry::TerraModuleRegistry() : _count(0) { }
 
@@ -115,3 +26,87 @@ bool TerraModuleRegistry::remove(uint8_t index) {
 TerraModule *TerraModuleRegistry::at(uint8_t index) { return index < _count ? &_modules[index] : nullptr; }
 const TerraModule *TerraModuleRegistry::at(uint8_t index) const { return index < _count ? &_modules[index] : nullptr; }
 TerraModule *TerraModuleRegistry::find(Terra_ModuleType type) { for (uint8_t i = 0; i < _count; ++i) if (_modules[i].type == type) return &_modules[i]; return nullptr; }
+
+TerraObjectRegistration::TerraObjectRegistration()
+    : _objects(), _nextKey(1)
+{ ; }
+
+bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
+{
+    if (!object || _objects.size() >= TERRA_MAX_OBJECTS) { return false; }
+    if (object->getKey() == TERRA_INVALID_KEY) { object->setKey(allocateKey(object->getName())); }
+    if (_objects.find(object->getKey()) != _objects.end()) { return false; }
+    _objects[object->getKey()] = object;
+    return true;
+}
+
+bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
+{
+    if (!object) { return false; }
+    auto iter = _objects.find(object->getKey());
+    if (iter == _objects.end() || iter->second.get() != object.get()) { return false; }
+    object->unresolve();
+    _objects.erase(iter);
+    return true;
+}
+
+SharedPtr<TerraObject> TerraObjectRegistration::sharedObjectByKey(uint32_t key) const
+{
+    auto iter = _objects.find(key);
+    return iter != _objects.end() ? iter->second : SharedPtr<TerraObject>();
+}
+
+TerraObject *TerraObjectRegistration::findObjectByName(const TerraString &name) const
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->getName() == name) { return iter->second.get(); }
+    }
+    return nullptr;
+}
+
+TerraObject *TerraObjectRegistration::findFirstByType(Terra_ObjectType type) const
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->getObjectType() == type) { return iter->second.get(); }
+    }
+    return nullptr;
+}
+
+uint8_t TerraObjectRegistration::findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const
+{
+    if (!output || !capacity) { return 0; }
+    uint8_t found = 0;
+    for (auto iter = _objects.begin(); iter != _objects.end() && found < capacity; ++iter) {
+        if (iter->second && iter->second->getObjectType() == type) { output[found++] = iter->second.get(); }
+    }
+    return found;
+}
+
+TerraObject *TerraObjectRegistration::objectAt(uint8_t index) const
+{
+    if (index >= _objects.size()) { return nullptr; }
+    auto iter = _objects.begin();
+    while (index--) { ++iter; }
+    return iter->second.get();
+}
+
+uint32_t TerraObjectRegistration::allocateKey(const TerraString &name)
+{
+    uint32_t candidate = 0;
+#if defined(ARDUINO)
+    if (name.length()) { candidate = terraHashString(name.c_str()); }
+#else
+    if (!name.empty()) { candidate = terraHashString(name.c_str()); }
+#endif
+    if (candidate && _objects.find(candidate) == _objects.end()) { return candidate; }
+    while (!_nextKey || _objects.find(_nextKey) != _objects.end()) { ++_nextKey; }
+    return _nextKey++;
+}
+
+void TerraObjectRegistration::updateObjects(uint32_t now)
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
+    }
+}
+

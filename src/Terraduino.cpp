@@ -77,7 +77,6 @@ Terraduino::Terraduino(Terra_RTCType rtcType, TerraDeviceSetup rtcSetup)
 Terraduino::~Terraduino()
 {
     suspend();
-    while (_objects.size()) { _objects.erase(_objects.begin()); }
     deallocateRTC();
     if (_activeInstance == this) _activeInstance = nullptr;
 }

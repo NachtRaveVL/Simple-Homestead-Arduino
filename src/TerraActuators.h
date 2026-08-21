@@ -66,7 +66,9 @@ protected:
 };
 
 // Sump Pump Actuator
-// Owns its level sensing and hysteresis so normal operation only requires controller update().
+// Adds level hysteresis, high-water alarm state, invalid-level fail-safe shutdown,
+// and continuous-runtime protection to a normal pump output. Level sensing is attached
+// directly so normal operation only requires controller update().
 class TerraSumpPump : public TerraPump {
 public:
     TerraSumpPump(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());

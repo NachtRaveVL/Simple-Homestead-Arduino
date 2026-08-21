@@ -10,28 +10,25 @@
 template<class TObject>
 void TerraAttachment<TObject>::attachObject()
 {
-    SharedPtr<TerraObject> object = terraReinterpretPointerCast<TerraObject>(_object);
-    if (object && _parent && object.get() != _parent) object->addLinkage(_parent);
+    if (_object && _parent && _object.get() != _parent) _object->addLinkage(_parent);
 }
 
 // Detaches a resolved object while retaining its stable key for later resolution.
 template<class TObject>
 void TerraAttachment<TObject>::detachObject()
 {
-    SharedPtr<TerraObject> object = terraReinterpretPointerCast<TerraObject>(_object);
-    if (object && _parent && object.get() != _parent) object->removeLinkage(_parent);
-    if (object) _key = object->getKey();
+    if (_object && _parent && _object.get() != _parent) _object->removeLinkage(_parent);
+    if (_object) _key = _object->getKey();
     _object.reset();
 }
 
 template<class TObject>
-void TerraAttachment<TObject>::setObjectImpl(const SharedPtr<TObject> &object)
+void TerraAttachment<TObject>::setObjectImpl(const SharedPtr<TerraObject> &object)
 {
     if (_object == object) return;
     detachObject();
     _object = object;
-    SharedPtr<TerraObject> baseObject = terraReinterpretPointerCast<TerraObject>(_object);
-    _key = baseObject ? baseObject->getKey() : TERRA_INVALID_KEY;
+    _key = _object ? _object->getKey() : TERRA_INVALID_KEY;
     attachObject();
 }
 
@@ -46,20 +43,17 @@ void TerraAttachment<TObject>::setObject(TObject *object)
 
     TerraObject *baseObject = reinterpret_cast<TerraObject *>(object);
     SharedPtr<TerraObject> registered = terraObjectByKey(baseObject->getKey());
-    setObjectImpl(registered ? terraReinterpretPointerCast<TObject>(registered) : SharedPtr<TObject>());
+    setObjectImpl(registered);
 }
 
 template<class TObject>
 SharedPtr<TObject> TerraAttachment<TObject>::getObject()
 {
     if (!_object && _key != TERRA_INVALID_KEY) {
-        SharedPtr<TerraObject> registered = terraObjectByKey(_key);
-        if (registered) {
-            _object = terraReinterpretPointerCast<TObject>(registered);
-            attachObject();
-        }
+        _object = terraObjectByKey(_key);
+        if (_object) attachObject();
     }
-    return _object;
+    return _object ? terraReinterpretPointerCast<TObject>(_object) : SharedPtr<TObject>();
 }
 
 template<class TObject>
@@ -71,8 +65,7 @@ void TerraAttachment<TObject>::unresolve()
 template<class TObject>
 void TerraAttachment<TObject>::unresolveAny(TerraObject *object)
 {
-    SharedPtr<TerraObject> baseObject = terraReinterpretPointerCast<TerraObject>(_object);
-    if (baseObject && baseObject.get() == object) detachObject();
+    if (_object && _object.get() == object) detachObject();
 }
 
 template<class TObject>

@@ -37,12 +37,10 @@ class TerraAttachment {
 public:
     TerraAttachment(TerraObject *parent = nullptr)
         : _parent(parent), _key(TERRA_INVALID_KEY), _object() { }
-    TerraAttachment(const TerraAttachment<TObject> &attachment)
-        : _parent(attachment._parent), _key(attachment._key), _object(attachment._object) { attachObject(); }
     virtual ~TerraAttachment() { detachObject(); }
 
     template<class U> inline void setObject(const SharedPtr<U> &object) {
-        setObjectImpl(terraStaticPointerCast<TObject>(object));
+        setObjectImpl(terraReinterpretPointerCast<TerraObject>(object));
     }
     void setObject(TObject *object);
     inline void initObject(uint32_t key)
@@ -67,9 +65,9 @@ public:
 protected:
     TerraObject *_parent;                                   // Parent main object, not owned
     uint32_t _key;                                          // Stable registered object key
-    SharedPtr<TObject> _object;                             // Resolved registered object
+    SharedPtr<TerraObject> _object;                         // Resolved registered object
 
-    void setObjectImpl(const SharedPtr<TObject> &object);
+    void setObjectImpl(const SharedPtr<TerraObject> &object);
     void attachObject();
     void detachObject();
 };

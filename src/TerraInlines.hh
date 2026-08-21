@@ -10,13 +10,13 @@
 
 
 template <typename T>
-inline T *terraObjectAs(TerraObjectRegistration &objects, uint32_t key) {
-    return static_cast<T *>(objects.findObjectByKey(key));
+inline T *terraObjectAs(TerraObjectRegistration &registration, uint32_t key) {
+    return static_cast<T *>(registration.findObjectByKey(key));
 }
 
 template <typename T>
-inline const T *terraObjectAs(const TerraObjectRegistration &objects, uint32_t key) {
-    return static_cast<const T *>(objects.findObjectByKey(key));
+inline const T *terraObjectAs(const TerraObjectRegistration &registration, uint32_t key) {
+    return static_cast<const T *>(registration.findObjectByKey(key));
 }
 
 #endif
