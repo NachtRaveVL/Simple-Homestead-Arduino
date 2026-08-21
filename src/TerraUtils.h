@@ -7,7 +7,36 @@
 #define TerraUtils_H
 
 #include "TerraDefines.h"
+#include "TerraInterfaces.h"
 #include <math.h>
+#include <time.h>
+
+#ifdef ARDUINO
+// Simple wrapper class for dealing with RTC modules.
+// This class is mainly used to abstract which RTC module is used.
+template<typename RTCType>
+class TerraRTCWrapper : public TerraRTCInterface {
+public:
+    virtual bool begin(TwoWire *wireInstance) override { return _rtc.begin(wireInstance); }
+    virtual void adjust(const DateTime &dt) override { _rtc.adjust(dt); }
+    virtual bool lostPower(void) override { return _rtc.lostPower(); }
+    virtual DateTime now() override { return _rtc.now(); }
+protected:
+    RTCType _rtc;
+};
+
+// Specialization for older DS1307 that doesn't have lost power tracking.
+template<>
+class TerraRTCWrapper<RTC_DS1307> : public TerraRTCInterface {
+public:
+    virtual bool begin(TwoWire *wireInstance) override;
+    virtual void adjust(const DateTime &dt) override;
+    virtual bool lostPower(void) override;
+    virtual DateTime now() override;
+protected:
+    RTC_DS1307 _rtc;
+};
+#endif
 
 // Debug assertion helpers used by TERRA_SOFT_ASSERT / TERRA_HARD_ASSERT when enabled.
 extern void terraSoftAssert(bool condition, const TerraString &message, const char *file, const char *function, int line);
@@ -46,6 +75,20 @@ TerraString terraTrim(const TerraString &text);
 TerraString terraSubstring(const TerraString &text, size_t offset);
 bool terraParseLong(const TerraString &text, long &valueOut);
 TerraString terraFloatToString(float value, uint8_t decimals = 2);
+
+// Current synchronized UTC time.
+time_t terraUnixNow();
+#ifdef ARDUINO
+// Converts local DateTime to UTC time using the controller time-zone offset.
+time_t terraUnixTime(DateTime localTime);
+// Converts UTC time to local DateTime using the controller time-zone offset.
+DateTime terraLocalTime(time_t unixTime);
+// Current synchronized local time.
+DateTime terraLocalNow();
+#else
+// Current local timestamp using the controller time-zone offset.
+time_t terraLocalNow();
+#endif
 
 #include "TerraUtils.hpp"
 

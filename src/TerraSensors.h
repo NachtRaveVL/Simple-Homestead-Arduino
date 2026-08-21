@@ -7,23 +7,21 @@
 #define TerraSensors_H
 
 #include "TerraObject.h"
-#include "TerraCallback.hh"
 #include "TerraMeasurements.h"
 #include "TerraDrivers.h"
 
 // Sensor Base
-// Base class for local, callback, pin-backed, or remote homestead measurements.
+// Base class for local, driver-backed, or remote homestead measurements.
 class TerraSensor : public TerraObject, public TerraMeasurementProvider {
 public:
     TerraSensor(Terra_SensorType sensorType = Terra_SensorType_Undefined,
                 Terra_Unit unit = Terra_Unit_Raw,
                 uint32_t key = TERRA_INVALID_KEY,
                 const TerraString &name = TerraString());
-    virtual ~TerraSensor();
+    virtual ~TerraSensor() { }
 
-    void setReadCallback(TerraReadCallback callback, void *context = nullptr);
-    void setDriver(TerraInputDriver *driver, bool takeOwnership = false);
-    TerraInputDriver *getDriver() const { return _driver; }
+    void setDriver(const SharedPtr<TerraInputDriver> &driver);
+    SharedPtr<TerraInputDriver> getDriver() const { return _driver; }
     void setUpdateInterval(uint32_t intervalMs) { _updateIntervalMs = intervalMs; }
     uint32_t getUpdateInterval() const { return _updateIntervalMs; }
     void setMeasurement(float value, Terra_Unit unit, uint32_t timestamp = terraMillis(), bool valid = true);
@@ -34,23 +32,22 @@ public:
 
 protected:
     Terra_SensorType _sensorType;                           // Sensor type
-    TerraMeasurement _measurement;                          // Latest sensor measurement
-    TerraInputDriver *_driver;
-    bool _ownsDriver;                                       // Driver ownership flag
-    TerraReadCallback _readCallback;                        // Sensor read callback
-    void *_readContext;
-    uint32_t _updateIntervalMs;                             // Sensor update interval, milliseconds
-    uint32_t _lastReadAt;                                   // Last sensor read timestamp
+    TerraMeasurement _measurement;                         // Latest measurement
+    SharedPtr<TerraInputDriver> _driver;                    // Input driver sub-object
+    uint32_t _updateIntervalMs;                             // Poll interval, milliseconds
+    uint32_t _lastReadAt;                                   // Last driver poll time
 };
 
 // Analog Sensor
-// Adds a linear calibration range to a generic scalar sensor.
+// Adds an optional linear calibration layer to a driver-backed measurement.
 class TerraAnalogSensor : public TerraSensor {
 public:
     TerraAnalogSensor(Terra_Unit unit = Terra_Unit_Raw,
                       uint32_t key = TERRA_INVALID_KEY,
                       const TerraString &name = TerraString());
-    bool setCalibration(float rawMinimum, float rawMaximum, float valueMinimum, float valueMaximum);
+
+    bool setCalibration(float rawMinimum, float rawMaximum,
+                        float valueMinimum, float valueMaximum);
     bool getCalibration(float &rawMinimum, float &rawMaximum,
                         float &valueMinimum, float &valueMaximum) const;
     void update(uint32_t now = terraMillis()) override;
@@ -64,7 +61,7 @@ protected:
 };
 
 // Binary Sensor
-// Stores a simple active/inactive measurement.
+// Stores a logical active/inactive state as a normalized raw measurement.
 class TerraBinarySensor : public TerraSensor {
 public:
     TerraBinarySensor(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
@@ -106,8 +103,12 @@ public:
 
 class TerraRainfallSensor : public TerraSensor {
 public:
-    TerraRainfallSensor(bool rate = false, uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraSensor(Terra_SensorType_Rainfall, rate ? Terra_Unit_MillimetersPerHour : Terra_Unit_Millimeters, key, name) { }
+    TerraRainfallSensor(bool rate = false,
+                        uint32_t key = TERRA_INVALID_KEY,
+                        const TerraString &name = TerraString())
+        : TerraSensor(Terra_SensorType_Rainfall,
+                      rate ? Terra_Unit_MillimetersPerHour : Terra_Unit_Millimeters,
+                      key, name) { }
 };
 
 class TerraWindSpeedSensor : public TerraSensor {
@@ -147,7 +148,7 @@ public:
 };
 
 // Remote Sensor
-// Stores a transport-neutral remote reading and tracks link staleness.
+// Stores externally reported measurements while retaining normal sensor stale-state behavior.
 class TerraRemoteSensor : public TerraSensor {
 public:
     TerraRemoteSensor(Terra_SensorType reportedType = Terra_SensorType_Remote,
@@ -165,9 +166,9 @@ public:
 
 protected:
     Terra_SensorType _reportedType;                         // Remote reported sensor type
-    uint32_t _staleAfterMs;                                 // Remote stale timeout, milliseconds
-    uint32_t _lastReportAt;                                 // Last remote report timestamp
-    bool _hasReport;                                        // Remote report received flag
+    uint32_t _staleAfterMs;                                 // Remote stale timeout
+    uint32_t _lastReportAt;                                 // Last report timestamp
+    bool _hasReport;                                        // Any report received flag
 };
 
 #endif

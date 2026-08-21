@@ -10,6 +10,16 @@
 #include "TerraTypes.h"
 #include "TerraInterfaces.h"
 
+class TerraObject;
+
+struct TerraObjectLink {
+    TerraObject *object;                                    // Linked parent object
+    uint8_t count;                                          // Number of active linkages
+
+    TerraObjectLink(TerraObject *objectIn = nullptr, uint8_t countIn = 0)
+        : object(objectIn), count(countIn) { }
+};
+
 class TerraObject : public TerraUpdatable {
 public:
     TerraObject(Terra_ObjectType objectType = Terra_ObjectType_Undefined,
@@ -32,6 +42,17 @@ public:
 
     void update(uint32_t now = terraMillis()) override { (void)now; }
 
+    // Adds a parent-object linkage, incrementing its reference count when already linked.
+    bool addLinkage(TerraObject *object);
+    // Removes one parent-object linkage reference.
+    bool removeLinkage(TerraObject *object);
+    // Returns if the passed parent object is currently linked.
+    bool hasLinkage(TerraObject *object) const;
+    // Unresolves this object from all linked parent attachment points.
+    inline void unresolve() { unresolveAny(this); }
+    // Notifies linked parent objects that a registered object is being unresolved.
+    virtual void unresolveAny(TerraObject *object);
+
 protected:
     Terra_ObjectType _objectType;                           // Runtime object type
     uint32_t _key;                                          // Stable object key
@@ -39,6 +60,7 @@ protected:
     bool _enabled;                                          // Object enabled state
     bool _fault;                                            // Object fault state
     TerraString _faultMessage;                              // Object fault description
+    TerraObjectLink _linkages[TERRA_MAX_ATTACHMENTS];       // Parent-object linkages
 };
 
 #endif

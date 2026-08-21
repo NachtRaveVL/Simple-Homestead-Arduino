@@ -35,5 +35,9 @@ void TerraResource::clearFault() {
 }
 
 void TerraResource::updateState() {
-    _state = terraClassifyResourceState(_level, _reserveLevel, _lowLevel, _highLevel, _fault);
+    if (_fault) { _state = Terra_ResourceState_Fault; }
+    else if (_level <= _reserveLevel) { _state = Terra_ResourceState_Reserve; }
+    else if (_level <= _lowLevel) { _state = Terra_ResourceState_Low; }
+    else if (_level >= _highLevel) { _state = Terra_ResourceState_High; }
+    else { _state = Terra_ResourceState_Normal; }
 }

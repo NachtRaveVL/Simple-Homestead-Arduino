@@ -7,68 +7,77 @@
 #define TerraEnvironment_H
 
 #include "TerraObject.h"
-
-static const uint16_t TERRA_WEATHER_AIR_TEMPERATURE = 0x0001;
-static const uint16_t TERRA_WEATHER_HUMIDITY        = 0x0002;
-static const uint16_t TERRA_WEATHER_PRESSURE        = 0x0004;
-static const uint16_t TERRA_WEATHER_RAINFALL        = 0x0008;
-static const uint16_t TERRA_WEATHER_RAIN_RATE       = 0x0010;
-static const uint16_t TERRA_WEATHER_WIND_SPEED      = 0x0020;
-static const uint16_t TERRA_WEATHER_WIND_DIRECTION  = 0x0040;
-static const uint16_t TERRA_WEATHER_SOLAR_RADIATION = 0x0080;
-static const uint16_t TERRA_WEATHER_ALL_FIELDS      = 0x00ff;
-
-// Weather Snapshot
-// Stores the latest local environmental observations with per-field validity.
-struct TerraWeatherSnapshot {
-    float airTemperatureC;                                  // Air temperature, degrees Celsius
-    float relativeHumidity;                                 // Relative humidity, percent
-    float barometricPressureHpa;                            // Barometric pressure, hPa
-    float rainfallMm;                                       // Accumulated rainfall, mm
-    float rainfallRateMmHr;                                 // Rainfall rate, mm/hour
-    float windSpeedMps;                                     // Wind speed, meters per second
-    float windDirectionDeg;                                 // Wind direction, degrees
-    float solarRadiationWm2;                                // Solar irradiance, W/m2
-    uint32_t timestamp;                                     // Measurement timestamp
-    uint16_t validFields;                                   // Valid weather-field bit mask
-    bool valid;                                             // Measurement validity flag
-
-    TerraWeatherSnapshot();
-};
+#include "TerraAttachments.h"
 
 // Environment
-// Maintains local weather conditions used by homestead monitoring and control logic.
+// Provides a single attachment point for each local weather measurement used by
+// homestead monitoring and control logic. Measurement state remains owned by sensors.
 class TerraEnvironment : public TerraObject {
 public:
     TerraEnvironment(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString("Environment"));
 
-    void setSnapshot(const TerraWeatherSnapshot &snapshot);
-    const TerraWeatherSnapshot &getSnapshot() const { return _snapshot; }
+    float getAirTemperature() const;
+    float getRelativeHumidity() const;
+    float getRainfall() const;
+    float getRainfallRate() const;
+    float getBarometricPressure() const;
+    float getWindSpeed() const;
+    float getWindDirection() const;
+    float getSolarRadiation() const;
 
-    void setAirTemperature(float celsius, uint32_t timestamp = terraMillis());
-    void setRelativeHumidity(float percent, uint32_t timestamp = terraMillis());
-    void setRainfall(float millimeters, uint32_t timestamp = terraMillis());
-    void setRainfallRate(float mmPerHour, uint32_t timestamp = terraMillis());
-    void setBarometricPressure(float hPa, uint32_t timestamp = terraMillis());
-    void setWind(float speedMps, float directionDeg, uint32_t timestamp = terraMillis());
-    void setSolarRadiation(float wattsPerSquareMeter, uint32_t timestamp = terraMillis());
+    // Environmental Sensor Attachment Points
+    template<class T> inline void setAirTemperatureSensor(const SharedPtr<T> &sensor) { _airTemperature.setObject(sensor); }
+    template<class T> inline void setHumiditySensor(const SharedPtr<T> &sensor) { _humidity.setObject(sensor); }
+    template<class T> inline void setPressureSensor(const SharedPtr<T> &sensor) { _pressure.setObject(sensor); }
+    template<class T> inline void setRainfallSensor(const SharedPtr<T> &sensor) { _rainfall.setObject(sensor); }
+    template<class T> inline void setRainRateSensor(const SharedPtr<T> &sensor) { _rainRate.setObject(sensor); }
+    template<class T> inline void setWindSpeedSensor(const SharedPtr<T> &sensor) { _windSpeed.setObject(sensor); }
+    template<class T> inline void setWindDirectionSensor(const SharedPtr<T> &sensor) { _windDirection.setObject(sensor); }
+    template<class T> inline void setSolarRadiationSensor(const SharedPtr<T> &sensor) { _solarRadiation.setObject(sensor); }
 
-    float getAirTemperature() const { return _snapshot.airTemperatureC; }
-    float getRelativeHumidity() const { return _snapshot.relativeHumidity; }
-    float getRainfall() const { return _snapshot.rainfallMm; }
-    float getRainfallRate() const { return _snapshot.rainfallRateMmHr; }
-    float getBarometricPressure() const { return _snapshot.barometricPressureHpa; }
-    float getWindSpeed() const { return _snapshot.windSpeedMps; }
-    float getWindDirection() const { return _snapshot.windDirectionDeg; }
-    float getSolarRadiation() const { return _snapshot.solarRadiationWm2; }
-    bool hasField(uint16_t field) const { return _snapshot.valid && (_snapshot.validFields & field) == field; }
+    inline TerraSensorAttachment &getAirTemperatureSensorAttachment() { return _airTemperature; }
+    inline TerraSensorAttachment &getHumiditySensorAttachment() { return _humidity; }
+    inline TerraSensorAttachment &getPressureSensorAttachment() { return _pressure; }
+    inline TerraSensorAttachment &getRainfallSensorAttachment() { return _rainfall; }
+    inline TerraSensorAttachment &getRainRateSensorAttachment() { return _rainRate; }
+    inline TerraSensorAttachment &getWindSpeedSensorAttachment() { return _windSpeed; }
+    inline TerraSensorAttachment &getWindDirectionSensorAttachment() { return _windDirection; }
+    inline TerraSensorAttachment &getSolarRadiationSensorAttachment() { return _solarRadiation; }
+    inline const TerraSensorAttachment &getAirTemperatureSensorAttachment() const { return _airTemperature; }
+    inline const TerraSensorAttachment &getHumiditySensorAttachment() const { return _humidity; }
+    inline const TerraSensorAttachment &getPressureSensorAttachment() const { return _pressure; }
+    inline const TerraSensorAttachment &getRainfallSensorAttachment() const { return _rainfall; }
+    inline const TerraSensorAttachment &getRainRateSensorAttachment() const { return _rainRate; }
+    inline const TerraSensorAttachment &getWindSpeedSensorAttachment() const { return _windSpeed; }
+    inline const TerraSensorAttachment &getWindDirectionSensorAttachment() const { return _windDirection; }
+    inline const TerraSensorAttachment &getSolarRadiationSensorAttachment() const { return _solarRadiation; }
 
     bool isFreezing(float thresholdC = 0.0f) const;
     float dewPointC() const;
 
+    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void unresolveAny(TerraObject *object) override;
+
 protected:
-    void touch(uint32_t timestamp, uint16_t field);
-    TerraWeatherSnapshot _snapshot;                         // Snapshot
+    TerraSensorAttachment _airTemperature;                  // Air temperature sensor attachment point
+    TerraSensorAttachment _humidity;                        // Humidity sensor attachment point
+    TerraSensorAttachment _pressure;                        // Barometric pressure sensor attachment point
+    TerraSensorAttachment _rainfall;                        // Accumulated rainfall sensor attachment point
+    TerraSensorAttachment _rainRate;                        // Rainfall-rate sensor attachment point
+    TerraSensorAttachment _windSpeed;                       // Wind-speed sensor attachment point
+    TerraSensorAttachment _windDirection;                   // Wind-direction sensor attachment point
+    TerraSensorAttachment _solarRadiation;                  // Solar-radiation sensor attachment point
+
+    inline void initAirTemperatureSensorKey(uint32_t key) { _airTemperature.initObject(key); }
+    inline void initHumiditySensorKey(uint32_t key) { _humidity.initObject(key); }
+    inline void initPressureSensorKey(uint32_t key) { _pressure.initObject(key); }
+    inline void initRainfallSensorKey(uint32_t key) { _rainfall.initObject(key); }
+    inline void initRainRateSensorKey(uint32_t key) { _rainRate.initObject(key); }
+    inline void initWindSpeedSensorKey(uint32_t key) { _windSpeed.initObject(key); }
+    inline void initWindDirectionSensorKey(uint32_t key) { _windDirection.initObject(key); }
+    inline void initSolarRadiationSensorKey(uint32_t key) { _solarRadiation.initObject(key); }
+
+    friend class TerraFactory;
 };
 
 #endif

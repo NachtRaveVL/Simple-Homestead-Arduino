@@ -1,37 +1,58 @@
 // Simple-Homestead-Arduino Thermal Storage Example
 //
 // Demonstrates differential circulation between a heat source and a thermal store. The
-// library decides when circulation is useful, while independent hardware temperature and
-// pressure protection remains responsible for installation safety.
+// thermal loop owns the source/store sensing and circulator control during normal updates.
+// Independent hardware temperature and pressure protection remains responsible for safety.
 
 #include <Terraduino.h>
 
-TerraThermalStore heatStore(0, "Hot Water Store");
-TerraThermalLoop collectorLoop(0, "Collector Loop");
-TerraThermalBalancer thermalBalancer;
+Terraduino terraController;
+SharedPtr<TerraSensor> collectorTemperature;
+SharedPtr<TerraSensor> storeTemperature;
+SharedPtr<TerraThermalStore> heatStore;
+SharedPtr<TerraThermalLoop> collectorLoop;
+SharedPtr<TerraActuator> circulator;
+
+void driveCirculator(void *context, float output)
+{
+    (void)context;
+    Serial.print(F("Circulator output: "));
+    Serial.println(output, 2);
+}
 
 void setup()
 {
     Serial.begin(115200);
 
-    heatStore.setTargetRange(45.0f, 65.0f);
-    heatStore.setAbsoluteMaximum(90.0f);
-    collectorLoop.configure(8.0f, 3.0f, 80.0f);
+    terraController.init();
+    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Collector Temperature");
+    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Store Temperature");
+    heatStore = terraController.addThermalStore(0, "Hot Water Store");
+    collectorLoop = terraController.addThermalLoop(0, "Collector Loop");
+    circulator = terraController.addCirculator(0, "Collector Circulator");
+
+    heatStore->setTargetRange(45.0f, 65.0f);
+    heatStore->setAbsoluteMaximum(90.0f);
+    heatStore->setTemperatureSensor(storeTemperature);
+
+    collectorLoop->configure(8.0f, 3.0f, 80.0f);
+    collectorLoop->setSourceTemperatureSensor(collectorTemperature);
+    collectorLoop->setThermalStore(heatStore);
+    collectorLoop->setCirculator(circulator);
+
+    circulator->setDriver(SharedPtr<TerraOutputDriver>(new TerraCallbackOutputDriver(driveCirculator)));
+    terraController.launch();
 }
 
 void loop()
 {
-    // Replace these values with collector and storage temperature sensors.
-    float collectorTemperatureC = 72.0f;
-    float storeTemperatureC = 52.0f;
-    heatStore.setTemperature(storeTemperatureC);
+    // Replace these values with installed temperature sensor drivers.
+    collectorTemperature->setMeasurement(72.0f, Terra_Unit_Celsius, terraMillis(), true);
+    storeTemperature->setMeasurement(52.0f, Terra_Unit_Celsius, terraMillis(), true);
 
-    bool circulate = thermalBalancer.evaluate(collectorLoop, collectorTemperatureC, storeTemperatureC);
-    if (circulate) {
-        // Command a suitable external circulation-pump controller here.
-    }
+    terraController.update();
 
-    if (heatStore.isSafetyLimitExceeded()) {
+    if (heatStore->isSafetyLimitExceeded()) {
         Serial.println(F("Thermal store safety limit exceeded"));
     }
 

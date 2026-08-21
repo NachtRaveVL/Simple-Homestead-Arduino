@@ -224,7 +224,7 @@ terraController.init(setup);
 terraController.launch();
 ```
 
-The controller `update()` method advances registered objects, schedules, and publishing. Applications that already track local time values can supply `minuteOfDay` and `dayNumber` directly.
+The controller `update()` method advances registered objects, schedules, and publishing. Daily schedules use the controller's synchronized local clock internally, so application code does not need to calculate or supply wall-clock fields.
 
 Terraduino also exposes JSON and binary helpers for controller-level persistence:
 
@@ -332,18 +332,18 @@ Below are several of the main examples of controller usage. The example sketches
 ```Arduino
 // Simple-Homestead-Arduino Cistern Management Example
 //
-// Demonstrates fill hysteresis, protected reserve, source selection, and pump control for
-// a primary cistern. The pump callback is intentionally generic so the real installation
-// can use an isolated relay, motor controller, or another suitable low-voltage interface.
+// Demonstrates fill hysteresis, protected reserve, and pump control for a primary cistern.
+// The pump driver is intentionally generic so the real installation can use an isolated
+// relay, motor controller, or another suitable low-voltage interface.
 
 #include <Terraduino.h>
 
 Terraduino terraController;
-TerraWaterSource well(Terra_WaterSourceType_Well, 0, 0, "Well");
-TerraCistern cistern(5000.0f, 0, "Main Cistern");
-TerraWaterRoute fillRoute(0, "Cistern Fill");
-TerraPump fillPump(0, "Fill Pump");
-TerraWaterBalancer waterBalancer;
+SharedPtr<TerraWaterSource> well;
+SharedPtr<TerraCistern> cistern;
+SharedPtr<TerraWaterRoute> fillRoute;
+SharedPtr<TerraPump> fillPump;
+SharedPtr<TerraCallbackOutputDriver> fillPumpDriver;
 
 void driveFillPump(void *context, float output)
 {
@@ -358,39 +358,35 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    terraController.registerObject(&well);
-    terraController.registerObject(&cistern);
-    terraController.registerObject(&fillRoute);
-    terraController.registerObject(&fillPump);
+    well = terraController.addWaterSource(Terra_WaterSourceType_Well, 0, 0, "Well");
+    cistern = terraController.addCistern(5000.0f, 0, "Main Cistern");
+    fillRoute = terraController.addWaterRoute(0, "Cistern Fill");
+    fillPump = terraStaticPointerCast<TerraPump>(terraController.addActuator(Terra_ActuatorType_Pump, 0, "Fill Pump"));
+    fillPumpDriver = SharedPtr<TerraCallbackOutputDriver>(new TerraCallbackOutputDriver(driveFillPump));
 
-    well.setPriority(0);
-    well.setLevel(100.0f);
-    well.setReserveLevel(10.0f);
-    well.setMaximumFlowLpm(20.0f);
+    well->setLevel(100.0f);
+    well->setReserveLevel(10.0f);
+    well->setMaximumFlowLpm(20.0f);
 
-    cistern.setThresholds(15.0f, 30.0f, 95.0f);
-    cistern.configureFillBand(30.0f, 90.0f, 99.0f);
-    cistern.setLevel(28.0f);
+    cistern->setThresholds(15.0f, 30.0f, 95.0f);
+    cistern->configureFillBand(30.0f, 90.0f, 99.0f);
+    cistern->setLevel(28.0f);
 
-    fillRoute.configure(well.getKey(), cistern.getKey(), 30.0f, 90.0f);
-    fillRoute.setMinimumFlow(0.5f);
-    fillRoute.setMaximumFlow(20.0f);
+    fillPump->setMaxContinuousRuntime(15UL * 60UL * 1000UL);
+    fillPump->setDriver(fillPumpDriver);
 
-    fillPump.setMaxContinuousRuntime(15UL * 60UL * 1000UL);
-    fillPump.setWriteCallback(driveFillPump);
+    fillRoute->setSource(well);
+    fillRoute->setDestination(cistern);
+    fillRoute->setPump(fillPump);
+    fillRoute->setDestinationBand(30.0f, 90.0f);
+    fillRoute->setMaximumFlow(20.0f);
+
     terraController.launch();
 }
 
 void loop()
 {
-    TerraTransferDecision decision = waterBalancer.evaluate(fillRoute, well, cistern);
-
-    if (decision.shouldRun) {
-        fillPump.setOutput(1.0f);
-    } else {
-        fillPump.off();
-    }
-
+    // The route owns fill hysteresis and pump control during controller updates.
     terraController.update();
     delay(1000);
 }
@@ -410,8 +406,8 @@ void loop()
 #include <Terraduino.h>
 
 Terraduino terraController;
-TerraRainCatchment roofCatchment(180.0f, 0.85f, 0, "Roof Catchment");
-TerraCistern rainCistern(5000.0f, 0, "Rain Cistern");
+SharedPtr<TerraRainCatchment> roofCatchment;
+SharedPtr<TerraCistern> rainCistern;
 TerraFirstFlushController firstFlush(20.0f);
 
 void setup()
@@ -419,12 +415,12 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    terraController.registerObject(&roofCatchment);
-    terraController.registerObject(&rainCistern);
+    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, 0, "Roof Catchment");
+    rainCistern = terraController.addCistern(5000.0f, 0, "Rain Cistern");
 
-    rainCistern.setThresholds(15.0f, 30.0f, 95.0f);
-    rainCistern.configureFillBand(30.0f, 95.0f, 99.0f);
-    rainCistern.setLevel(25.0f);
+    rainCistern->setThresholds(15.0f, 30.0f, 95.0f);
+    rainCistern->configureFillBand(30.0f, 95.0f, 99.0f);
+    rainCistern->setLevel(25.0f);
     terraController.launch();
 }
 
@@ -432,7 +428,7 @@ void loop()
 {
     // Replace with incremental rainfall from the installed rain gauge.
     const float rainfallMm = 0.0f;
-    TerraRainCollectionResult result = roofCatchment.collectInto(rainCistern, rainfallMm, &firstFlush);
+    TerraRainCollectionResult result = roofCatchment->collectInto(*rainCistern, rainfallMm, &firstFlush);
 
     if (result.storedLiters > 0.0f) {
         Serial.print(F("Stored rainwater, L: "));
@@ -451,31 +447,30 @@ void loop()
 ```Arduino
 // Simple-Homestead-Arduino Full System Example
 //
-// Combines weather observations, source selection, cistern filling, thermal storage, a
-// remote sensor, logging/publishing, and normal controller updates. The final hardware
-// adapters remain application supplied so the example is not tied to one shield or board.
+// Combines weather observations, cistern filling, thermal storage, a remote sensor,
+// publishing, and normal controller updates. Hardware adapters remain application supplied
+// so the example is not tied to one shield or board.
 
 #include <Terraduino.h>
 
 Terraduino terraController;
-TerraEnvironment weather(0, "Outside");
-TerraWaterSource rain(Terra_WaterSourceType_Rainwater, 0, 0, "Rainwater");
-TerraWaterSource well(Terra_WaterSourceType_Well, 1, 0, "Well");
-TerraCistern cistern(4000.0f, 0, "Cistern");
-TerraWaterRoute fillRoute(0, "Cistern Fill");
-TerraPump transferPump(0, "Transfer Pump");
-TerraThermalStore thermalStore(0, "Thermal Store");
-TerraThermalLoop thermalLoop(0, "Thermal Loop");
-TerraRemoteSensor barnTemp(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Barn Temp");
-TerraWaterBalancer waterBalancer;
-TerraThermalBalancer thermalBalancer;
+SharedPtr<TerraEnvironment> weather;
+SharedPtr<TerraWaterSource> rain;
+SharedPtr<TerraCistern> cistern;
+SharedPtr<TerraWaterRoute> fillRoute;
+SharedPtr<TerraPump> transferPump;
+SharedPtr<TerraSensor> collectorTemperature;
+SharedPtr<TerraSensor> storeTemperature;
+SharedPtr<TerraThermalStore> thermalStore;
+SharedPtr<TerraThermalLoop> thermalLoop;
+SharedPtr<TerraActuator> circulator;
+SharedPtr<TerraRemoteSensor> barnTemp;
 
 void actuatorWrite(void *context, float value)
 {
     (void)context;
-    Serial.print(F("Pump command: "));
+    Serial.print(F("Actuator command: "));
     Serial.println(value, 2);
-    // Replace with a suitable isolated driver for the real load.
 }
 
 void publishValue(void *context, const char *channel, const TerraMeasurement &measurement)
@@ -497,55 +492,51 @@ void setup()
     setup.updateIntervalMs = 250;
     terraController.init(setup);
 
-    terraController.registerObject(&weather);
-    terraController.registerObject(&rain);
-    terraController.registerObject(&well);
-    terraController.registerObject(&cistern);
-    terraController.registerObject(&fillRoute);
-    terraController.registerObject(&transferPump);
-    terraController.registerObject(&thermalStore);
-    terraController.registerObject(&thermalLoop);
-    terraController.registerObject(&barnTemp);
+    weather = terraController.addEnvironment(0, "Outside");
+    rain = terraController.addWaterSource(Terra_WaterSourceType_Rainwater, 0, 0, "Rainwater");
+    cistern = terraController.addCistern(4000.0f, 0, "Cistern");
+    fillRoute = terraController.addWaterRoute(0, "Cistern Fill");
+    transferPump = terraStaticPointerCast<TerraPump>(terraController.addActuator(Terra_ActuatorType_Pump, 0, "Transfer Pump"));
+    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Collector Temperature");
+    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Store Temperature");
+    thermalStore = terraController.addThermalStore(0, "Thermal Store");
+    thermalLoop = terraController.addThermalLoop(0, "Thermal Loop");
+    circulator = terraController.addActuator(Terra_ActuatorType_Circulator, 0, "Thermal Circulator");
+    barnTemp = terraStaticPointerCast<TerraRemoteSensor>(terraController.addSensor(Terra_SensorType_Remote, Terra_Unit_Celsius, 0, "Barn Temp"));
 
-    cistern.setThresholds(15.0f, 30.0f, 95.0f);
-    cistern.configureFillBand(30.0f, 95.0f, 99.0f);
-    cistern.setLevel(25.0f);
-    rain.setLevel(80.0f);
-    well.setLevel(100.0f);
-    fillRoute.configure(rain.getKey(), cistern.getKey(), 30.0f, 95.0f);
-    fillRoute.setMinimumFlow(0.5f);
-    transferPump.setMaxContinuousRuntime(10UL * 60UL * 1000UL);
-    transferPump.setWriteCallback(actuatorWrite);
+    cistern->setThresholds(15.0f, 30.0f, 95.0f);
+    cistern->configureFillBand(30.0f, 95.0f, 99.0f);
+    cistern->setLevel(25.0f);
+    rain->setLevel(80.0f);
 
-    thermalStore.setTargetRange(45.0f, 65.0f);
-    thermalStore.setAbsoluteMaximum(90.0f);
-    thermalLoop.configure(8.0f, 3.0f, 80.0f);
+    transferPump->setMaxContinuousRuntime(10UL * 60UL * 1000UL);
+    transferPump->setDriver(SharedPtr<TerraOutputDriver>(new TerraCallbackOutputDriver(actuatorWrite)));
+    fillRoute->setSource(rain);
+    fillRoute->setDestination(cistern);
+    fillRoute->setPump(transferPump);
+    fillRoute->setDestinationBand(30.0f, 95.0f);
 
-    barnTemp.setStaleAfter(5UL * 60UL * 1000UL);
+    thermalStore->setTargetRange(45.0f, 65.0f);
+    thermalStore->setAbsoluteMaximum(90.0f);
+    thermalStore->setTemperatureSensor(storeTemperature);
+    circulator->setDriver(SharedPtr<TerraOutputDriver>(new TerraCallbackOutputDriver(actuatorWrite)));
+    thermalLoop->configure(8.0f, 3.0f, 80.0f);
+    thermalLoop->setSourceTemperatureSensor(collectorTemperature);
+    thermalLoop->setThermalStore(thermalStore);
+    thermalLoop->setCirculator(circulator);
+
+    barnTemp->setStaleAfter(5UL * 60UL * 1000UL);
     terraController.publisher.setCallback(publishValue);
-    terraController.publisher.addChannel("barn-temp", &barnTemp, Terra_Unit_Celsius);
+    terraController.publisher.addChannel("barn-temp", barnTemp.get(), Terra_Unit_Celsius);
     terraController.launch();
 }
 
 void loop()
 {
-    weather.setAirTemperature(8.0f);
-    weather.setRelativeHumidity(78.0f);
-
-    const TerraWaterSource *sources[] = { &rain, &well };
-    const TerraWaterSource *selected = waterBalancer.selectSource(sources, 2);
-
-    if (selected) {
-        fillRoute.configure(selected->getKey(), cistern.getKey(), 30.0f, 95.0f);
-        TerraTransferDecision decision = waterBalancer.evaluate(fillRoute, *selected, cistern);
-        if (decision.shouldRun) { transferPump.setOutput(1.0f); }
-        else { transferPump.off(); }
-    } else {
-        transferPump.off();
-    }
-
-    thermalStore.setTemperature(52.0f);
-    thermalBalancer.evaluate(thermalLoop, 70.0f, thermalStore.getTemperature());
+    weather->setAirTemperature(8.0f);
+    weather->setRelativeHumidity(78.0f);
+    collectorTemperature->setMeasurement(70.0f, Terra_Unit_Celsius, terraMillis(), true);
+    storeTemperature->setMeasurement(52.0f, Terra_Unit_Celsius, terraMillis(), true);
 
     terraController.update();
     delay(250);

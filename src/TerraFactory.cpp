@@ -13,36 +13,14 @@
 #include "TerraEnvironment.h"
 #include "TerraRails.h"
 
-static TerraAttachmentSet *terraAttachmentSetForObject(TerraObject *object)
-{
-    if (!object) return nullptr;
-    switch (object->getObjectType()) {
-        case Terra_ObjectType_WaterStorage: return &static_cast<TerraWaterStorage *>(object)->attachments();
-        case Terra_ObjectType_WaterRoute: return &static_cast<TerraWaterRoute *>(object)->attachments();
-        case Terra_ObjectType_RainCatchment: return &static_cast<TerraRainCatchment *>(object)->attachments();
-        case Terra_ObjectType_ThermalStore: return &static_cast<TerraThermalStore *>(object)->attachments();
-        case Terra_ObjectType_ThermalLoop: return &static_cast<TerraThermalLoop *>(object)->attachments();
-        default: return nullptr;
-    }
-}
-
-static const TerraAttachmentSet *terraAttachmentSetForObject(const TerraObject *object)
-{
-    return terraAttachmentSetForObject(const_cast<TerraObject *>(object));
-}
-
-static void terraApplyObjectData(TerraObject *object, const TerraObjectData *data)
+void TerraFactory::applyObjectData(TerraObject *object, const TerraObjectData *data)
 {
     if (!object || !data) return;
     object->setKey(data->key);
     object->setName(data->name);
     object->setEnabled(data->enabled);
-    TerraAttachmentSet *attachments = terraAttachmentSetForObject(object);
-    if (attachments) {
-        for (uint8_t i = 0; i < data->attachmentCount; ++i)
-            attachments->attach(data->attachments[i].objectKey, data->attachments[i].role);
-    }
 }
+
 
 static void terraFillObjectData(const TerraObject *object, TerraObjectData *data)
 {
@@ -51,82 +29,209 @@ static void terraFillObjectData(const TerraObject *object, TerraObjectData *data
     data->objectType = object->getObjectType();
     data->name = object->getName();
     data->enabled = object->isEnabled();
-    const TerraAttachmentSet *attachments = terraAttachmentSetForObject(object);
-    data->attachmentCount = attachments ? attachments->size() : 0;
-    for (uint8_t i = 0; i < data->attachmentCount; ++i) {
-        const TerraAttachment *attachment = attachments->at(i);
-        if (attachment) data->attachments[i] = *attachment;
-    }
 }
 
-TerraFactory::TerraFactory() : _count(0), _nextKey(1) {
-    for (uint8_t i = 0; i < TERRA_MAX_OBJECTS; ++i) _objects[i] = nullptr;
-}
 
-bool TerraFactory::registerObject(TerraObject *object) {
-    if (!object || _count >= TERRA_MAX_OBJECTS) return false;
-    for (uint8_t i = 0; i < _count; ++i) if (_objects[i] == object) return true;
+TerraFactory::TerraFactory() : _objects(), _nextKey(1)
+{ }
+
+bool TerraFactory::registerObject(SharedPtr<TerraObject> object)
+{
+    if (!object || _objects.size() >= TERRA_MAX_OBJECTS) return false;
     if (object->getKey() == TERRA_INVALID_KEY) object->setKey(allocateKey(object->getName()));
-    if (findObjectByKey(object->getKey())) return false;
-    _objects[_count++] = object;
+    if (_objects.find(object->getKey()) != _objects.end()) return false;
+    _objects[object->getKey()] = object;
     return true;
 }
 
-bool TerraFactory::unregisterObject(TerraObject *object) {
-    for (uint8_t i = 0; i < _count; ++i) {
-        if (_objects[i] == object) {
-            for (uint8_t j = i + 1; j < _count; ++j) _objects[j - 1] = _objects[j];
-            _objects[--_count] = nullptr;
-            return true;
-        }
+bool TerraFactory::unregisterObject(SharedPtr<TerraObject> object)
+{
+    if (!object) return false;
+    auto iter = _objects.find(object->getKey());
+    if (iter == _objects.end() || iter->second.get() != object.get()) return false;
+    object->unresolve();
+    _objects.erase(iter);
+    return true;
+}
+
+SharedPtr<TerraObject> TerraFactory::sharedObjectByKey(uint32_t key) const
+{
+    auto iter = _objects.find(key);
+    return iter != _objects.end() ? iter->second : SharedPtr<TerraObject>();
+}
+
+TerraObject *TerraFactory::findObjectByKey(uint32_t key) const
+{
+    return sharedObjectByKey(key).get();
+}
+
+TerraObject *TerraFactory::findObjectByName(const TerraString &name) const
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->getName() == name) { return iter->second.get(); }
     }
-    return false;
-}
-
-TerraObject *TerraFactory::findObjectByKey(uint32_t key) const {
-    if (!key) return nullptr;
-    for (uint8_t i = 0; i < _count; ++i) if (_objects[i] && _objects[i]->getKey() == key) return _objects[i];
     return nullptr;
 }
 
-TerraObject *TerraFactory::findObjectByName(const TerraString &name) const {
-    for (uint8_t i = 0; i < _count; ++i) if (_objects[i] && _objects[i]->getName() == name) return _objects[i];
-    return nullptr;
-}
-
-TerraObject *TerraFactory::findFirstByType(Terra_ObjectType type) const {
-    for (uint8_t i = 0; i < _count; ++i) {
-        if (_objects[i] && _objects[i]->getObjectType() == type) return _objects[i];
+TerraObject *TerraFactory::findFirstByType(Terra_ObjectType type) const
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->getObjectType() == type) { return iter->second.get(); }
     }
     return nullptr;
 }
 
-uint8_t TerraFactory::findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const {
+uint8_t TerraFactory::findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const
+{
     if (!output || !capacity) return 0;
     uint8_t found = 0;
-    for (uint8_t i = 0; i < _count && found < capacity; ++i) {
-        if (_objects[i] && _objects[i]->getObjectType() == type) output[found++] = _objects[i];
+    for (auto iter = _objects.begin(); iter != _objects.end() && found < capacity; ++iter) {
+        if (iter->second && iter->second->getObjectType() == type) { output[found++] = iter->second.get(); }
     }
     return found;
 }
 
-uint32_t TerraFactory::allocateKey(const TerraString &name) {
+TerraObject *TerraFactory::objectAt(uint8_t index) const
+{
+    if (index >= _objects.size()) return nullptr;
+    auto iter = _objects.begin();
+    while (index--) { ++iter; }
+    return iter->second.get();
+}
+
+uint32_t TerraFactory::allocateKey(const TerraString &name)
+{
     uint32_t candidate = 0;
 #if defined(ARDUINO)
-    if (name.length()) candidate = terraHashString(name.c_str());
+    if (name.length()) { candidate = terraHashString(name.c_str()); }
 #else
-    if (!name.empty()) candidate = terraHashString(name.c_str());
+    if (!name.empty()) { candidate = terraHashString(name.c_str()); }
 #endif
-    if (candidate && !findObjectByKey(candidate)) return candidate;
-    while (!_nextKey || findObjectByKey(_nextKey)) ++_nextKey;
+    if (candidate && _objects.find(candidate) == _objects.end()) return candidate;
+    while (!_nextKey || _objects.find(_nextKey) != _objects.end()) { ++_nextKey; }
     return _nextKey++;
 }
 
-void TerraFactory::updateObjects(uint32_t now) {
-    for (uint8_t i = 0; i < _count; ++i) if (_objects[i] && _objects[i]->isEnabled()) _objects[i]->update(now);
+void TerraFactory::updateObjects(uint32_t now)
+{
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
+    }
 }
 
-TerraSensor *TerraFactory::newSensor(Terra_SensorType sensorType, Terra_Unit unit, uint32_t key, const TerraString &name)
+SharedPtr<TerraSensor> TerraFactory::addSensor(Terra_SensorType sensorType, Terra_Unit unit, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraSensor> object(newSensorObject(sensorType, unit, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraSensor>();
+}
+
+SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_Unit unit, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraRemoteSensor> object(new TerraRemoteSensor(reportedType, unit, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraRemoteSensor>();
+}
+
+SharedPtr<TerraActuator> TerraFactory::addActuator(Terra_ActuatorType actuatorType, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraActuator> object(newActuatorObject(actuatorType, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraActuator>();
+}
+
+SharedPtr<TerraPump> TerraFactory::addPump(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraPump> object(new TerraPump(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraPump>();
+}
+
+SharedPtr<TerraSumpPump> TerraFactory::addSumpPump(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraSumpPump> object(new TerraSumpPump(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraSumpPump>();
+}
+
+SharedPtr<TerraCirculator> TerraFactory::addCirculator(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraCirculator> object(new TerraCirculator(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraCirculator>();
+}
+
+SharedPtr<TerraResource> TerraFactory::addResource(Terra_ResourceType resourceType, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraResource> object(newResourceObject(resourceType, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraResource>();
+}
+
+SharedPtr<TerraWaterStorage> TerraFactory::addWaterStorage(Terra_WaterStorageType storageType, float capacityLiters, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraWaterStorage> object(newWaterStorageObject(storageType, capacityLiters, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraWaterStorage>();
+}
+
+SharedPtr<TerraCistern> TerraFactory::addCistern(float capacityLiters, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraCistern> object(new TerraCistern(capacityLiters, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraCistern>();
+}
+
+SharedPtr<TerraWaterSource> TerraFactory::addWaterSource(Terra_WaterSourceType sourceType, uint8_t priority, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraWaterSource> object(newWaterSourceObject(sourceType, priority, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraWaterSource>();
+}
+
+SharedPtr<TerraWaterRoute> TerraFactory::addWaterRoute(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraWaterRoute> object(new TerraWaterRoute(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraWaterRoute>();
+}
+
+SharedPtr<TerraRainCatchment> TerraFactory::addRainCatchment(float areaSquareMeters, float collectionEfficiency, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraRainCatchment> object(new TerraRainCatchment(areaSquareMeters, collectionEfficiency, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraRainCatchment>();
+}
+
+SharedPtr<TerraThermalStore> TerraFactory::addThermalStore(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraThermalStore> object(new TerraThermalStore(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraThermalStore>();
+}
+
+SharedPtr<TerraThermalLoop> TerraFactory::addThermalLoop(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraThermalLoop> object(new TerraThermalLoop(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraThermalLoop>();
+}
+
+SharedPtr<TerraEnvironment> TerraFactory::addEnvironment(uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraEnvironment> object(new TerraEnvironment(key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraEnvironment>();
+}
+
+SharedPtr<TerraPowerRail> TerraFactory::addPowerRail(Terra_RailType railType, uint32_t key, const TerraString &name)
+{
+    SharedPtr<TerraPowerRail> object(newPowerRailObject(railType, key, name));
+    if (object && registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    return SharedPtr<TerraPowerRail>();
+}
+
+TerraSensor *TerraFactory::newSensorObject(Terra_SensorType sensorType, Terra_Unit unit, uint32_t key, const TerraString &name)
 {
     switch (sensorType) {
         case Terra_SensorType_Binary: return new TerraBinarySensor(key, name);
@@ -149,7 +254,7 @@ TerraSensor *TerraFactory::newSensor(Terra_SensorType sensorType, Terra_Unit uni
     }
 }
 
-TerraActuator *TerraFactory::newActuator(Terra_ActuatorType actuatorType, uint32_t key, const TerraString &name)
+TerraActuator *TerraFactory::newActuatorObject(Terra_ActuatorType actuatorType, uint32_t key, const TerraString &name)
 {
     switch (actuatorType) {
         case Terra_ActuatorType_Digital: return new TerraActuator(actuatorType, key, name);
@@ -165,13 +270,13 @@ TerraActuator *TerraFactory::newActuator(Terra_ActuatorType actuatorType, uint32
     }
 }
 
-TerraResource *TerraFactory::newResource(Terra_ResourceType resourceType, uint32_t key, const TerraString &name)
+TerraResource *TerraFactory::newResourceObject(Terra_ResourceType resourceType, uint32_t key, const TerraString &name)
 {
     if (resourceType == Terra_ResourceType_Undefined) return nullptr;
     return new TerraResource(resourceType, key, name);
 }
 
-TerraWaterStorage *TerraFactory::newWaterStorage(Terra_WaterStorageType storageType, float capacityLiters,
+TerraWaterStorage *TerraFactory::newWaterStorageObject(Terra_WaterStorageType storageType, float capacityLiters,
                                                  uint32_t key, const TerraString &name)
 {
     switch (storageType) {
@@ -184,14 +289,14 @@ TerraWaterStorage *TerraFactory::newWaterStorage(Terra_WaterStorageType storageT
     }
 }
 
-TerraWaterSource *TerraFactory::newWaterSource(Terra_WaterSourceType sourceType, uint8_t priority,
+TerraWaterSource *TerraFactory::newWaterSourceObject(Terra_WaterSourceType sourceType, uint8_t priority,
                                                uint32_t key, const TerraString &name)
 {
     if (sourceType == Terra_WaterSourceType_Undefined) return nullptr;
     return new TerraWaterSource(sourceType, priority, key, name);
 }
 
-TerraPowerRail *TerraFactory::newPowerRail(Terra_RailType railType, uint32_t key, const TerraString &name)
+TerraPowerRail *TerraFactory::newPowerRailObject(Terra_RailType railType, uint32_t key, const TerraString &name)
 {
     float voltage = 0.0f;
     switch (railType) {
@@ -221,7 +326,7 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
                 remote->setStaleAfter(data->staleAfterMs ? data->staleAfterMs : TERRA_DEFAULT_REMOTE_STALE_MS);
                 sensor = remote;
             } else {
-                sensor = newSensor(data->sensorType, data->unit, data->key, data->name);
+                sensor = newSensorObject(data->sensorType, data->unit, data->key, data->name);
             }
             if (sensor) {
                 sensor->setUpdateInterval(data->updateIntervalMs);
@@ -234,23 +339,22 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
                     }
                 }
                 if (data->hasPinDriver) {
-                    TerraInputDriver *driver = nullptr;
+                    SharedPtr<TerraInputDriver> driver;
                     if (data->pinSetup.mode == Terra_PinMode_Analog_Input) {
-                        TerraAnalogInputDriver *analogDriver = new TerraAnalogInputDriver(data->pinSetup.pin, data->unit);
+                        SharedPtr<TerraAnalogInputDriver> analogDriver(new TerraAnalogInputDriver(data->pinSetup.pin, data->unit));
                         if (data->driverCalibrated && !analogDriver->setCalibration(data->driverRawMinimum, data->driverRawMaximum,
                                                                                    data->driverValueMinimum, data->driverValueMaximum)) {
-                            delete analogDriver;
                             delete sensor;
                             return nullptr;
                         }
                         driver = analogDriver;
                     } else if (data->pinSetup.mode == Terra_PinMode_Digital_Input) {
-                        driver = new TerraDigitalInputDriver(data->pinSetup, data->unit);
+                        driver = SharedPtr<TerraInputDriver>(new TerraDigitalInputDriver(data->pinSetup, data->unit));
                     } else {
                         delete sensor;
                         return nullptr;
                     }
-                    sensor->setDriver(driver, true);
+                    sensor->setDriver(driver);
                 }
             }
             object = sensor;
@@ -258,32 +362,34 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
 
         case Terra_ObjectType_Actuator: {
             const TerraActuatorData *data = static_cast<const TerraActuatorData *>(dataIn);
-            TerraActuator *actuator = newActuator(data->actuatorType, data->key, data->name);
+            TerraActuator *actuator = newActuatorObject(data->actuatorType, data->key, data->name);
             if (actuator) {
                 actuator->setEnableMode(data->enableMode);
-                if (data->actuatorType == Terra_ActuatorType_Pump)
+                if (data->actuatorType == Terra_ActuatorType_Pump) {
                     static_cast<TerraPump *>(actuator)->setMaxContinuousRuntime(data->maxContinuousMs);
-                else if (data->actuatorType == Terra_ActuatorType_Circulator)
+                } else if (data->actuatorType == Terra_ActuatorType_Circulator) {
                     static_cast<TerraCirculator *>(actuator)->setMaxContinuousRuntime(data->maxContinuousMs);
+                }
                 else if (data->actuatorType == Terra_ActuatorType_SumpPump) {
                     TerraSumpPump *sump = static_cast<TerraSumpPump *>(actuator);
                     sump->setMaxContinuousRuntime(data->maxContinuousMs);
+                    sump->initLevelSensorKey(data->levelSensorKey);
                     if (!sump->configureLevels(data->sumpStartPercent, data->sumpStopPercent, data->sumpAlarmPercent)) {
                         delete actuator;
                         return nullptr;
                     }
                 }
                 if (data->hasPinDriver) {
-                    TerraOutputDriver *driver = nullptr;
-                    if (data->pinSetup.mode == Terra_PinMode_Digital_Output)
-                        driver = new TerraDigitalOutputDriver(data->pinSetup);
-                    else if (data->pinSetup.mode == Terra_PinMode_Analog_Output)
-                        driver = new TerraAnalogOutputDriver(data->pinSetup.pin, data->maximumRaw);
-                    else {
+                    SharedPtr<TerraOutputDriver> driver;
+                    if (data->pinSetup.mode == Terra_PinMode_Digital_Output) {
+                        driver = SharedPtr<TerraOutputDriver>(new TerraDigitalOutputDriver(data->pinSetup));
+                    } else if (data->pinSetup.mode == Terra_PinMode_Analog_Output) {
+                        driver = SharedPtr<TerraOutputDriver>(new TerraAnalogOutputDriver(data->pinSetup.pin, data->maximumRaw));
+                    } else {
                         delete actuator;
                         return nullptr;
                     }
-                    actuator->setDriver(driver, true);
+                    actuator->setDriver(driver);
                 }
             }
             object = actuator;
@@ -291,30 +397,25 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
 
         case Terra_ObjectType_Resource: {
             const TerraResourceData *data = static_cast<const TerraResourceData *>(dataIn);
-            TerraResource *resource = newResource(data->resourceType, data->key, data->name);
-            if (resource && !resource->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel)) {
-                delete resource;
-                resource = nullptr;
+            TerraResource *resource = newResourceObject(data->resourceType, data->key, data->name);
+            if (resource) {
+                resource->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
+                resource->setLevel(data->level);
             }
-            if (resource) { resource->setLevel(data->level); }
             object = resource;
         } break;
 
         case Terra_ObjectType_WaterStorage: {
             const TerraWaterStorageData *data = static_cast<const TerraWaterStorageData *>(dataIn);
-            TerraWaterStorage *storage = newWaterStorage(data->storageType, data->capacityLiters, data->key, data->name);
-            if (storage && !storage->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel)) {
-                delete storage;
-                storage = nullptr;
-            }
+            TerraWaterStorage *storage = newWaterStorageObject(data->storageType, data->capacityLiters, data->key, data->name);
             if (storage) {
+                storage->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
                 storage->setLevel(data->level);
-                if (data->storageType == Terra_WaterStorageType_Cistern &&
-                    !static_cast<TerraCistern *>(storage)->configureFillBand(data->fillStartPercent,
-                                                                             data->fillStopPercent,
-                                                                             data->overflowPercent)) {
-                    delete storage;
-                    storage = nullptr;
+                storage->initLevelSensorKey(data->levelSensorKey);
+                if (data->storageType == Terra_WaterStorageType_Cistern) {
+                    static_cast<TerraCistern *>(storage)->configureFillBand(data->fillStartPercent,
+                                                                           data->fillStopPercent,
+                                                                           data->overflowPercent);
                 }
             }
             object = storage;
@@ -322,12 +423,13 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
 
         case Terra_ObjectType_WaterSource: {
             const TerraWaterSourceData *data = static_cast<const TerraWaterSourceData *>(dataIn);
-            TerraWaterSource *source = newWaterSource(data->sourceType, data->priority, data->key, data->name);
+            TerraWaterSource *source = newWaterSourceObject(data->sourceType, data->priority, data->key, data->name);
             if (source) {
                 source->setAvailable(data->available);
                 source->setLevel(data->level);
                 source->setReserveLevel(data->reserveLevel);
                 source->setMaximumFlowLpm(data->maximumFlowLpm);
+                source->initLevelSensorKey(data->levelSensorKey);
             }
             object = source;
         } break;
@@ -335,7 +437,11 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
         case Terra_ObjectType_WaterRoute: {
             const TerraWaterRouteData *data = static_cast<const TerraWaterRouteData *>(dataIn);
             TerraWaterRoute *route = new TerraWaterRoute(data->key, data->name);
-            route->configure(data->sourceKey, data->destinationKey, data->destinationStartPercent, data->destinationStopPercent);
+            route->initSourceKey(data->sourceKey);
+            route->initDestinationKey(data->destinationKey);
+            route->initPumpKey(data->pumpKey);
+            route->initFlowSensorKey(data->flowSensorKey);
+            route->setDestinationBand(data->destinationStartPercent, data->destinationStopPercent);
             route->setMinimumFlow(data->minimumFlowLpm);
             route->setMaximumFlow(data->maximumFlowLpm);
             route->setRouteState(data->routeState);
@@ -350,41 +456,36 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
         case Terra_ObjectType_ThermalStore: {
             const TerraThermalStoreData *data = static_cast<const TerraThermalStoreData *>(dataIn);
             TerraThermalStore *store = new TerraThermalStore(data->key, data->name);
-            bool configured = store->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
-            if (configured) { store->setLevel(data->level); }
-
-            if (configured && data->absoluteMaximumC > store->getAbsoluteMaximum()) {
-                configured = store->setAbsoluteMaximum(data->absoluteMaximumC);
-            }
-            if (configured) {
-                configured = store->setTargetRange(data->minimumTargetC, data->maximumTargetC);
-            }
-            if (configured && !isFPEqual(store->getAbsoluteMaximum(), data->absoluteMaximumC)) {
-                configured = store->setAbsoluteMaximum(data->absoluteMaximumC);
-            }
-            if (!configured) {
-                delete store;
-                store = nullptr;
-            } else {
-                store->setTemperature(data->temperatureC);
-            }
+            store->setThresholds(data->reserveLevel, data->lowLevel, data->highLevel);
+            store->setLevel(data->level);
+            store->setTargetRange(data->minimumTargetC, data->maximumTargetC);
+            store->setAbsoluteMaximum(data->absoluteMaximumC);
+            store->setTemperature(data->temperatureC);
+            store->initTemperatureSensorKey(data->temperatureSensorKey);
             object = store;
         } break;
 
         case Terra_ObjectType_ThermalLoop: {
             const TerraThermalLoopData *data = static_cast<const TerraThermalLoopData *>(dataIn);
             TerraThermalLoop *loop = new TerraThermalLoop(data->key, data->name);
-            if (!loop->configure(data->onDifferentialC, data->offDifferentialC, data->maxStoreTempC)) {
-                delete loop;
-                loop = nullptr;
-            }
+            loop->initSourceTemperatureKey(data->sourceTemperatureSensorKey);
+            loop->initStoreKey(data->thermalStoreKey);
+            loop->initCirculatorKey(data->circulatorKey);
+            loop->configure(data->onDifferentialC, data->offDifferentialC, data->maxStoreTempC);
             object = loop;
         } break;
 
         case Terra_ObjectType_Environment: {
             const TerraEnvironmentData *data = static_cast<const TerraEnvironmentData *>(dataIn);
             TerraEnvironment *environment = new TerraEnvironment(data->key, data->name);
-            environment->setSnapshot(data->weather);
+            environment->initAirTemperatureSensorKey(data->airTemperatureSensorKey);
+            environment->initHumiditySensorKey(data->humiditySensorKey);
+            environment->initPressureSensorKey(data->pressureSensorKey);
+            environment->initRainfallSensorKey(data->rainfallSensorKey);
+            environment->initRainRateSensorKey(data->rainRateSensorKey);
+            environment->initWindSpeedSensorKey(data->windSpeedSensorKey);
+            environment->initWindDirectionSensorKey(data->windDirectionSensorKey);
+            environment->initSolarRadiationSensorKey(data->solarRadiationSensorKey);
             object = environment;
         } break;
 
@@ -397,7 +498,7 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
         default: return nullptr;
     }
 
-    terraApplyObjectData(object, dataIn);
+    applyObjectData(object, dataIn);
     return object;
 }
 
@@ -414,7 +515,7 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             out->reportedType = sensor->getSensorType();
             out->unit = sensor->getMeasurement().unit;
             out->updateIntervalMs = sensor->getUpdateInterval();
-            TerraInputDriver *inputDriver = sensor->getDriver();
+            SharedPtr<TerraInputDriver> inputDriver = sensor->getDriver();
             if (inputDriver) {
                 out->hasPinDriver = inputDriver->getPinSetup(out->pinSetup);
                 out->driverCalibrated = inputDriver->getCalibration(out->driverRawMinimum, out->driverRawMaximum,
@@ -438,7 +539,7 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             TerraActuatorData *out = new TerraActuatorData();
             out->actuatorType = actuator->getActuatorType();
             out->enableMode = actuator->getEnableMode();
-            TerraOutputDriver *outputDriver = actuator->getDriver();
+            SharedPtr<TerraOutputDriver> outputDriver = actuator->getDriver();
             if (outputDriver) {
                 out->hasPinDriver = outputDriver->getPinSetup(out->pinSetup);
                 if (out->pinSetup.mode == Terra_PinMode_Analog_Output) {
@@ -446,16 +547,17 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
                     if (maximumRaw > 0) out->maximumRaw = maximumRaw;
                 }
             }
-            if (actuator->getActuatorType() == Terra_ActuatorType_Pump)
+            if (actuator->getActuatorType() == Terra_ActuatorType_Pump) {
                 out->maxContinuousMs = static_cast<const TerraPump *>(actuator)->getMaxContinuousRuntime();
-            else if (actuator->getActuatorType() == Terra_ActuatorType_Circulator)
+            } else if (actuator->getActuatorType() == Terra_ActuatorType_Circulator) {
                 out->maxContinuousMs = static_cast<const TerraCirculator *>(actuator)->getMaxContinuousRuntime();
-            else if (actuator->getActuatorType() == Terra_ActuatorType_SumpPump) {
+            } else if (actuator->getActuatorType() == Terra_ActuatorType_SumpPump) {
                 const TerraSumpPump *sump = static_cast<const TerraSumpPump *>(actuator);
                 out->maxContinuousMs = sump->getMaxContinuousRuntime();
                 out->sumpStartPercent = sump->getStartLevelPercent();
                 out->sumpStopPercent = sump->getStopLevelPercent();
                 out->sumpAlarmPercent = sump->getAlarmLevelPercent();
+                out->levelSensorKey = sump->getLevelSensorAttachment().getKey();
             }
             data = out;
         } break;
@@ -491,6 +593,7 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             out->reserveLevel = storage->getReserveLevel();
             out->lowLevel = storage->getLowLevel();
             out->highLevel = storage->getHighLevel();
+            out->levelSensorKey = storage->getLevelSensorAttachment().getKey();
             data = out;
         } break;
 
@@ -503,6 +606,7 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             out->level = source->getLevel();
             out->reserveLevel = source->getReserveLevel();
             out->maximumFlowLpm = source->getMaximumFlowLpm();
+            out->levelSensorKey = source->getLevelSensorAttachment().getKey();
             data = out;
         } break;
 
@@ -511,6 +615,8 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             TerraWaterRouteData *out = new TerraWaterRouteData();
             out->sourceKey = route->getSourceKey();
             out->destinationKey = route->getDestinationKey();
+            out->pumpKey = route->getPumpKey();
+            out->flowSensorKey = route->getFlowSensorKey();
             out->destinationStartPercent = route->getDestinationStartPercent();
             out->destinationStopPercent = route->getDestinationStopPercent();
             out->minimumFlowLpm = route->getMinimumFlow();
@@ -536,6 +642,7 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             out->lowLevel = store->getLowLevel();
             out->highLevel = store->getHighLevel();
             out->temperatureC = store->getTemperature();
+            out->temperatureSensorKey = store->getTemperatureSensorAttachment().getKey();
             out->minimumTargetC = store->getMinimumTarget();
             out->maximumTargetC = store->getMaximumTarget();
             out->absoluteMaximumC = store->getAbsoluteMaximum();
@@ -545,6 +652,9 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
         case Terra_ObjectType_ThermalLoop: {
             const TerraThermalLoop *loop = static_cast<const TerraThermalLoop *>(objectIn);
             TerraThermalLoopData *out = new TerraThermalLoopData();
+            out->sourceTemperatureSensorKey = loop->getSourceTemperatureSensorKey();
+            out->thermalStoreKey = loop->getThermalStoreKey();
+            out->circulatorKey = loop->getCirculatorKey();
             out->onDifferentialC = loop->getOnDifferential();
             out->offDifferentialC = loop->getOffDifferential();
             out->maxStoreTempC = loop->getMaxStoreTemperature();
@@ -554,7 +664,14 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
         case Terra_ObjectType_Environment: {
             const TerraEnvironment *environment = static_cast<const TerraEnvironment *>(objectIn);
             TerraEnvironmentData *out = new TerraEnvironmentData();
-            out->weather = environment->getSnapshot();
+            out->airTemperatureSensorKey = environment->getAirTemperatureSensorAttachment().getKey();
+            out->humiditySensorKey = environment->getHumiditySensorAttachment().getKey();
+            out->pressureSensorKey = environment->getPressureSensorAttachment().getKey();
+            out->rainfallSensorKey = environment->getRainfallSensorAttachment().getKey();
+            out->rainRateSensorKey = environment->getRainRateSensorAttachment().getKey();
+            out->windSpeedSensorKey = environment->getWindSpeedSensorAttachment().getKey();
+            out->windDirectionSensorKey = environment->getWindDirectionSensorAttachment().getKey();
+            out->solarRadiationSensorKey = environment->getSolarRadiationSensorAttachment().getKey();
             data = out;
         } break;
 

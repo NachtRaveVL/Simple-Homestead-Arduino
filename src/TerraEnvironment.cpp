@@ -7,36 +7,102 @@
 #include "TerraCoreLogic.h"
 #include "TerraUtils.h"
 
-TerraWeatherSnapshot::TerraWeatherSnapshot()
-    : airTemperatureC(0.0f), relativeHumidity(0.0f), barometricPressureHpa(0.0f), rainfallMm(0.0f),
-      rainfallRateMmHr(0.0f), windSpeedMps(0.0f), windDirectionDeg(0.0f), solarRadiationWm2(0.0f),
-      timestamp(0), validFields(0), valid(false) { }
-
 TerraEnvironment::TerraEnvironment(uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_Environment, key, name), _snapshot() { }
+    : TerraObject(Terra_ObjectType_Environment, key, name),
+      _airTemperature(this), _humidity(this), _pressure(this), _rainfall(this), _rainRate(this),
+      _windSpeed(this), _windDirection(this), _solarRadiation(this)
+{ ; }
 
-void TerraEnvironment::setSnapshot(const TerraWeatherSnapshot &snapshot) {
-    _snapshot = snapshot;
-    if (_snapshot.valid && !_snapshot.validFields) _snapshot.validFields = TERRA_WEATHER_ALL_FIELDS;
+static float terraEnvironmentValue(const TerraSensorAttachment &attachment, Terra_Unit units)
+{
+    TerraMeasurement measurement = attachment.getCachedMeasurement();
+    if (!measurement.valid) { return NAN; }
+    if (measurement.unit != units) { measurement = terraConvertMeasurement(measurement, units); }
+    return measurement.valid ? measurement.value : NAN;
 }
 
-void TerraEnvironment::touch(uint32_t timestamp, uint16_t field) {
-    _snapshot.timestamp = timestamp;
-    _snapshot.validFields |= field;
-    _snapshot.valid = _snapshot.validFields != 0;
+float TerraEnvironment::getAirTemperature() const
+{
+    return terraEnvironmentValue(_airTemperature, Terra_Unit_Celsius);
 }
-void TerraEnvironment::setAirTemperature(float celsius, uint32_t timestamp) { _snapshot.airTemperatureC = celsius; touch(timestamp, TERRA_WEATHER_AIR_TEMPERATURE); }
-void TerraEnvironment::setRelativeHumidity(float percent, uint32_t timestamp) { _snapshot.relativeHumidity = terraClamp(percent, 0.0f, 100.0f); touch(timestamp, TERRA_WEATHER_HUMIDITY); }
-void TerraEnvironment::setRainfall(float millimeters, uint32_t timestamp) { _snapshot.rainfallMm = millimeters < 0.0f ? 0.0f : millimeters; touch(timestamp, TERRA_WEATHER_RAINFALL); }
-void TerraEnvironment::setRainfallRate(float mmPerHour, uint32_t timestamp) { _snapshot.rainfallRateMmHr = mmPerHour < 0.0f ? 0.0f : mmPerHour; touch(timestamp, TERRA_WEATHER_RAIN_RATE); }
-void TerraEnvironment::setBarometricPressure(float hPa, uint32_t timestamp) { _snapshot.barometricPressureHpa = hPa; touch(timestamp, TERRA_WEATHER_PRESSURE); }
-void TerraEnvironment::setWind(float speedMps, float directionDeg, uint32_t timestamp) { _snapshot.windSpeedMps = speedMps < 0.0f ? 0.0f : speedMps; _snapshot.windDirectionDeg = fmodf(directionDeg, 360.0f); if (_snapshot.windDirectionDeg < 0.0f) _snapshot.windDirectionDeg += 360.0f; touch(timestamp, TERRA_WEATHER_WIND_SPEED | TERRA_WEATHER_WIND_DIRECTION); }
-void TerraEnvironment::setSolarRadiation(float wattsPerSquareMeter, uint32_t timestamp) { _snapshot.solarRadiationWm2 = wattsPerSquareMeter < 0.0f ? 0.0f : wattsPerSquareMeter; touch(timestamp, TERRA_WEATHER_SOLAR_RADIATION); }
-bool TerraEnvironment::isFreezing(float thresholdC) const { return hasField(TERRA_WEATHER_AIR_TEMPERATURE) && terraFreezeRisk(_snapshot.airTemperatureC, thresholdC); }
 
-float TerraEnvironment::dewPointC() const {
-    if (!hasField(TERRA_WEATHER_AIR_TEMPERATURE | TERRA_WEATHER_HUMIDITY) || _snapshot.relativeHumidity <= 0.0f) return NAN;
-    const float a = 17.62f, b = 243.12f;
-    float gamma = logf(_snapshot.relativeHumidity / 100.0f) + a * _snapshot.airTemperatureC / (b + _snapshot.airTemperatureC);
+float TerraEnvironment::getRelativeHumidity() const
+{
+    return terraEnvironmentValue(_humidity, Terra_Unit_Percent);
+}
+
+float TerraEnvironment::getRainfall() const
+{
+    return terraEnvironmentValue(_rainfall, Terra_Unit_Millimeters);
+}
+
+float TerraEnvironment::getRainfallRate() const
+{
+    return terraEnvironmentValue(_rainRate, Terra_Unit_MillimetersPerHour);
+}
+
+float TerraEnvironment::getBarometricPressure() const
+{
+    return terraEnvironmentValue(_pressure, Terra_Unit_Hectopascals);
+}
+
+float TerraEnvironment::getWindSpeed() const
+{
+    return terraEnvironmentValue(_windSpeed, Terra_Unit_MetersPerSecond);
+}
+
+float TerraEnvironment::getWindDirection() const
+{
+    float direction = terraEnvironmentValue(_windDirection, Terra_Unit_Degrees);
+    if (isnan(direction)) { return direction; }
+    direction = fmodf(direction, 360.0f);
+    return direction < 0.0f ? direction + 360.0f : direction;
+}
+
+float TerraEnvironment::getSolarRadiation() const
+{
+    return terraEnvironmentValue(_solarRadiation, Terra_Unit_WattsPerSquareMeter);
+}
+
+bool TerraEnvironment::isFreezing(float thresholdC) const
+{
+    float temperature = getAirTemperature();
+    return !isnan(temperature) && terraFreezeRisk(temperature, thresholdC);
+}
+
+float TerraEnvironment::dewPointC() const
+{
+    float temperature = getAirTemperature();
+    float humidity = getRelativeHumidity();
+    if (isnan(temperature) || isnan(humidity) || humidity <= 0.0f) { return NAN; }
+
+    const float a = 17.62f;
+    const float b = 243.12f;
+    float gamma = logf(humidity / 100.0f) + a * temperature / (b + temperature);
     return b * gamma / (a - gamma);
+}
+
+void TerraEnvironment::update(uint32_t now)
+{
+    if (_airTemperature.isSet()) { _airTemperature.getMeasurement(now, true); }
+    if (_humidity.isSet()) { _humidity.getMeasurement(now, true); }
+    if (_pressure.isSet()) { _pressure.getMeasurement(now, true); }
+    if (_rainfall.isSet()) { _rainfall.getMeasurement(now, true); }
+    if (_rainRate.isSet()) { _rainRate.getMeasurement(now, true); }
+    if (_windSpeed.isSet()) { _windSpeed.getMeasurement(now, true); }
+    if (_windDirection.isSet()) { _windDirection.getMeasurement(now, true); }
+    if (_solarRadiation.isSet()) { _solarRadiation.getMeasurement(now, true); }
+}
+
+void TerraEnvironment::unresolveAny(TerraObject *object)
+{
+    _airTemperature.unresolveAny(object);
+    _humidity.unresolveAny(object);
+    _pressure.unresolveAny(object);
+    _rainfall.unresolveAny(object);
+    _rainRate.unresolveAny(object);
+    _windSpeed.unresolveAny(object);
+    _windDirection.unresolveAny(object);
+    _solarRadiation.unresolveAny(object);
+    TerraObject::unresolveAny(object);
 }

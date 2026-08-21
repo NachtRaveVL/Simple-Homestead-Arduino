@@ -7,7 +7,6 @@
 #define TerraResource_H
 
 #include "TerraObject.h"
-#include "TerraCoreLogic.h"
 
 // Resource Base
 // Normalized resource level with reserve, low, high, and fault states.

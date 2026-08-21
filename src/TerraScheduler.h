@@ -17,7 +17,7 @@ struct TerraScheduledTask {
     bool enabled;                                           // Enabled state
     bool daily;                                             // Daily-task flag
     uint16_t minuteOfDay;                                   // Scheduled minute of day
-    int16_t lastDay;                                        // Last day task ran
+    int32_t lastDay;                                        // Last local date task ran
 
     TerraScheduledTask()
         : callback(nullptr), context(nullptr), intervalMs(0), lastRunAt(0), enabled(false), daily(false), minuteOfDay(0), lastDay(-1) { }
@@ -30,7 +30,7 @@ public:
     int8_t addDailyTask(TerraTaskCallback callback, void *context, uint16_t minuteOfDay);
     bool removeTask(uint8_t index);
     void enableTask(uint8_t index, bool enabled);
-    void update(uint32_t nowMs = terraMillis(), uint16_t minuteOfDay = 0, int16_t dayNumber = 0);
+    void update();
     uint8_t count() const { return _count; }
 
 protected:

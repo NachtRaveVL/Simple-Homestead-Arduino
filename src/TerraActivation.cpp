@@ -4,24 +4,72 @@
 */
 
 #include "TerraActivation.h"
+#include "TerraActuators.h"
 #include "TerraUtils.h"
 
-TerraActivation::TerraActivation()
-    : _active(false), _intensity(0.0f), _startedAt(0), _durationMs(0) { }
-
-void TerraActivation::activate(float intensity, uint32_t durationMs, uint32_t now) {
-    _active = true;
-    _intensity = terraClamp(intensity, 0.0f, 1.0f);
-    _startedAt = now;
-    _durationMs = durationMs;
+TerraActivationHandle::TerraActivationHandle(TerraActuator *actuatorIn, float intensity, uint32_t duration)
+    : actuator(nullptr), activation(terraClamp(intensity, 0.0f, 1.0f), duration),
+      checkTime(0), elapsed(0)
+{
+    operator=(actuatorIn);
 }
 
-void TerraActivation::deactivate() {
-    _active = false;
-    _intensity = 0.0f;
-    _durationMs = 0;
+TerraActivationHandle::TerraActivationHandle(const TerraActivationHandle &handle)
+    : actuator(nullptr), activation(handle.activation), checkTime(0), elapsed(0)
+{
+    operator=(handle.actuator);
 }
 
-void TerraActivation::update(uint32_t now) {
-    if (_active && _durationMs && terraElapsed(now, _startedAt, _durationMs)) deactivate();
+TerraActivationHandle::~TerraActivationHandle()
+{
+    if (actuator) { unset(); }
+}
+
+TerraActivationHandle &TerraActivationHandle::operator=(TerraActuator *actuatorIn)
+{
+    if (actuator != actuatorIn && isValid()) {
+        if (actuator) { unset(); } else { checkTime = 0; }
+
+        actuator = actuatorIn;
+
+        if (actuator) {
+            if (actuator->addActivationHandle(this)) {
+                actuator->setNeedsUpdate();
+            } else {
+                actuator = nullptr;
+            }
+        }
+    }
+    return *this;
+}
+
+void TerraActivationHandle::unset()
+{
+    if (isActive()) { elapseTo(); }
+    checkTime = 0;
+
+    if (actuator) {
+        TerraActuator *oldActuator = actuator;
+        actuator = nullptr;
+        oldActuator->removeActivationHandle(this);
+        oldActuator->setNeedsUpdate();
+    }
+}
+
+void TerraActivationHandle::elapseBy(uint32_t delta)
+{
+    if (delta && isValid() && isActive()) {
+        if (!isUntimed()) {
+            if (delta <= activation.duration) {
+                activation.duration -= delta;
+                checkTime += delta;
+            } else {
+                delta = activation.duration;
+                activation.duration = 0;
+                checkTime = 0;
+                actuator->setNeedsUpdate();
+            }
+        }
+        elapsed += delta;
+    }
 }

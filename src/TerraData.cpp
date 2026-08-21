@@ -146,10 +146,9 @@ bool terraJsonExtractBool(const TerraString &json, const char *key, bool &out) {
 }
 
 TerraString TerraSystemData::toJSON() const {
-    TerraString json = "{\"systemName\":\"" + terraJsonEscape(setup.systemName) + "\",\"timeZoneHours\":";
+    TerraString json = "{\"systemName\":\"" + terraJsonEscape(setup.systemName) + "\",\"timeZoneOffset\":";
 #if defined(ARDUINO)
-    json += String(setup.timeZoneHours);
-    json += ",\"timeZoneMinutes\":" + String(setup.timeZoneMinutes);
+    json += String(setup.timeZoneOffset);
     json += ",\"controlMode\":\"" + String(terraControlModeToString(setup.controlMode)) + "\"";
     json += ",\"measurementMode\":\"" + String(terraMeasurementModeToString(setup.measurementMode)) + "\"";
     json += ",\"updateIntervalMs\":" + String(setup.updateIntervalMs);
@@ -157,8 +156,7 @@ TerraString TerraSystemData::toJSON() const {
     json += ",\"publisherIntervalMs\":" + String(setup.publisherIntervalMs);
     json += ",\"sequence\":" + String(sequence) + "}";
 #else
-    json += std::to_string((int)setup.timeZoneHours);
-    json += ",\"timeZoneMinutes\":" + std::to_string((int)setup.timeZoneMinutes);
+    json += std::to_string((int)setup.timeZoneOffset);
     json += ",\"controlMode\":\"" + TerraString(terraControlModeToString(setup.controlMode)) + "\"";
     json += ",\"measurementMode\":\"" + TerraString(terraMeasurementModeToString(setup.measurementMode)) + "\"";
     json += ",\"updateIntervalMs\":" + std::to_string(setup.updateIntervalMs);
@@ -171,13 +169,12 @@ TerraString TerraSystemData::toJSON() const {
 
 bool TerraSystemData::fromJSON(const TerraString &json) {
     TerraString name, mode, measurementMode, logLevel;
-    long tzh = 0, tzm = 0, interval = 0, publisherInterval = 0, seq = 0;
+    long tzOffset = 0, interval = 0, publisherInterval = 0, seq = 0;
     if (!terraJsonExtractString(json, "systemName", name)) return false;
     if (!terraJsonExtractString(json, "controlMode", mode)) return false;
     if (!terraJsonExtractString(json, "measurementMode", measurementMode)) return false;
     if (!terraJsonExtractString(json, "loggerMinimumLevel", logLevel)) return false;
-    if (!terraJsonExtractLong(json, "timeZoneHours", tzh)) return false;
-    if (!terraJsonExtractLong(json, "timeZoneMinutes", tzm)) return false;
+    if (!terraJsonExtractLong(json, "timeZoneOffset", tzOffset)) return false;
     if (!terraJsonExtractLong(json, "updateIntervalMs", interval)) return false;
     if (!terraJsonExtractLong(json, "publisherIntervalMs", publisherInterval)) return false;
     if (!terraJsonExtractLong(json, "sequence", seq)) return false;
@@ -187,11 +184,10 @@ bool TerraSystemData::fromJSON(const TerraString &json) {
     if (!terraStringEqualsIgnoreCase(mode, terraControlModeToString(parsedMode))) return false;
     if (!terraStringEqualsIgnoreCase(measurementMode, terraMeasurementModeToString(parsedMeasurementMode))) return false;
     if (!terraStringEqualsIgnoreCase(logLevel, terraLogLevelToString(parsedLogLevel))) return false;
-    if (tzh < -23 || tzh > 23 || tzm < -59 || tzm > 59) return false;
+    if (tzOffset < -24 || tzOffset > 24) return false;
     if (interval <= 0 || publisherInterval <= 0 || seq < 0) return false;
     setup.systemName = name;
-    setup.timeZoneHours = (int8_t)tzh;
-    setup.timeZoneMinutes = (int8_t)tzm;
+    setup.timeZoneOffset = (int16_t)tzOffset;
     setup.controlMode = parsedMode;
     setup.measurementMode = parsedMeasurementMode;
     setup.updateIntervalMs = (uint32_t)interval;
@@ -248,9 +244,9 @@ size_t TerraSystemData::toBinary(uint8_t *buffer, size_t capacity) const {
 
     size_t pos = 0;
     buffer[pos++] = 'T'; buffer[pos++] = 'R'; buffer[pos++] = 'D'; buffer[pos++] = 'U';
-    buffer[pos++] = 2; // binary format version
-    buffer[pos++] = (uint8_t)setup.timeZoneHours;
-    buffer[pos++] = (uint8_t)setup.timeZoneMinutes;
+    buffer[pos++] = 3; // binary format version
+    buffer[pos++] = (uint8_t)(setup.timeZoneOffset & 0xff);
+    buffer[pos++] = (uint8_t)((setup.timeZoneOffset >> 8) & 0xff);
     buffer[pos++] = (uint8_t)setup.controlMode;
     buffer[pos++] = (uint8_t)setup.measurementMode;
     buffer[pos++] = (uint8_t)setup.loggerMinimumLevel;
@@ -267,7 +263,7 @@ size_t TerraSystemData::toBinary(uint8_t *buffer, size_t capacity) const {
 bool TerraSystemData::fromBinary(const uint8_t *buffer, size_t length) {
     if (!buffer || length < 27) return false;
     if (buffer[0] != 'T' || buffer[1] != 'R' || buffer[2] != 'D' || buffer[3] != 'U') return false;
-    if (buffer[4] != 2) return false;
+    if (buffer[4] != 3) return false;
     uint8_t nameLength = buffer[22];
     const size_t required = 23 + (size_t)nameLength + 4;
     if (nameLength > TERRA_NAME_MAXSIZE || length != required) return false;
@@ -275,8 +271,7 @@ bool TerraSystemData::fromBinary(const uint8_t *buffer, size_t length) {
     if (terraBinaryChecksum(buffer, required - 4) != expected) return false;
 
     TerraSystemData parsed;
-    parsed.setup.timeZoneHours = (int8_t)buffer[5];
-    parsed.setup.timeZoneMinutes = (int8_t)buffer[6];
+    parsed.setup.timeZoneOffset = (int16_t)((uint16_t)buffer[5] | ((uint16_t)buffer[6] << 8));
     parsed.setup.controlMode = (Terra_ControlMode)buffer[7];
     parsed.setup.measurementMode = (Terra_MeasurementMode)buffer[8];
     parsed.setup.loggerMinimumLevel = (Terra_LogLevel)buffer[9];

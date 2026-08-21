@@ -6,32 +6,90 @@
 #ifndef TerraBalancers_H
 #define TerraBalancers_H
 
-#include "TerraWater.h"
-#include "TerraThermal.h"
+#include "TerraAttachments.h"
+#include "TerraCoreLogic.h"
+
+class TerraWaterRoute;
+class TerraWaterSource;
+class TerraWaterStorage;
+class TerraThermalLoop;
+class TerraThermalStore;
 
 // Water Balancer
-// Selects sources/storage and evaluates safe water-transfer decisions.
+// Owns the source, destination, pump, and optional flow-sensor attachment points for one
+// water route. Normal transfer decisions and actuator control occur during update().
 class TerraWaterBalancer {
 public:
-    TerraTransferDecision evaluate(TerraWaterRoute &route,
-                                   const TerraWaterSource &source,
-                                   const TerraWaterStorage &destination) const;
+    TerraWaterBalancer(TerraWaterRoute *route = nullptr);
 
-    // Selects the usable source with the lowest numeric priority value.
-    // Sources at or below their reserve level are not considered usable.
-    const TerraWaterSource *selectSource(const TerraWaterSource *const *sources,
-                                         uint8_t count) const;
+    void setParent(TerraWaterRoute *route);
+    inline void setSource(const SharedPtr<TerraWaterSource> &source) { _source.setObject(source); }
+    template<class T> inline void setDestination(const SharedPtr<T> &destination) { _destination.setObject(destination); }
+    template<class T> inline void setPump(const SharedPtr<T> &pump) { _pump.setObject(pump); }
+    template<class T> inline void setFlowSensor(const SharedPtr<T> &sensor) { _flowSensor.setObject(sensor); }
+    void update(uint32_t now = terraMillis());
+    void unresolveAny(TerraObject *object);
 
-    TerraCistern *selectFillCistern(TerraCistern *const *cisterns, uint8_t count) const;
-    const TerraCistern *selectSupplyCistern(const TerraCistern *const *cisterns, uint8_t count) const;
-    float transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const;
+    const TerraTransferDecision &getLastDecision() const { return _lastDecision; }
+    TerraAttachment<TerraWaterSource> &getSourceAttachment() { return _source; }
+    const TerraAttachment<TerraWaterSource> &getSourceAttachment() const { return _source; }
+    TerraAttachment<TerraWaterStorage> &getDestinationAttachment() { return _destination; }
+    const TerraAttachment<TerraWaterStorage> &getDestinationAttachment() const { return _destination; }
+    TerraActuatorAttachment &getPumpAttachment() { return _pump; }
+    const TerraActuatorAttachment &getPumpAttachment() const { return _pump; }
+    TerraSensorAttachment &getFlowSensorAttachment() { return _flowSensor; }
+    const TerraSensorAttachment &getFlowSensorAttachment() const { return _flowSensor; }
+
+protected:
+    TerraWaterRoute *_route;                                // Parent water route, not owned
+    TerraAttachment<TerraWaterSource> _source;              // Water source attachment
+    TerraAttachment<TerraWaterStorage> _destination;        // Destination storage attachment
+    TerraActuatorAttachment _pump;                          // Transfer pump attachment
+    TerraSensorAttachment _flowSensor;                      // Optional flow sensor attachment
+    TerraTransferDecision _lastDecision;                    // Last transfer decision
+
+    void initSourceKey(uint32_t key) { _source.initObject(key); }
+    void initDestinationKey(uint32_t key) { _destination.initObject(key); }
+    void initPumpKey(uint32_t key) { _pump.initObject(key); }
+    void initFlowSensorKey(uint32_t key) { _flowSensor.initObject(key); }
+
+    friend class TerraWaterRoute;
+    friend class TerraFactory;
 };
 
 // Thermal Balancer
-// Evaluates differential-temperature circulation for a thermal loop.
+// Owns source-temperature, storage, and circulation attachment points for one thermal
+// loop. Differential-temperature circulation is evaluated during update().
 class TerraThermalBalancer {
 public:
-    bool evaluate(TerraThermalLoop &loop, float sourceTempC, float storeTempC) const;
+    TerraThermalBalancer(TerraThermalLoop *loop = nullptr);
+
+    void setParent(TerraThermalLoop *loop);
+    template<class T> inline void setSourceTemperatureSensor(const SharedPtr<T> &sensor) { _sourceTemperature.setObject(sensor); }
+    template<class T> inline void setThermalStore(const SharedPtr<T> &store) { _store.setObject(store); }
+    template<class T> inline void setCirculator(const SharedPtr<T> &circulator) { _circulator.setObject(circulator); }
+    void update(uint32_t now = terraMillis());
+    void unresolveAny(TerraObject *object);
+
+    TerraSensorAttachment &getSourceTemperatureAttachment() { return _sourceTemperature; }
+    const TerraSensorAttachment &getSourceTemperatureAttachment() const { return _sourceTemperature; }
+    TerraAttachment<TerraThermalStore> &getStoreAttachment() { return _store; }
+    const TerraAttachment<TerraThermalStore> &getStoreAttachment() const { return _store; }
+    TerraActuatorAttachment &getCirculatorAttachment() { return _circulator; }
+    const TerraActuatorAttachment &getCirculatorAttachment() const { return _circulator; }
+
+protected:
+    TerraThermalLoop *_loop;                                // Parent thermal loop, not owned
+    TerraSensorAttachment _sourceTemperature;               // Source temperature sensor attachment
+    TerraAttachment<TerraThermalStore> _store;              // Thermal storage attachment
+    TerraActuatorAttachment _circulator;                    // Circulation pump attachment
+
+    void initSourceTemperatureKey(uint32_t key) { _sourceTemperature.initObject(key); }
+    void initStoreKey(uint32_t key) { _store.initObject(key); }
+    void initCirculatorKey(uint32_t key) { _circulator.initObject(key); }
+
+    friend class TerraThermalLoop;
+    friend class TerraFactory;
 };
 
 #endif

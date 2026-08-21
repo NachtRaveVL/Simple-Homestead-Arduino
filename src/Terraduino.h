@@ -115,6 +115,8 @@ typedef SoftwareSerial SerialClass;
 typedef Adafruit_GPS GPSClass;
 #endif
 
+#include <RTClib.h>
+#include <TimeLib.h>
 #ifdef TERRA_ENABLE_MQTT
 #include <MQTT.h>
 #define TERRA_USE_MQTT
@@ -213,7 +215,8 @@ public:
     TerraModuleRegistry modules;                           // Module registry public instance
 
     // Controller constructor. Typically called during class instantiation before setup().
-    Terraduino();
+    Terraduino(Terra_RTCType rtcType = Terra_RTCType_None,
+               TerraDeviceSetup rtcSetup = TerraDeviceSetup());
     ~Terraduino();
 
     // Initializes the controller from the supplied system setup.
@@ -223,8 +226,8 @@ public:
     void launch();
     // Suspends operational updates without discarding configured state.
     void suspend();
-    // Updates objects, schedules, and publishing using the supplied local scheduling values.
-    void update(uint32_t now = terraMillis(), uint16_t minuteOfDay = 0, int16_t dayNumber = 0);
+    // Updates registered objects, scheduling, and publishing from the controller clock.
+    void update();
 
     inline bool isInitialized() const { return _initialized; }
     inline bool isRunning() const { return _running; }
@@ -233,13 +236,24 @@ public:
     // System Settings.
     inline const TerraSystemSetup &getSetup() const { return _data.setup; }
     inline void setSystemName(const TerraString &name) { _data.setup.systemName = name; }
-    inline void setTimeZoneOffset(int8_t hours, int8_t minutes) { _data.setup.timeZoneHours = hours; _data.setup.timeZoneMinutes = minutes; }
+    // Sets system time zone offset from UTC, in whole hours.
+    void setTimeZoneOffset(int8_t hoursOffset);
+    // System time zone offset from UTC, in total offset seconds.
+    time_t getTimeZoneOffset() const;
     inline void setControlMode(Terra_ControlMode mode) { _data.setup.controlMode = mode; }
     inline Terra_ControlMode getControlMode() const { return _data.setup.controlMode; }
     inline void setMeasurementMode(Terra_MeasurementMode mode) { _data.setup.measurementMode = mode; }
     inline Terra_MeasurementMode getMeasurementMode() const { return _data.setup.measurementMode; }
-    inline void setLoggerMinimumLevel(Terra_LogLevel level) { _data.setup.loggerMinimumLevel = level; logger.setMinimumLevel(level); }
-    inline void setPublisherInterval(uint32_t intervalMs) { _data.setup.publisherIntervalMs = intervalMs; publisher.setInterval(intervalMs); }
+    inline void setLoggerMinimumLevel(Terra_LogLevel level)
+    {
+        _data.setup.loggerMinimumLevel = level;
+        logger.setMinimumLevel(level);
+    }
+    inline void setPublisherInterval(uint32_t intervalMs)
+    {
+        _data.setup.publisherIntervalMs = intervalMs;
+        publisher.setInterval(intervalMs);
+    }
 
     // Core subsystem accessors kept alongside the public instances for family parity.
     inline TerraScheduler &getScheduler() { return scheduler; }
@@ -250,6 +264,17 @@ public:
     inline const TerraSystemData &getSystemData() const { return _data; }
     inline TerraSystemData &systemData() { return _data; }
     inline const TerraSystemData &systemData() const { return _data; }
+
+#ifdef ARDUINO
+    // Real time clock instance (lazily instantiated, nullptr return -> failure/no device).
+    TerraRTCInterface *getRTC(bool begin = true);
+    // Sets the RTC's time to the passed local time, with respect to set timezone.
+    void setRTCTime(DateTime time);
+#endif
+    inline Terra_RTCType getRTCType() const { return _rtcType; }
+    inline const TerraDeviceSetup &getRTCSetup() const { return _rtcSetup; }
+    // Whenever the system booted up with the RTC battery failure flag set.
+    inline bool getRTCBatteryFailure() const { return _rtcBattFail; }
 
     // Persistence helpers.
     inline TerraString exportSystemJSON() const { return _data.toJSON(); }
@@ -264,9 +289,19 @@ protected:
     static Terraduino *_activeInstance;                    // Active controller instance
 
     TerraSystemData _data;                                 // Serialized controller setup data
+    const Terra_RTCType _rtcType;                          // RTC device type
+    const TerraDeviceSetup _rtcSetup;                      // RTC device setup
+#ifdef ARDUINO
+    TerraRTCInterface *_rtc;                               // Real time clock instance (owned, lazy)
+#endif
+    bool _rtcBegan;                                        // Status of RTC begin() call
+    bool _rtcBattFail;                                     // Status of RTC battery failure flag
     bool _initialized;                                     // Initialization state flag
     bool _running;                                         // Operational state flag
     uint32_t _lastUpdateAt;                                // Last controller update timestamp
+
+    void allocateRTC();
+    void deallocateRTC();
 };
 
 // Returns the currently active controller instance.

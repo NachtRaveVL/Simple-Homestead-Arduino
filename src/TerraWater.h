@@ -9,6 +9,7 @@
 #include "TerraResource.h"
 #include "TerraUtils.h"
 #include "TerraAttachments.h"
+#include "TerraBalancers.h"
 
 // First-Flush Controller
 // Tracks the initial diverted volume from a rainfall event before storage is allowed.
@@ -43,16 +44,26 @@ public:
     float getStoredLiters() const { return _capacityLiters * (getLevel() / 100.0f); }
     void setStoredLiters(float liters);
     float availableAboveReserveLiters() const;
-    float freeCapacityLiters() const { float free = _capacityLiters - getStoredLiters(); return free > 0.0f ? free : 0.0f; }
+    float freeCapacityLiters() const;
     bool isAtReserve() const { return getLevel() <= getReserveLevel(); }
     bool isNearFull() const { return getLevel() >= getHighLevel(); }
-    TerraAttachmentSet &attachments() { return _attachments; }
-    const TerraAttachmentSet &attachments() const { return _attachments; }
+
+    // Level Sensor Attachment Point
+    template<class T> inline void setLevelSensor(const SharedPtr<T> &sensor) { _levelSensor.setObject(sensor); }
+    inline TerraSensorAttachment &getLevelSensorAttachment() { return _levelSensor; }
+    inline const TerraSensorAttachment &getLevelSensorAttachment() const { return _levelSensor; }
+
+    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void unresolveAny(TerraObject *object) override;
 
 protected:
     float _capacityLiters;                                  // Storage capacity, liters
     Terra_WaterStorageType _storageType;                    // Water storage type
-    TerraAttachmentSet _attachments;                        // Object attachment relationships
+    TerraSensorAttachment _levelSensor;                     // Level sensor attachment point
+
+    inline void initLevelSensorKey(uint32_t key) { _levelSensor.initObject(key); }
+
+    friend class TerraFactory;
 };
 
 // Cistern
@@ -117,6 +128,14 @@ public:
     void setReserveLevel(float reserve) { _reserveLevel = terraClamp(reserve, 0.0f, 100.0f); }
     void setMaximumFlowLpm(float flow) { _maximumFlowLpm = flow < 0.0f ? 0.0f : flow; }
 
+    // Level Sensor Attachment Point
+    template<class T> inline void setLevelSensor(const SharedPtr<T> &sensor) { _levelSensor.setObject(sensor); }
+    inline TerraSensorAttachment &getLevelSensorAttachment() { return _levelSensor; }
+    inline const TerraSensorAttachment &getLevelSensorAttachment() const { return _levelSensor; }
+
+    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void unresolveAny(TerraObject *object) override;
+
 protected:
     Terra_WaterSourceType _type;                            // Resource/source type
     uint8_t _priority;                                      // Source priority
@@ -124,6 +143,11 @@ protected:
     float _level;                                           // Normalized level, percent
     float _reserveLevel;                                    // Protected reserve level, percent
     float _maximumFlowLpm;                                  // Maximum allowed flow
+    TerraSensorAttachment _levelSensor;                     // Level sensor attachment point
+
+    inline void initLevelSensorKey(uint32_t key) { _levelSensor.initObject(key); }
+
+    friend class TerraFactory;
 };
 
 // Water Route
@@ -132,33 +156,49 @@ class TerraWaterRoute : public TerraObject {
 public:
     TerraWaterRoute(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
 
-    void configure(uint32_t sourceKey, uint32_t destinationKey, float destinationStartPercent, float destinationStopPercent);
+    template<class T> inline void setSource(const SharedPtr<T> &source) { _balancer.setSource(source); }
+    template<class T> inline void setDestination(const SharedPtr<T> &destination) { _balancer.setDestination(destination); }
+    template<class T> inline void setPump(const SharedPtr<T> &pump) { _balancer.setPump(pump); }
+    template<class T> inline void setFlowSensor(const SharedPtr<T> &sensor) { _balancer.setFlowSensor(sensor); }
+
+    bool setDestinationBand(float startPercent, float stopPercent);
     void setMinimumFlow(float lpm) { _minimumFlowLpm = lpm < 0.0f ? 0.0f : lpm; }
     void setMaximumFlow(float lpm) { _maximumFlowLpm = lpm < 0.0f ? 0.0f : lpm; }
-    uint32_t getSourceKey() const { return _sourceKey; }
-    uint32_t getDestinationKey() const { return _destinationKey; }
+    uint32_t getSourceKey() const { return _balancer.getSourceAttachment().getKey(); }
+    uint32_t getDestinationKey() const { return _balancer.getDestinationAttachment().getKey(); }
+    uint32_t getPumpKey() const { return _balancer.getPumpAttachment().getKey(); }
+    uint32_t getFlowSensorKey() const { return _balancer.getFlowSensorAttachment().getKey(); }
     float getDestinationStartPercent() const { return _destinationStartPercent; }
     float getDestinationStopPercent() const { return _destinationStopPercent; }
     float getMinimumFlow() const { return _minimumFlowLpm; }
     float getMaximumFlow() const { return _maximumFlowLpm; }
     Terra_RouteState getRouteState() const { return _routeState; }
-    TerraAttachmentSet &attachments() { return _attachments; }
-    const TerraAttachmentSet &attachments() const { return _attachments; }
 
-    TerraTransferDecision evaluate(const TerraWaterSource &source, const TerraWaterStorage &destination);
-    TerraTransferDecision evaluate(const TerraWaterSource &source, const TerraCistern &destination);
-    bool validateFlow(float measuredFlowLpm, bool commandedOn);
-    void setRouteState(Terra_RouteState state) { _routeState = state; }
+    inline TerraWaterBalancer &getBalancer() { return _balancer; }
+    inline const TerraWaterBalancer &getBalancer() const { return _balancer; }
+
+    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void unresolveAny(TerraObject *object) override;
 
 protected:
-    uint32_t _sourceKey;                                    // Source object key
-    uint32_t _destinationKey;                               // Destination object key
     float _destinationStartPercent;                         // Destination fill-start threshold
     float _destinationStopPercent;                          // Destination fill-stop threshold
     float _minimumFlowLpm;                                  // Minimum expected flow
     float _maximumFlowLpm;                                  // Maximum allowed flow
     Terra_RouteState _routeState;                           // Current route state
-    TerraAttachmentSet _attachments;                        // Object attachment relationships
+    TerraWaterBalancer _balancer;                           // Route balancing process
+
+    TerraTransferDecision decide(const TerraWaterSource &source, const TerraWaterStorage &destination);
+    bool validateFlow(float measuredFlowLpm, bool commandedOn);
+    inline void setRouteState(Terra_RouteState state) { _routeState = state; }
+
+    inline void initSourceKey(uint32_t key) { _balancer.initSourceKey(key); }
+    inline void initDestinationKey(uint32_t key) { _balancer.initDestinationKey(key); }
+    inline void initPumpKey(uint32_t key) { _balancer.initPumpKey(key); }
+    inline void initFlowSensorKey(uint32_t key) { _balancer.initFlowSensorKey(key); }
+
+    friend class TerraWaterBalancer;
+    friend class TerraFactory;
 };
 
 // Rain Catchment
@@ -178,27 +218,30 @@ public:
     float estimateCaptureGallons(float rainfallInches) const;
     TerraRainCollectionResult collectInto(TerraCistern &cistern, float rainfallMm,
                                           TerraFirstFlushController *firstFlush = nullptr) const;
-    TerraAttachmentSet &attachments() { return _attachments; }
-    const TerraAttachmentSet &attachments() const { return _attachments; }
 
 protected:
-    float _areaSquareMeters;                  ///< Effective horizontal catchment area in square meters
-    float _collectionEfficiency;              ///< Fraction of rainfall expected to reach storage
-    TerraAttachmentSet _attachments;          ///< Rainfall sensor and diverter relationships
+    float _areaSquareMeters;                                // Effective collection area, square meters
+    float _collectionEfficiency;                            // Fraction of rainfall reaching storage
 };
 
+// First-Flush Controller
+// Diverts the configured initial volume from each rainfall event before storage begins.
 class TerraFirstFlushController {
 public:
     TerraFirstFlushController(float discardLiters = 0.0f);
-    void setDiscardLiters(float liters) { _discardLiters = liters < 0.0f ? 0.0f : liters; reset(); }
+    inline void setDiscardLiters(float liters)
+    {
+        _discardLiters = liters < 0.0f ? 0.0f : liters;
+        reset();
+    }
     void reset();
     void recordFlow(float liters);
     bool shouldDivert() const { return _discardedLiters < _discardLiters; }
     float getRemainingLiters() const;
 
 protected:
-    float _discardLiters;                                   // Configured first-flush discard volume
-    float _discardedLiters;                                 // Discarded volume in current flush cycle
+    float _discardLiters;                                   // Required first-flush discard volume
+    float _discardedLiters;                                 // Current event discarded volume
 };
 
 #endif

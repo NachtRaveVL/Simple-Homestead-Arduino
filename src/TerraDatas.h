@@ -10,15 +10,12 @@
 #include "TerraDefines.h"
 #include "TerraEnvironment.h"
 #include "TerraPins.h"
-#include "TerraAttachments.h"
 
 struct TerraObjectData {
     uint32_t key;                                           // Object key
     Terra_ObjectType objectType;                            // Object type
     TerraString name;                                       // Display name
     bool enabled;                                           // Enabled state
-    TerraAttachment attachments[TERRA_MAX_ATTACHMENTS];     // Object attachment records
-    uint8_t attachmentCount;                                // Attachment record count
 
     TerraObjectData();
     virtual ~TerraObjectData() { }
@@ -61,6 +58,7 @@ struct TerraActuatorData : public TerraObjectData {
     float sumpStartPercent;                                 // Sump pump start level, percent
     float sumpStopPercent;                                  // Sump pump stop level, percent
     float sumpAlarmPercent;                                 // Sump high-water alarm level, percent
+    uint32_t levelSensorKey;                                // Sump level sensor key
 
     TerraActuatorData();
     TerraString toJSON() const;
@@ -85,6 +83,7 @@ struct TerraWaterStorageData : public TerraResourceData {
     float fillStartPercent;                                 // Fill-start threshold, percent
     float fillStopPercent;                                  // Fill-stop threshold, percent
     float overflowPercent;                                  // Overflow safety threshold, percent
+    uint32_t levelSensorKey;                                // Storage level sensor key
 
     TerraWaterStorageData();
     TerraString toJSON() const;
@@ -104,6 +103,7 @@ struct TerraWaterSourceData : public TerraObjectData {
     float level;                                            // Normalized resource level, percent
     float reserveLevel;                                     // Protected reserve level, percent
     float maximumFlowLpm;                                   // Maximum source flow, liters per minute
+    uint32_t levelSensorKey;                                // Source level sensor key
 
     TerraWaterSourceData();
     TerraString toJSON() const;
@@ -113,6 +113,8 @@ struct TerraWaterSourceData : public TerraObjectData {
 struct TerraWaterRouteData : public TerraObjectData {
     uint32_t sourceKey;                                     // Source object key
     uint32_t destinationKey;                                // Destination object key
+    uint32_t pumpKey;                                      // Pump actuator key
+    uint32_t flowSensorKey;                                // Flow sensor key
     float destinationStartPercent;                          // Destination fill-start threshold, percent
     float destinationStopPercent;                           // Destination fill-stop threshold, percent
     float minimumFlowLpm;                                   // Minimum expected flow, liters per minute
@@ -135,6 +137,7 @@ struct TerraRainCatchmentData : public TerraObjectData {
 
 struct TerraThermalStoreData : public TerraResourceData {
     float temperatureC;                                     // Temperature, degrees Celsius
+    uint32_t temperatureSensorKey;                          // Temperature sensor key
     float minimumTargetC;                                   // Minimum target temperature, degrees Celsius
     float maximumTargetC;                                   // Maximum target temperature, degrees Celsius
     float absoluteMaximumC;                                 // Absolute safety limit, degrees Celsius
@@ -146,6 +149,9 @@ struct TerraThermalStoreData : public TerraResourceData {
 
 
 struct TerraThermalLoopData : public TerraObjectData {
+    uint32_t sourceTemperatureSensorKey;                    // Source temperature sensor key
+    uint32_t thermalStoreKey;                               // Thermal storage object key
+    uint32_t circulatorKey;                                 // Circulator actuator key
     float onDifferentialC;                                  // Circulation-on temperature differential
     float offDifferentialC;                                 // Circulation-off temperature differential
     float maxStoreTempC;                                    // Maximum storage temperature
@@ -165,7 +171,14 @@ struct TerraPowerRailData : public TerraObjectData {
 };
 
 struct TerraEnvironmentData : public TerraObjectData {
-    TerraWeatherSnapshot weather;                           // Weather
+    uint32_t airTemperatureSensorKey;                       // Air temperature sensor key
+    uint32_t humiditySensorKey;                             // Humidity sensor key
+    uint32_t pressureSensorKey;                             // Barometric pressure sensor key
+    uint32_t rainfallSensorKey;                             // Accumulated rainfall sensor key
+    uint32_t rainRateSensorKey;                             // Rainfall rate sensor key
+    uint32_t windSpeedSensorKey;                            // Wind speed sensor key
+    uint32_t windDirectionSensorKey;                        // Wind direction sensor key
+    uint32_t solarRadiationSensorKey;                       // Solar radiation sensor key
 
     TerraEnvironmentData();
     TerraString toJSON() const;

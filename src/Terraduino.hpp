@@ -8,9 +8,4 @@
 
 #include "Terraduino.h"
 
-inline bool terraRegisterAll(Terraduino &controller, TerraObject **objects, uint8_t count) {
-    for (uint8_t i = 0; i < count; ++i) if (!controller.registerObject(objects[i])) return false;
-    return true;
-}
-
 #endif

@@ -4,56 +4,109 @@
 */
 
 #include "TerraBalancers.h"
+#include "TerraActuators.h"
+#include "TerraSensors.h"
+#include "TerraThermal.h"
+#include "TerraWater.h"
 
-TerraTransferDecision TerraWaterBalancer::evaluate(TerraWaterRoute &route,
-                                                    const TerraWaterSource &source,
-                                                    const TerraWaterStorage &destination) const {
-    return route.evaluate(source, destination);
+TerraWaterBalancer::TerraWaterBalancer(TerraWaterRoute *route)
+    : _route(route), _source(route), _destination(route),
+      _pump(route), _flowSensor(route), _lastDecision()
+{ ; }
+
+void TerraWaterBalancer::setParent(TerraWaterRoute *route)
+{
+    _route = route;
+    _source.setParent(route);
+    _destination.setParent(route);
+    _pump.setParent(route);
+    _flowSensor.setParent(route);
 }
 
-const TerraWaterSource *TerraWaterBalancer::selectSource(const TerraWaterSource *const *sources,
-                                                         uint8_t count) const {
-    if (!sources || !count) return nullptr;
-    const TerraWaterSource *selected = nullptr;
-    for (uint8_t i = 0; i < count; ++i) {
-        const TerraWaterSource *source = sources[i];
-        if (!source || !source->isAvailable() || source->getLevel() <= source->getReserveLevel()) continue;
-        if (!selected || source->getPriority() < selected->getPriority()) selected = source;
+void TerraWaterBalancer::update(uint32_t now)
+{
+    if (!_route || !_route->isEnabled() || _route->hasFault()) {
+        _pump.disableActivation();
+        return;
     }
-    return selected;
-}
 
-TerraCistern *TerraWaterBalancer::selectFillCistern(TerraCistern *const *cisterns, uint8_t count) const {
-    if (!cisterns || !count) return nullptr;
-    TerraCistern *selected = nullptr;
-    for (uint8_t i = 0; i < count; ++i) {
-        TerraCistern *cistern = cisterns[i];
-        if (!cistern || !cistern->needsFill(false)) continue;
-        if (!selected || cistern->getLevel() < selected->getLevel()) selected = cistern;
+    SharedPtr<TerraWaterSource> source = _source.getObject();
+    SharedPtr<TerraWaterStorage> destination = _destination.getObject();
+    if (!source || !destination || !_pump.isSet()) {
+        _pump.disableActivation();
+        return;
     }
-    return selected;
-}
 
-const TerraCistern *TerraWaterBalancer::selectSupplyCistern(const TerraCistern *const *cisterns, uint8_t count) const {
-    if (!cisterns || !count) return nullptr;
-    const TerraCistern *selected = nullptr;
-    for (uint8_t i = 0; i < count; ++i) {
-        const TerraCistern *cistern = cisterns[i];
-        if (!cistern || !cistern->canSupplyWater()) continue;
-        if (!selected || cistern->availableAboveReserveLiters() > selected->availableAboveReserveLiters()) selected = cistern;
+    _lastDecision = _route->decide(*source, *destination);
+    bool run = _lastDecision.run;
+    bool pumpWasActive = _pump.isActivated();
+
+    if (_flowSensor.isSet()) {
+        TerraMeasurement flow = _flowSensor.getMeasurement(now, true);
+        if (!flow.valid || flow.unit != Terra_Unit_LitersPerMinute) {
+            run = false;
+        } else if ((run && pumpWasActive && !_route->validateFlow(flow.value, true)) ||
+                   (!run && !_route->validateFlow(flow.value, false))) {
+            run = false;
+        }
     }
-    return selected;
+
+    if (run) { _pump.setupActivation(); _pump.enableActivation(); }
+    else { _pump.disableActivation(); }
 }
 
-float TerraWaterBalancer::transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const {
-    if (!source.canSupplyWater() || !destination.canAcceptWater()) return 0.0f;
-    const float sourceReserve = source.getCapacityLiters() * (source.getReserveLevel() / 100.0f);
-    const float destinationTarget = destination.getCapacityLiters() * (destination.getFillStopPercent() / 100.0f);
-    return terraCisternTransferLiters(source.getStoredLiters(), sourceReserve, destination.getStoredLiters(), destinationTarget, requestedLiters);
+void TerraWaterBalancer::unresolveAny(TerraObject *object)
+{
+    _source.unresolveAny(object);
+    _destination.unresolveAny(object);
+    _pump.unresolveAny(object);
+    _flowSensor.unresolveAny(object);
 }
 
-bool TerraThermalBalancer::evaluate(TerraThermalLoop &loop, float sourceTempC, float storeTempC) const {
-    bool run = loop.shouldCirculate(sourceTempC, storeTempC);
-    loop.setRunning(run);
-    return run;
+TerraThermalBalancer::TerraThermalBalancer(TerraThermalLoop *loop)
+    : _loop(loop), _sourceTemperature(loop),
+      _store(loop), _circulator(loop)
+{ ; }
+
+void TerraThermalBalancer::setParent(TerraThermalLoop *loop)
+{
+    _loop = loop;
+    _sourceTemperature.setParent(loop);
+    _store.setParent(loop);
+    _circulator.setParent(loop);
+}
+
+void TerraThermalBalancer::update(uint32_t now)
+{
+    if (!_loop || !_loop->isEnabled() || _loop->hasFault()) {
+        _circulator.disableActivation();
+        if (_loop) { _loop->setRunning(false); }
+        return;
+    }
+
+    SharedPtr<TerraThermalStore> store = _store.getObject();
+    if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
+        _circulator.disableActivation();
+        _loop->setRunning(false);
+        return;
+    }
+
+    TerraMeasurement source = _sourceTemperature.getMeasurement(now, true);
+    if (!source.valid || source.unit != Terra_Unit_Celsius) {
+        _circulator.disableActivation();
+        _loop->setRunning(false);
+        return;
+    }
+
+    bool run = _loop->shouldCirculate(source.value, store->getTemperature());
+    _loop->setRunning(run);
+    if (run) { _circulator.setupActivation(); _circulator.enableActivation(); }
+    else { _circulator.disableActivation(); }
+}
+
+void TerraThermalBalancer::unresolveAny(TerraObject *object)
+{
+    _sourceTemperature.unresolveAny(object);
+    _store.unresolveAny(object);
+    _circulator.unresolveAny(object);
 }

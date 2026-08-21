@@ -622,6 +622,10 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "RainfallSensor";
             return flashStr;
         }
+        case TStr_RainRateSensor: {
+            static const char flashStr[] PROGMEM = "RainRateSensor";
+            return flashStr;
+        }
         case TStr_WindSpeedSensor: {
             static const char flashStr[] PROGMEM = "WindSpeedSensor";
             return flashStr;
@@ -1034,30 +1038,6 @@ TerraString terraRouteStateToString(Terra_RouteState value)
     return SFP(TStr_Idle);
 }
 
-TerraString terraAttachmentRoleToString(Terra_AttachmentRole value)
-{
-    switch (value) {
-        case Terra_AttachmentRole_Undefined: return SFP(TStr_Undefined);
-        case Terra_AttachmentRole_PrimarySensor: return SFP(TStr_PrimarySensor);
-        case Terra_AttachmentRole_SecondarySensor: return SFP(TStr_SecondarySensor);
-        case Terra_AttachmentRole_LevelSensor: return SFP(TStr_LevelSensor);
-        case Terra_AttachmentRole_FlowSensor: return SFP(TStr_FlowSensor);
-        case Terra_AttachmentRole_TemperatureSensor: return SFP(TStr_TemperatureSensor);
-        case Terra_AttachmentRole_HumiditySensor: return SFP(TStr_HumiditySensor);
-        case Terra_AttachmentRole_PressureSensor: return SFP(TStr_PressureSensor);
-        case Terra_AttachmentRole_RainfallSensor: return SFP(TStr_RainfallSensor);
-        case Terra_AttachmentRole_WindSpeedSensor: return SFP(TStr_WindSpeedSensor);
-        case Terra_AttachmentRole_WindDirectionSensor: return SFP(TStr_WindDirectionSensor);
-        case Terra_AttachmentRole_SolarRadiationSensor: return SFP(TStr_SolarRadiationSensor);
-        case Terra_AttachmentRole_LeakSensor: return SFP(TStr_LeakSensor);
-        case Terra_AttachmentRole_Pump: return SFP(TStr_Pump);
-        case Terra_AttachmentRole_Valve: return SFP(TStr_Valve);
-        case Terra_AttachmentRole_Diverter: return SFP(TStr_Diverter);
-        case Terra_AttachmentRole_Heater: return SFP(TStr_Heater);
-        case Terra_AttachmentRole_Circulator: return SFP(TStr_Circulator);
-    }
-    return SFP(TStr_Undefined);
-}
 
 #include "TerraEnumTrie.h"
 
@@ -1156,7 +1136,4 @@ Terra_RouteState terraRouteStateFromString(const TerraString &value)
     return terraDecodeRouteState(value);
 }
 
-Terra_AttachmentRole terraAttachmentRoleFromString(const TerraString &value)
-{
-    return terraDecodeAttachmentRole(value);
-}
+

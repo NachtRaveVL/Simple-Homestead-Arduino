@@ -213,6 +213,15 @@ enum Terra_LogLevel : uint8_t {
     Terra_LogLevel_Error                        ///< Error
 };
 
+// Real-time clock device type. Values mirror the supported RTClib device names.
+enum Terra_RTCType : int8_t {
+    Terra_RTCType_DS1307 = 13,                  ///< DS1307 RTC
+    Terra_RTCType_DS3231 = 32,                  ///< DS3231 RTC
+    Terra_RTCType_PCF8523 = 85,                 ///< PCF8523 RTC
+    Terra_RTCType_PCF8563 = 86,                 ///< PCF8563 RTC
+    Terra_RTCType_None = -1                     ///< No configured RTC
+};
+
 // Optional module categories.
 enum Terra_ModuleType : uint8_t {
     Terra_ModuleType_Undefined = 0,             ///< Undefined module
@@ -240,26 +249,5 @@ enum Terra_RouteState : uint8_t {
     Terra_RouteState_Fault                      ///< Route faulted
 };
 
-// Common relationships between homestead objects.
-enum Terra_AttachmentRole : uint8_t {
-    Terra_AttachmentRole_Undefined = 0,         ///< Undefined relationship
-    Terra_AttachmentRole_PrimarySensor,         ///< Primary sensor
-    Terra_AttachmentRole_SecondarySensor,       ///< Secondary/redundant sensor
-    Terra_AttachmentRole_LevelSensor,           ///< Level sensor
-    Terra_AttachmentRole_FlowSensor,            ///< Flow sensor
-    Terra_AttachmentRole_TemperatureSensor,     ///< Temperature sensor
-    Terra_AttachmentRole_HumiditySensor,        ///< Humidity sensor
-    Terra_AttachmentRole_PressureSensor,        ///< Pressure sensor
-    Terra_AttachmentRole_RainfallSensor,        ///< Rainfall sensor
-    Terra_AttachmentRole_WindSpeedSensor,       ///< Wind speed sensor
-    Terra_AttachmentRole_WindDirectionSensor,   ///< Wind direction sensor
-    Terra_AttachmentRole_SolarRadiationSensor,  ///< Solar irradiance sensor
-    Terra_AttachmentRole_LeakSensor,            ///< Leak/flood sensor
-    Terra_AttachmentRole_Pump,                  ///< Pump actuator
-    Terra_AttachmentRole_Valve,                 ///< Valve actuator
-    Terra_AttachmentRole_Diverter,              ///< Diverter actuator
-    Terra_AttachmentRole_Heater,                ///< Heater actuator
-    Terra_AttachmentRole_Circulator             ///< Circulation pump
-};
 
 #endif // /ifndef TerraTypes_H

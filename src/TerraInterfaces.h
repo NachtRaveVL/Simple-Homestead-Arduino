@@ -32,4 +32,16 @@ public:
     virtual TerraString toJSON() const = 0;
 };
 
+#ifdef ARDUINO
+// RTC Interface
+// Common interface used by supported RTClib real-time clock implementations.
+class TerraRTCInterface {
+public:
+    virtual bool begin(TwoWire *wireInstance) = 0;
+    virtual void adjust(const DateTime &dt) = 0;
+    virtual bool lostPower(void) = 0;
+    virtual DateTime now() = 0;
+};
+#endif
+
 #endif

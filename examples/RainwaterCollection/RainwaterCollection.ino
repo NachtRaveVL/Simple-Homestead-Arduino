@@ -7,8 +7,8 @@
 #include <Terraduino.h>
 
 Terraduino terraController;
-TerraRainCatchment roofCatchment(180.0f, 0.85f, 0, "Roof Catchment");
-TerraCistern rainCistern(5000.0f, 0, "Rain Cistern");
+SharedPtr<TerraRainCatchment> roofCatchment;
+SharedPtr<TerraCistern> rainCistern;
 TerraFirstFlushController firstFlush(20.0f);
 
 void setup()
@@ -16,12 +16,12 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    terraController.registerObject(&roofCatchment);
-    terraController.registerObject(&rainCistern);
+    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, 0, "Roof Catchment");
+    rainCistern = terraController.addCistern(5000.0f, 0, "Rain Cistern");
 
-    rainCistern.setThresholds(15.0f, 30.0f, 95.0f);
-    rainCistern.configureFillBand(30.0f, 95.0f, 99.0f);
-    rainCistern.setLevel(25.0f);
+    rainCistern->setThresholds(15.0f, 30.0f, 95.0f);
+    rainCistern->configureFillBand(30.0f, 95.0f, 99.0f);
+    rainCistern->setLevel(25.0f);
     terraController.launch();
 }
 
@@ -29,7 +29,7 @@ void loop()
 {
     // Replace with incremental rainfall from the installed rain gauge.
     const float rainfallMm = 0.0f;
-    TerraRainCollectionResult result = roofCatchment.collectInto(rainCistern, rainfallMm, &firstFlush);
+    TerraRainCollectionResult result = roofCatchment->collectInto(*rainCistern, rainfallMm, &firstFlush);
 
     if (result.storedLiters > 0.0f) {
         Serial.print(F("Stored rainwater, L: "));

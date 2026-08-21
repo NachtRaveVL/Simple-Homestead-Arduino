@@ -502,55 +502,5 @@ inline Terra_RouteState terraDecodeRouteState(const TerraString &routeStateStr)
     return Terra_RouteState_Idle;
 }
 
-inline Terra_AttachmentRole terraDecodeAttachmentRole(const TerraString &attachmentRoleStr)
-{
-    switch (terraTrieChar(attachmentRoleStr, 15)) {
-        case '\0':
-            switch (terraTrieChar(attachmentRoleStr, 3)) {
-                case 'c':
-                    return Terra_AttachmentRole_Circulator;
-                case 'd':
-                    return Terra_AttachmentRole_WindSpeedSensor;
-                case 'e':
-                    switch (terraTrieChar(attachmentRoleStr, 0)) {
-                        case 'd':
-                            return Terra_AttachmentRole_Diverter;
-                        case 'l':
-                            return Terra_AttachmentRole_LevelSensor;
-                        case 'u':
-                            return Terra_AttachmentRole_Undefined;
-                    }
-                    return Terra_AttachmentRole_Undefined;
-                case 'i':
-                    return Terra_AttachmentRole_HumiditySensor;
-                case 'k':
-                    return Terra_AttachmentRole_LeakSensor;
-                case 'm':
-                    return Terra_AttachmentRole_PrimarySensor;
-                case 'n':
-                    return Terra_AttachmentRole_RainfallSensor;
-                case 'o':
-                    return Terra_AttachmentRole_SecondarySensor;
-                case 'p':
-                    return Terra_AttachmentRole_Pump;
-                case 's':
-                    return Terra_AttachmentRole_PressureSensor;
-                case 't':
-                    return Terra_AttachmentRole_Heater;
-                case 'v':
-                    return Terra_AttachmentRole_Valve;
-                case 'w':
-                    return Terra_AttachmentRole_FlowSensor;
-            }
-            return Terra_AttachmentRole_Undefined;
-        case 'e':
-            return Terra_AttachmentRole_SolarRadiationSensor;
-        case 'n':
-            return Terra_AttachmentRole_WindDirectionSensor;
-        case 'o':
-            return Terra_AttachmentRole_TemperatureSensor;
-    }
-    return Terra_AttachmentRole_Undefined;
-}
 
 #endif // /ifndef TerraEnumTrie_H
