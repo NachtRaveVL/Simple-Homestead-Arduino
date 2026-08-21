@@ -28,6 +28,15 @@ public:
     TerraMeasurement getMeasurement() const override { return _measurement; }
     Terra_SensorType getSensorType() const { return _sensorType; }
     bool isStale(uint32_t now = millis(), uint32_t staleAfterMs = 0) const;
+
+    bool setCalibration(float rawMinimum, float rawMaximum,
+                        float valueMinimum, float valueMaximum,
+                        Terra_Unit unit = Terra_Unit_Undefined);
+    void clearCalibration();
+    bool getCalibration(float &rawMinimum, float &rawMaximum,
+                        float &valueMinimum, float &valueMaximum) const;
+    bool hasCalibration() const { return _calibrated; }
+
     void update(uint32_t now = millis()) override;
 
 protected:
@@ -36,28 +45,23 @@ protected:
     SharedPtr<TerraInputDriver> _driver;                    // Input driver sub-object
     uint32_t _updateIntervalMs;                             // Poll interval, milliseconds
     uint32_t _lastReadAt;                                   // Last driver poll time
+    float _rawMinimum;                                      // Raw calibration minimum
+    float _rawMaximum;                                      // Raw calibration maximum
+    float _valueMinimum;                                    // Calibrated output minimum
+    float _valueMaximum;                                    // Calibrated output maximum
+    Terra_Unit _calibrationUnit;                            // Calibrated output unit
+    bool _calibrated;                                       // Calibration configured flag
+
+    virtual void handleDriverMeasurement(const TerraMeasurement &measurement);
 };
 
 // Analog Sensor
-// Adds an optional linear calibration layer to a driver-backed measurement.
+// Standard analog sensor using the sensor-base calibration layer.
 class TerraAnalogSensor : public TerraSensor {
 public:
     TerraAnalogSensor(Terra_Unit unit = Terra_Unit_Raw,
                       uint32_t key = TERRA_INVALID_KEY,
                       const TerraString &name = TerraString());
-
-    bool setCalibration(float rawMinimum, float rawMaximum,
-                        float valueMinimum, float valueMaximum);
-    bool getCalibration(float &rawMinimum, float &rawMaximum,
-                        float &valueMinimum, float &valueMaximum) const;
-    void update(uint32_t now = millis()) override;
-
-protected:
-    float _rawMinimum;                                      // Raw calibration minimum
-    float _rawMaximum;                                      // Raw calibration maximum
-    float _valueMinimum;                                    // Calibrated output minimum
-    float _valueMaximum;                                    // Calibrated output maximum
-    bool _calibrated;                                       // Calibration configured flag
 };
 
 // Binary Sensor

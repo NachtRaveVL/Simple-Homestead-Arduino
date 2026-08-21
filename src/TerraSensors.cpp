@@ -9,7 +9,9 @@
 TerraSensor::TerraSensor(Terra_SensorType sensorType, Terra_Unit unit,
                          uint32_t key, const TerraString &name)
     : TerraObject(Terra_ObjectType_Sensor, key, name), _sensorType(sensorType),
-      _measurement(0.0f, unit, 0, false), _driver(), _updateIntervalMs(1000), _lastReadAt(0)
+      _measurement(0.0f, unit, 0, false), _driver(), _updateIntervalMs(1000), _lastReadAt(0),
+      _rawMinimum(0.0f), _rawMaximum(1.0f), _valueMinimum(0.0f), _valueMaximum(1.0f),
+      _calibrationUnit(unit), _calibrated(false)
 { }
 
 void TerraSensor::setDriver(const SharedPtr<TerraInputDriver> &driver)
@@ -29,35 +31,33 @@ bool TerraSensor::isStale(uint32_t now, uint32_t staleAfterMs) const
     return staleAfterMs && (!_measurement.valid || (uint32_t)(now - _measurement.timestamp) >= staleAfterMs);
 }
 
-void TerraSensor::update(uint32_t now)
-{
-    if (!_enabled || !_driver) return;
-    if (_lastReadAt && _updateIntervalMs && (uint32_t)(now - _lastReadAt) < _updateIntervalMs) return;
-
-    TerraMeasurement measurement = _driver->read(now);
-    _lastReadAt = now;
-    if (measurement.valid) _measurement = measurement;
-}
-
-TerraAnalogSensor::TerraAnalogSensor(Terra_Unit unit, uint32_t key, const TerraString &name)
-    : TerraSensor(Terra_SensorType_Analog, unit, key, name), _rawMinimum(0.0f), _rawMaximum(1.0f),
-      _valueMinimum(0.0f), _valueMaximum(1.0f), _calibrated(false)
-{ }
-
-bool TerraAnalogSensor::setCalibration(float rawMinimum, float rawMaximum,
-                                       float valueMinimum, float valueMaximum)
+bool TerraSensor::setCalibration(float rawMinimum, float rawMaximum,
+                                 float valueMinimum, float valueMaximum,
+                                 Terra_Unit unit)
 {
     if (isFPEqual(rawMinimum, rawMaximum)) return false;
     _rawMinimum = rawMinimum;
     _rawMaximum = rawMaximum;
     _valueMinimum = valueMinimum;
     _valueMaximum = valueMaximum;
+    _calibrationUnit = unit != Terra_Unit_Undefined ? unit : _measurement.unit;
+    _measurement.unit = _calibrationUnit;
     _calibrated = true;
     return true;
 }
 
-bool TerraAnalogSensor::getCalibration(float &rawMinimum, float &rawMaximum,
-                                       float &valueMinimum, float &valueMaximum) const
+void TerraSensor::clearCalibration()
+{
+    _calibrated = false;
+    _rawMinimum = 0.0f;
+    _rawMaximum = 1.0f;
+    _valueMinimum = 0.0f;
+    _valueMaximum = 1.0f;
+    _calibrationUnit = _measurement.unit;
+}
+
+bool TerraSensor::getCalibration(float &rawMinimum, float &rawMaximum,
+                                 float &valueMinimum, float &valueMaximum) const
 {
     if (!_calibrated) return false;
     rawMinimum = _rawMinimum;
@@ -67,14 +67,31 @@ bool TerraAnalogSensor::getCalibration(float &rawMinimum, float &rawMaximum,
     return true;
 }
 
-void TerraAnalogSensor::update(uint32_t now)
+void TerraSensor::handleDriverMeasurement(const TerraMeasurement &measurement)
 {
-    TerraSensor::update(now);
-    if (_calibrated && _measurement.valid) {
-        float ratio = (_measurement.value - _rawMinimum) / (_rawMaximum - _rawMinimum);
-        _measurement.value = _valueMinimum + ratio * (_valueMaximum - _valueMinimum);
+    if (!_calibrated) {
+        _measurement = measurement;
+        return;
     }
+
+    float ratio = (measurement.value - _rawMinimum) / (_rawMaximum - _rawMinimum);
+    _measurement = TerraMeasurement(_valueMinimum + ratio * (_valueMaximum - _valueMinimum),
+                                    _calibrationUnit, measurement.timestamp, measurement.valid);
 }
+
+void TerraSensor::update(uint32_t now)
+{
+    if (!_enabled || !_driver) return;
+    if (_lastReadAt && _updateIntervalMs && (uint32_t)(now - _lastReadAt) < _updateIntervalMs) return;
+
+    TerraMeasurement measurement = _driver->read(now);
+    _lastReadAt = now;
+    if (measurement.valid) handleDriverMeasurement(measurement);
+}
+
+TerraAnalogSensor::TerraAnalogSensor(Terra_Unit unit, uint32_t key, const TerraString &name)
+    : TerraSensor(Terra_SensorType_Analog, unit, key, name)
+{ }
 
 TerraBinarySensor::TerraBinarySensor(uint32_t key, const TerraString &name)
     : TerraSensor(Terra_SensorType_Binary, Terra_Unit_Raw, key, name)

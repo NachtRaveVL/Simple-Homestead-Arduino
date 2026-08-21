@@ -109,8 +109,6 @@ TerraSensorData::TerraSensorData()
     : TerraObjectData(), sensorType(Terra_SensorType_Undefined), reportedType(Terra_SensorType_Undefined), unit(Terra_Unit_Raw),
       updateIntervalMs(1000), staleAfterMs(0), hasPinDriver(false),
       pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false),
-      driverCalibrated(false), driverRawMinimum(0.0f), driverRawMaximum(1023.0f),
-      driverValueMinimum(0.0f), driverValueMaximum(100.0f),
       sensorCalibrated(false), sensorRawMinimum(0.0f), sensorRawMaximum(1023.0f),
       sensorValueMinimum(0.0f), sensorValueMaximum(100.0f)
 {
@@ -129,11 +127,6 @@ TerraString TerraSensorData::toJSON() const
            ",\"pin\":" + terraNumber(pinSetup.pin) +
            ",\"pinMode\":\"" + terraPinModeToString(pinSetup.mode) +
            "\",\"activeLow\":" + terraBool(pinSetup.activeLow) +
-           ",\"driverCalibrated\":" + terraBool(driverCalibrated) +
-           ",\"driverRawMinimum\":" + terraFloat(driverRawMinimum) +
-           ",\"driverRawMaximum\":" + terraFloat(driverRawMaximum) +
-           ",\"driverValueMinimum\":" + terraFloat(driverValueMinimum) +
-           ",\"driverValueMaximum\":" + terraFloat(driverValueMaximum) +
            ",\"sensorCalibrated\":" + terraBool(sensorCalibrated) +
            ",\"sensorRawMinimum\":" + terraFloat(sensorRawMinimum) +
            ",\"sensorRawMaximum\":" + terraFloat(sensorRawMaximum) +
@@ -155,11 +148,6 @@ bool TerraSensorData::fromJSON(const TerraString &json)
     if (!terraJsonExtractLong(json, "pin", pin) || pin < 0 || pin > 255) return false;
     if (!terraJsonExtractString(json, "pinMode", pinModeStr)) return false;
     if (!terraJsonExtractBool(json, "activeLow", pinSetup.activeLow)) return false;
-    if (!terraJsonExtractBool(json, "driverCalibrated", driverCalibrated)) return false;
-    if (!terraJsonExtractFloat(json, "driverRawMinimum", driverRawMinimum)) return false;
-    if (!terraJsonExtractFloat(json, "driverRawMaximum", driverRawMaximum)) return false;
-    if (!terraJsonExtractFloat(json, "driverValueMinimum", driverValueMinimum)) return false;
-    if (!terraJsonExtractFloat(json, "driverValueMaximum", driverValueMaximum)) return false;
     if (!terraJsonExtractBool(json, "sensorCalibrated", sensorCalibrated)) return false;
     if (!terraJsonExtractFloat(json, "sensorRawMinimum", sensorRawMinimum)) return false;
     if (!terraJsonExtractFloat(json, "sensorRawMaximum", sensorRawMaximum)) return false;
@@ -175,8 +163,7 @@ bool TerraSensorData::fromJSON(const TerraString &json)
     if (!terraStringEqualsIgnoreCase(unitStr, terraUnitToString(unit))) return false;
     if (!terraStringEqualsIgnoreCase(pinModeStr, terraPinModeToString(pinSetup.mode))) return false;
     if (hasPinDriver && (!pinSetup.isValid() || pinSetup.isOutput())) return false;
-    if (driverCalibrated && isFPEqual(driverRawMinimum, driverRawMaximum)) return false;
-    if (sensorCalibrated && (sensorType != Terra_SensorType_Analog || isFPEqual(sensorRawMinimum, sensorRawMaximum))) return false;
+    if (sensorCalibrated && isFPEqual(sensorRawMinimum, sensorRawMaximum)) return false;
     updateIntervalMs = (uint32_t)updateInterval;
     staleAfterMs = (uint32_t)staleAfter;
     return true;

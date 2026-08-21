@@ -22,46 +22,20 @@ TerraMeasurement TerraCallbackInputDriver::read(uint32_t now) {
     return TerraMeasurement(value, _unit, now, !isnan(value));
 }
 
-TerraAnalogInputDriver::TerraAnalogInputDriver(uint8_t pin, Terra_Unit unit)
-    : _pin(pin), _unit(unit), _rawMinimum(0.0f), _rawMaximum(1023.0f),
-      _valueMinimum(0.0f), _valueMaximum(100.0f), _calibrated(false) { }
+TerraAnalogInputDriver::TerraAnalogInputDriver(uint8_t pin)
+    : _pin(pin) { }
 
 void TerraAnalogInputDriver::begin() {
     _pin.begin();
 }
 
-bool TerraAnalogInputDriver::setCalibration(float rawMinimum, float rawMaximum,
-                                            float valueMinimum, float valueMaximum) {
-    if (isFPEqual(rawMinimum, rawMaximum)) return false;
-    _rawMinimum = rawMinimum;
-    _rawMaximum = rawMaximum;
-    _valueMinimum = valueMinimum;
-    _valueMaximum = valueMaximum;
-    _calibrated = true;
-    return true;
-}
-
 TerraMeasurement TerraAnalogInputDriver::read(uint32_t now) {
-    float raw = (float)_pin.read();
-    float value = _calibrated
-        ? terraMapFloat(raw, _rawMinimum, _rawMaximum, _valueMinimum, _valueMaximum)
-        : raw;
-    return TerraMeasurement(value, _unit, now, true);
+    return TerraMeasurement((float)_pin.read(), Terra_Unit_Raw, now, true);
 }
 
 bool TerraAnalogInputDriver::getPinSetup(TerraPinSetup &setup) const {
     setup = TerraPinSetup(_pin.getPin(), Terra_PinMode_Analog_Input, false);
     return setup.isValid();
-}
-
-bool TerraAnalogInputDriver::getCalibration(float &rawMinimum, float &rawMaximum,
-                                            float &valueMinimum, float &valueMaximum) const {
-    if (!_calibrated) return false;
-    rawMinimum = _rawMinimum;
-    rawMaximum = _rawMaximum;
-    valueMinimum = _valueMinimum;
-    valueMaximum = _valueMaximum;
-    return true;
 }
 
 TerraDigitalInputDriver::TerraDigitalInputDriver(const TerraPinSetup &setup, Terra_Unit unit)

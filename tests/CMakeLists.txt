@@ -33,6 +33,11 @@ target_link_libraries(terraduino_hardening_tests PRIVATE terraduino_host)
 target_compile_options(terraduino_hardening_tests PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
 add_test(NAME terraduino_hardening_tests COMMAND terraduino_hardening_tests)
 
+add_executable(terraduino_hardware_tests host/test_hardware.cpp)
+target_link_libraries(terraduino_hardware_tests PRIVATE terraduino_host)
+target_compile_options(terraduino_hardware_tests PRIVATE -Wall -Wextra -Wpedantic -Wfloat-equal -Werror)
+add_test(NAME terraduino_hardware_tests COMMAND terraduino_hardware_tests)
+
 function(add_terraduino_example target example_name)
     add_executable(${target} host/examples/${example_name}.cpp)
     target_link_libraries(${target} PRIVATE terraduino_host)

@@ -35,11 +35,6 @@ struct TerraSensorData : public TerraObjectData {
     uint32_t staleAfterMs;                                  // Remote stale timeout, milliseconds
     bool hasPinDriver;                                      // Pin-backed driver configured flag
     TerraPinSetup pinSetup;                                 // Saved pin setup
-    bool driverCalibrated;                                  // Driver calibration available flag
-    float driverRawMinimum;                                 // Driver raw calibration minimum
-    float driverRawMaximum;                                 // Driver raw calibration maximum
-    float driverValueMinimum;                               // Driver calibrated minimum
-    float driverValueMaximum;                               // Driver calibrated maximum
     bool sensorCalibrated;                                  // Sensor calibration available flag
     float sensorRawMinimum;                                 // Sensor raw calibration minimum
     float sensorRawMaximum;                                 // Sensor raw calibration maximum

@@ -1,36 +1,37 @@
 // Simple-Homestead-Arduino Cistern Management Example
 //
-// Demonstrates fill hysteresis, protected reserve, and pump control for a primary cistern.
-// The pump driver is intentionally generic so the real installation can use an isolated
-// relay, motor controller, or another suitable low-voltage interface.
+// Demonstrates fill hysteresis, protected reserve, level sensing, and relay pump control
+// for a primary cistern. The MCU output must drive a suitable isolated relay, contactor,
+// or motor-control interface sized for the actual pump.
 
 #include <Terraduino.h>
+
+#define SETUP_FILL_PUMP_PIN             5                    // Isolated fill-pump relay control pin
+#define SETUP_FILL_PUMP_ACTIVE_LOW      true                 // Relay control is active-low
+#define SETUP_CISTERN_LEVEL_PIN         A0                   // Analog cistern-level sensor input
+#define SETUP_CISTERN_LEVEL_EMPTY       120.0f               // Raw reading at empty level
+#define SETUP_CISTERN_LEVEL_FULL        900.0f               // Raw reading at full level
 
 Terraduino terraController;
 SharedPtr<TerraWaterSource> well;
 SharedPtr<TerraCistern> cistern;
 SharedPtr<TerraWaterRoute> fillRoute;
 SharedPtr<TerraPump> fillPump;
-SharedPtr<TerraCallbackOutputDriver> fillPumpDriver;
-
-void driveFillPump(void *context, float output)
-{
-    (void)context;
-    Serial.print(F("Fill pump output: "));
-    Serial.println(output, 2);
-    // Drive the real isolated pump-control interface here.
-}
+SharedPtr<TerraLevelSensor> cisternLevel;
 
 void setup()
 {
     Serial.begin(115200);
 
     terraController.init();
-    well = terraController.addWaterSource(Terra_WaterSourceType_Well, 0, 0, "Well");
-    cistern = terraController.addCistern(5000.0f, 0, "Main Cistern");
-    fillRoute = terraController.addWaterRoute(0, "Cistern Fill");
-    fillPump = terraController.addPump(0, "Fill Pump");
-    fillPumpDriver = SharedPtr<TerraCallbackOutputDriver>(new TerraCallbackOutputDriver(driveFillPump));
+    well = terraController.addWaterSource(Terra_WaterSourceType_Well, "Well");
+    cistern = terraController.addCistern(5000.0f, "Main Cistern");
+    fillRoute = terraController.addWaterRoute("Cistern Fill");
+    fillPump = terraController.addPumpRelay(SETUP_FILL_PUMP_PIN, SETUP_FILL_PUMP_ACTIVE_LOW, "Fill Pump");
+    cisternLevel = terraController.addAnalogLevelSensor(SETUP_CISTERN_LEVEL_PIN,
+                                                        SETUP_CISTERN_LEVEL_EMPTY,
+                                                        SETUP_CISTERN_LEVEL_FULL,
+                                                        0.0f, 100.0f, "Cistern Level");
 
     well->setLevel(100.0f);
     well->setReserveLevel(10.0f);
@@ -38,10 +39,9 @@ void setup()
 
     cistern->setThresholds(15.0f, 30.0f, 95.0f);
     cistern->configureFillBand(30.0f, 90.0f, 99.0f);
-    cistern->setLevel(28.0f);
+    cistern->setLevelSensor(cisternLevel);
 
     fillPump->setMaxContinuousRuntime(15UL * 60UL * 1000UL);
-    fillPump->setDriver(fillPumpDriver);
 
     fillRoute->setSource(well);
     fillRoute->setDestination(cistern);

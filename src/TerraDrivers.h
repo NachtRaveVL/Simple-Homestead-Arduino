@@ -16,11 +16,6 @@ public:
     virtual void begin() { }
     virtual TerraMeasurement read(uint32_t now = millis()) = 0;
     virtual bool getPinSetup(TerraPinSetup &setup) const { (void)setup; return false; }
-    virtual bool getCalibration(float &rawMinimum, float &rawMaximum,
-                                float &valueMinimum, float &valueMaximum) const {
-        (void)rawMinimum; (void)rawMaximum; (void)valueMinimum; (void)valueMaximum;
-        return false;
-    }
 };
 
 class TerraOutputDriver {
@@ -48,24 +43,13 @@ protected:
 
 class TerraAnalogInputDriver : public TerraInputDriver {
 public:
-    TerraAnalogInputDriver(uint8_t pin = TERRA_INVALID_PIN,
-                           Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
+    TerraAnalogInputDriver(uint8_t pin = TERRA_INVALID_PIN);
     void begin() override;
-    bool setCalibration(float rawMinimum, float rawMaximum,
-                        float valueMinimum, float valueMaximum);
     TerraMeasurement read(uint32_t now = millis()) override;
     bool getPinSetup(TerraPinSetup &setup) const override;
-    bool getCalibration(float &rawMinimum, float &rawMaximum,
-                        float &valueMinimum, float &valueMaximum) const override;
 
 protected:
     TerraAnalogPin _pin;                                    // Configured I/O pin
-    Terra_Unit _unit;                                       // Driver measurement unit
-    float _rawMinimum;                                      // Raw calibration minimum
-    float _rawMaximum;                                      // Raw calibration maximum
-    float _valueMinimum;                                    // Calibrated output minimum
-    float _valueMaximum;                                    // Calibrated output maximum
-    bool _calibrated;                                       // Calibration configured flag
 };
 
 class TerraDigitalInputDriver : public TerraInputDriver {
