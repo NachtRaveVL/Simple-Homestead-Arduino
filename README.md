@@ -1,7 +1,7 @@
 # Terraduino
 Terraduino: Simple Homestead Automation Controller.
 
-**Simple-Homestead-Arduino v0.7.1.0**
+**Simple-Homestead-Arduino v0.7.2.0**
 
 Simple automation controller for homestead resource and environmental systems.  
 Licensed under the non-restrictive MIT license.

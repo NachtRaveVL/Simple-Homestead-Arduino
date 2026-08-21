@@ -19,7 +19,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
-    Simple-Homestead-Arduino - Version 0.7.1.0
+    Simple-Homestead-Arduino - Version 0.7.2.0
 */
 
 #ifndef Terraduino_H
@@ -244,16 +244,6 @@ public:
     inline Terra_ControlMode getControlMode() const { return _data.setup.controlMode; }
     inline void setMeasurementMode(Terra_MeasurementMode mode) { _data.setup.measurementMode = mode; }
     inline Terra_MeasurementMode getMeasurementMode() const { return _data.setup.measurementMode; }
-    inline void setLoggerMinimumLevel(Terra_LogLevel level)
-    {
-        _data.setup.loggerMinimumLevel = level;
-        logger.setMinimumLevel(level);
-    }
-    inline void setPublisherInterval(uint32_t intervalMs)
-    {
-        _data.setup.publisherIntervalMs = intervalMs;
-        publisher.setInterval(intervalMs);
-    }
 
     // Core subsystem accessors kept alongside the public instances for family parity.
     inline TerraScheduler &getScheduler() { return scheduler; }
