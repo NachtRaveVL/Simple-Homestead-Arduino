@@ -3,7 +3,7 @@
     Terraduino Controller Modules
 */
 
-#include "TerraModules.h"
+#include "Terraduino.h"
 #include "TerraObject.h"
 #include "TerraUtils.h"
 

@@ -11,7 +11,7 @@
 class TerraUpdatable {
 public:
     virtual ~TerraUpdatable() { }
-    virtual void update(uint32_t now = terraMillis()) = 0;
+    virtual void update(uint32_t now = millis()) = 0;
 };
 
 class TerraMeasurementProvider {

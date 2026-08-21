@@ -3,7 +3,7 @@
     Terraduino Water Management
 */
 
-#include "TerraWater.h"
+#include "Terraduino.h"
 
 TerraWaterStorage::TerraWaterStorage(float capacityLiters, uint32_t key, const TerraString &name,
                                      Terra_WaterStorageType storageType)
@@ -110,7 +110,7 @@ float TerraCistern::receiveWater(float liters)
 {
     if (liters <= 0.0f || !canAcceptWater() || _capacityLiters <= 0.0f) { return 0.0f; }
 
-    float accepted = terraMin(liters, safeFillCapacityLiters());
+    float accepted = min(liters, safeFillCapacityLiters());
     float overflow = liters - accepted;
 
     setStoredLiters(getStoredLiters() + accepted);
@@ -124,7 +124,7 @@ float TerraCistern::drawWater(float liters, bool allowReserve)
     if (liters <= 0.0f || !isEnabled() || hasFault() || _capacityLiters <= 0.0f) { return 0.0f; }
 
     float available = allowReserve ? getStoredLiters() : availableAboveReserveLiters();
-    float delivered = terraMin(liters, available);
+    float delivered = min(liters, available);
 
     setStoredLiters(getStoredLiters() - delivered);
     _totalOutflowLiters += delivered;
@@ -209,7 +209,7 @@ TerraRainCatchment::TerraRainCatchment(float areaSquareMeters, float collectionE
                                        uint32_t key, const TerraString &name)
     : TerraObject(Terra_ObjectType_RainCatchment, key, name),
       _areaSquareMeters(areaSquareMeters < 0.0f ? 0.0f : areaSquareMeters),
-      _collectionEfficiency(terraClamp(collectionEfficiency, 0.0f, 1.0f))
+      _collectionEfficiency(constrain(collectionEfficiency, 0.0f, 1.0f))
 { ; }
 
 float TerraRainCatchment::estimateCaptureLiters(float rainfallMm) const
@@ -236,7 +236,7 @@ TerraRainCollectionResult TerraRainCatchment::collectInto(TerraCistern &cistern,
     if (result.capturedLiters <= 0.0f) { return result; }
 
     if (firstFlush && firstFlush->shouldDivert()) {
-        result.discardedLiters = terraMin(result.capturedLiters, firstFlush->getRemainingLiters());
+        result.discardedLiters = min(result.capturedLiters, firstFlush->getRemainingLiters());
         firstFlush->recordFlow(result.discardedLiters);
     }
 

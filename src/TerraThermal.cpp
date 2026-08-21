@@ -3,7 +3,7 @@
     Terraduino Thermal Management
 */
 
-#include "TerraThermal.h"
+#include "Terraduino.h"
 
 TerraThermalStore::TerraThermalStore(uint32_t key, const TerraString &name)
     : TerraResource(Terra_ResourceType_Thermal, key, name),

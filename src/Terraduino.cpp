@@ -144,8 +144,8 @@ void Terraduino::suspend()
 void Terraduino::update()
 {
     if (!_initialized || !_running || _data.setup.controlMode == Terra_ControlMode_Disabled) return;
-    uint32_t current = terraMillis();
-    if (_lastUpdateAt && !terraElapsed(current, _lastUpdateAt, _data.setup.updateIntervalMs)) return;
+    uint32_t current = millis();
+    if (_lastUpdateAt && (uint32_t)(current - _lastUpdateAt) < _data.setup.updateIntervalMs) return;
     _lastUpdateAt = current;
     updateObjects(current);
     scheduler.update();

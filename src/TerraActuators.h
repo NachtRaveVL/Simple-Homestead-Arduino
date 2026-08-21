@@ -23,9 +23,9 @@ public:
     void setDriver(const SharedPtr<TerraOutputDriver> &driver);
     SharedPtr<TerraOutputDriver> getDriver() const { return _driver; }
     void setEnabled(bool enabled) override;
-    virtual void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis());
+    virtual void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = millis());
     virtual void off();
-    bool isActive() const { return _output > TERRA_EPSILON; }
+    bool isActive() const { return _output > FLT_EPSILON; }
     float getOutput() const { return _output; }
     Terra_ActuatorType getActuatorType() const { return _actuatorType; }
     inline void setEnableMode(Terra_EnableMode mode)
@@ -34,7 +34,7 @@ public:
         resolveActivations();
     }
     Terra_EnableMode getEnableMode() const { return _enableMode; }
-    void update(uint32_t now = terraMillis()) override;
+    void update(uint32_t now = millis()) override;
 
     bool addActivationHandle(TerraActivationHandle *handle);
     bool removeActivationHandle(TerraActivationHandle *handle);
@@ -58,7 +58,7 @@ public:
     TerraPump(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
     void setMaxContinuousRuntime(uint32_t maxMs) { _maxContinuousMs = maxMs; }
     uint32_t getMaxContinuousRuntime() const { return _maxContinuousMs; }
-    void update(uint32_t now = terraMillis()) override;
+    void update(uint32_t now = millis()) override;
 
 protected:
     uint32_t _maxContinuousMs;                              // Maximum continuous runtime, milliseconds
@@ -78,7 +78,7 @@ public:
     template<class T> inline void setLevelSensor(const SharedPtr<T> &sensor) { _levelSensor.setObject(sensor); }
     inline TerraSensorAttachment &getLevelSensorAttachment() { return _levelSensor; }
     inline const TerraSensorAttachment &getLevelSensorAttachment() const { return _levelSensor; }
-    void update(uint32_t now = terraMillis()) override;
+    void update(uint32_t now = millis()) override;
     void unresolveAny(TerraObject *object) override;
 
     float getStartLevelPercent() const { return _startLevelPercent; }

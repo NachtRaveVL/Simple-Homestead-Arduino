@@ -62,10 +62,10 @@ public:
     // Allocates a stable object key, preferring a unique name hash when supplied.
     uint32_t allocateKey(const TerraString &name = TerraString());
     // Updates registered system objects.
-    void updateObjects(uint32_t now = terraMillis());
+    void updateObjects(uint32_t now = millis());
 
 protected:
-    TerraMap<uint32_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by stable object key
+    Map<uint32_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by stable object key
     uint32_t _nextKey;                                      // Next automatically assigned object key
 };
 

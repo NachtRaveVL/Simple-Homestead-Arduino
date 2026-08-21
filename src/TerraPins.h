@@ -19,11 +19,6 @@ struct TerraPinSetup {
                   bool activeLowIn = false)
         : pin(pinIn), mode(modeIn), activeLow(activeLowIn) { }
 
-    // Compatibility constructor for the earlier output/input boolean setup.
-    TerraPinSetup(uint8_t pinIn, bool outputIn, bool activeLowIn)
-        : pin(pinIn), mode(outputIn ? Terra_PinMode_Digital_Output : Terra_PinMode_Digital_Input),
-          activeLow(activeLowIn) { }
-
     bool isValid() const { return pin != TERRA_INVALID_PIN && mode != Terra_PinMode_Undefined; }
     bool isOutput() const { return mode == Terra_PinMode_Digital_Output || mode == Terra_PinMode_Analog_Output; }
     bool isAnalog() const { return mode == Terra_PinMode_Analog_Input || mode == Terra_PinMode_Analog_Output; }

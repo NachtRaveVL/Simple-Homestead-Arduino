@@ -14,7 +14,7 @@ class TerraInputDriver {
 public:
     virtual ~TerraInputDriver() { }
     virtual void begin() { }
-    virtual TerraMeasurement read(uint32_t now = terraMillis()) = 0;
+    virtual TerraMeasurement read(uint32_t now = millis()) = 0;
     virtual bool getPinSetup(TerraPinSetup &setup) const { (void)setup; return false; }
     virtual bool getCalibration(float &rawMinimum, float &rawMaximum,
                                 float &valueMinimum, float &valueMaximum) const {
@@ -38,7 +38,7 @@ public:
                              void *context = nullptr,
                              Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
     void setCallback(TerraReadCallback callback, void *context = nullptr);
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
+    TerraMeasurement read(uint32_t now = millis()) override;
 
 protected:
     TerraReadCallback _callback;                            // Configured callback
@@ -53,7 +53,7 @@ public:
     void begin() override;
     bool setCalibration(float rawMinimum, float rawMaximum,
                         float valueMinimum, float valueMaximum);
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
+    TerraMeasurement read(uint32_t now = millis()) override;
     bool getPinSetup(TerraPinSetup &setup) const override;
     bool getCalibration(float &rawMinimum, float &rawMaximum,
                         float &valueMinimum, float &valueMaximum) const override;
@@ -73,7 +73,7 @@ public:
     TerraDigitalInputDriver(const TerraPinSetup &setup = TerraPinSetup(),
                             Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
     void begin() override;
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
+    TerraMeasurement read(uint32_t now = millis()) override;
     bool getPinSetup(TerraPinSetup &setup) const override { setup = _pin.getSetup(); return setup.isValid(); }
 
 protected:

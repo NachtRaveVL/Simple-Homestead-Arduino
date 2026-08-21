@@ -6,7 +6,6 @@
 #ifndef TerraTypes_H
 #define TerraTypes_H
 
-#include "TerraPlatform.h"
 
 // Runtime object categories.
 enum Terra_ObjectType : uint8_t {

@@ -3,7 +3,7 @@
     Terraduino Actuators
 */
 
-#include "TerraActuators.h"
+#include "Terraduino.h"
 #include "TerraSensors.h"
 #include "TerraUtils.h"
 
@@ -64,7 +64,7 @@ bool TerraActuator::removeActivationHandle(TerraActivationHandle *handle)
 
 void TerraActuator::applyOutput(float intensity)
 {
-    intensity = (_enabled && !_fault) ? terraClamp(intensity, 0.0f, 1.0f) : 0.0f;
+    intensity = (_enabled && !_fault) ? constrain(intensity, 0.0f, 1.0f) : 0.0f;
     if (isFPEqual(intensity, _output)) { return; }
     _output = intensity;
     if (_driver) { _driver->write(_output); }
@@ -118,7 +118,7 @@ void TerraActuator::resolveActivations()
 void TerraActuator::setOutput(float intensity, uint32_t durationMs, uint32_t now)
 {
     _directActivation.setup(intensity, durationMs);
-    if (intensity > TERRA_EPSILON) { _directActivation.enable(now); }
+    if (intensity > FLT_EPSILON) { _directActivation.enable(now); }
     else { _directActivation.unset(); }
 }
 
@@ -146,7 +146,7 @@ void TerraPump::update(uint32_t now)
     if (isActive() && !_startedAt) { _startedAt = now; }
     if (!isActive()) { _startedAt = 0; }
 
-    if (isActive() && _maxContinuousMs && _startedAt && terraElapsed(now, _startedAt, _maxContinuousMs)) {
+    if (isActive() && _maxContinuousMs && _startedAt && (uint32_t)(now - _startedAt) >= _maxContinuousMs) {
         while (_handles[0]) { _handles[0]->unset(); }
         setFault(TerraString("maximum continuous runtime exceeded"));
         resolveActivations();
@@ -182,7 +182,7 @@ void TerraSumpPump::update(uint32_t now)
             setFault(TerraString("sump level invalid"));
         } else {
             if (hasFault() && getFaultMessage() == TerraString("sump level invalid")) clearFault();
-            _lastLevelPercent = terraClamp(level.value, 0.0f, 100.0f);
+            _lastLevelPercent = constrain(level.value, 0.0f, 100.0f);
             _levelValid = true;
             _highWaterAlarm = _lastLevelPercent >= _alarmLevelPercent;
 

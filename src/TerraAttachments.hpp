@@ -53,7 +53,7 @@ SharedPtr<TObject> TerraAttachment<TObject>::getObject()
         _object = terraObjectByKey(_key);
         if (_object) attachObject();
     }
-    return _object ? terraReinterpretPointerCast<TObject>(_object) : SharedPtr<TObject>();
+    return _object ? reinterpret_pointer_cast<TObject>(_object) : SharedPtr<TObject>();
 }
 
 template<class TObject>

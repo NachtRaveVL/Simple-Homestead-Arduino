@@ -3,7 +3,7 @@
     Terraduino Utilities
 */
 
-#include "TerraUtils.h"
+#include "Terraduino.h"
 #include "TerraLogger.h"
 #include <cstring>
 #include <ctype.h>

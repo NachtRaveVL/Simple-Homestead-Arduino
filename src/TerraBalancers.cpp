@@ -3,7 +3,7 @@
     Terraduino Balancers
 */
 
-#include "TerraBalancers.h"
+#include "Terraduino.h"
 #include "TerraCoreLogic.h"
 #include "TerraActuators.h"
 #include "TerraSensors.h"

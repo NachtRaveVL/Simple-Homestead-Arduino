@@ -42,29 +42,10 @@ protected:
 extern void terraSoftAssert(bool condition, const TerraString &message, const char *file, const char *function, int line);
 extern void terraHardAssert(bool condition, const TerraString &message, const char *file, const char *function, int line);
 
-template <typename T>
-inline T terraClamp(T value, T low, T high) {
-    return value < low ? low : (value > high ? high : value);
-}
-
-template <typename T>
-inline T terraMin(T lhs, T rhs) {
-    return lhs < rhs ? lhs : rhs;
-}
-
-template <typename T>
-inline T terraMax(T lhs, T rhs) {
-    return lhs > rhs ? lhs : rhs;
-}
-
 // Returns if two single-precision floating point values are equal within the library epsilon.
-inline bool isFPEqual(float lhs, float rhs) { return fabsf(rhs - lhs) <= TERRA_FLT_EPSILON; }
+inline bool isFPEqual(float lhs, float rhs) { return fabsf(rhs - lhs) <= FLT_EPSILON; }
 // Returns if two double-precision floating point values are equal within the library epsilon.
-inline bool isFPEqual(double lhs, double rhs) { return fabs(rhs - lhs) <= TERRA_DBL_EPSILON; }
-
-inline bool terraElapsed(uint32_t now, uint32_t then, uint32_t interval) {
-    return (uint32_t)(now - then) >= interval;
-}
+inline bool isFPEqual(double lhs, double rhs) { return fabs(rhs - lhs) <= DBL_EPSILON; }
 
 float terraMapFloat(float value, float inMin, float inMax, float outMin, float outMax);
 uint32_t terraHashString(const char *text);

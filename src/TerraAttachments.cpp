@@ -31,7 +31,7 @@ TerraActuatorAttachment::~TerraActuatorAttachment()
 void TerraActuatorAttachment::setOutput(float intensity, uint32_t durationMs, uint32_t now)
 {
     SharedPtr<TerraActuator> actuator = getObject();
-    if (!actuator || intensity <= TERRA_EPSILON) {
+    if (!actuator || intensity <= FLT_EPSILON) {
         off();
         return;
     }

@@ -3,7 +3,7 @@
     Terraduino Sensors
 */
 
-#include "TerraSensors.h"
+#include "Terraduino.h"
 #include "TerraUtils.h"
 
 TerraSensor::TerraSensor(Terra_SensorType sensorType, Terra_Unit unit,
@@ -26,13 +26,13 @@ void TerraSensor::setMeasurement(float value, Terra_Unit unit, uint32_t timestam
 
 bool TerraSensor::isStale(uint32_t now, uint32_t staleAfterMs) const
 {
-    return staleAfterMs && (!_measurement.valid || terraElapsed(now, _measurement.timestamp, staleAfterMs));
+    return staleAfterMs && (!_measurement.valid || (uint32_t)(now - _measurement.timestamp) >= staleAfterMs);
 }
 
 void TerraSensor::update(uint32_t now)
 {
     if (!_enabled || !_driver) return;
-    if (_lastReadAt && _updateIntervalMs && !terraElapsed(now, _lastReadAt, _updateIntervalMs)) return;
+    if (_lastReadAt && _updateIntervalMs && (uint32_t)(now - _lastReadAt) < _updateIntervalMs) return;
 
     TerraMeasurement measurement = _driver->read(now);
     _lastReadAt = now;
@@ -100,7 +100,7 @@ void TerraRemoteSensor::receiveReport(float value, Terra_Unit unit, uint32_t rep
 
 bool TerraRemoteSensor::isOnline(uint32_t now) const
 {
-    return _hasReport && (!_staleAfterMs || !terraElapsed(now, _lastReportAt, _staleAfterMs));
+    return _hasReport && (!_staleAfterMs || (uint32_t)(now - _lastReportAt) < _staleAfterMs);
 }
 
 void TerraRemoteSensor::update(uint32_t now)

@@ -3,7 +3,7 @@
     Terraduino Object
 */
 
-#include "TerraObject.h"
+#include "Terraduino.h"
 
 TerraObject::TerraObject(Terra_ObjectType objectType, uint32_t key, const TerraString &name)
     : _objectType(objectType), _key(key), _name(name), _enabled(true), _fault(false),

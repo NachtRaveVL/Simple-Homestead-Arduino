@@ -35,7 +35,7 @@ public:
     inline TerraSensorAttachment &getTemperatureSensorAttachment() { return _temperatureSensor; }
     inline const TerraSensorAttachment &getTemperatureSensorAttachment() const { return _temperatureSensor; }
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:
@@ -76,7 +76,7 @@ public:
     inline TerraThermalBalancer &getBalancer() { return _balancer; }
     inline const TerraThermalBalancer &getBalancer() const { return _balancer; }
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:

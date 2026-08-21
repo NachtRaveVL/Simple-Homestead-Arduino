@@ -3,12 +3,12 @@
     Terraduino Activation
 */
 
-#include "TerraActivation.h"
+#include "Terraduino.h"
 #include "TerraActuators.h"
 #include "TerraUtils.h"
 
 TerraActivationHandle::TerraActivationHandle(TerraActuator *actuator, float intensity, uint32_t durationMs)
-    : _actuator(nullptr), _activation(terraClamp(intensity, 0.0f, 1.0f), durationMs),
+    : _actuator(nullptr), _activation(constrain(intensity, 0.0f, 1.0f), durationMs),
       _startedAt(0), _active(false)
 {
     setActuator(actuator);
@@ -32,14 +32,14 @@ void TerraActivationHandle::setActuator(TerraActuator *actuator)
 
 void TerraActivationHandle::setup(float intensity, uint32_t durationMs)
 {
-    _activation._intensity = terraClamp(intensity, 0.0f, 1.0f);
+    _activation._intensity = constrain(intensity, 0.0f, 1.0f);
     _activation._durationMs = durationMs;
     if (_actuator && _active) _actuator->resolveActivations();
 }
 
 void TerraActivationHandle::enable(uint32_t now)
 {
-    if (!_actuator || _activation.getIntensity() <= TERRA_EPSILON) {
+    if (!_actuator || _activation.getIntensity() <= FLT_EPSILON) {
         unset();
         return;
     }
@@ -68,7 +68,7 @@ void TerraActivationHandle::unset()
 void TerraActivationHandle::update(uint32_t now)
 {
     if (_active && _activation.getDurationMs() &&
-        terraElapsed(now, _startedAt, _activation.getDurationMs())) {
+        (uint32_t)(now - _startedAt) >= _activation.getDurationMs()) {
         unset();
     }
 }

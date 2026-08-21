@@ -55,7 +55,7 @@ public:
     bool isFreezing(float thresholdC = 0.0f) const;
     float dewPointC() const;
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:

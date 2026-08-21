@@ -107,6 +107,12 @@ typedef SoftwareSerial SerialClass;
 #ifndef TERRA_DISABLE_GUI
 #define TERRA_DISABLE_GUI
 #endif
+#define secondsToMillis(val) ((val)*1000U)
+#if defined(ARDUINO_ARCH_MBED)
+typedef uint32_t pintype_t;
+#else
+typedef uint8_t pintype_t;
+#endif
 #endif
 
 #ifdef TERRA_ENABLE_GPS
@@ -168,8 +174,50 @@ typedef Adafruit_GPS GPSClass;
 #define TERRA_HARD_ASSERT(cond,msg)     ((void)0)
 #endif
 
-#include "TerraPlatform.h"
 #include "TerraDefines.h"
+
+#ifdef ARDUINO
+
+#include <ArxContainer.h>
+#include <ArxSmartPtr.h>
+typedef String TerraString;
+
+#if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L
+#include "ArxSmartPtr/shared_ptr.h"
+using namespace std;
+template<typename T, size_t N = TERRA_DEFAULT_MAXSIZE> using Vector = std::vector<T>;
+template<class T1, class T2> using Pair = std::pair<T1,T2>;
+template<typename K, typename V, size_t N = TERRA_DEFAULT_MAXSIZE> using Map = std::map<K,V>;
+#else
+using namespace arx;
+template<typename T, size_t N = ARX_VECTOR_DEFAULT_SIZE> using Vector = arx::vector<T,N>;
+template<class T1, class T2> using Pair = arx::pair<T1,T2>;
+template<typename K, typename V, size_t N = ARX_MAP_DEFAULT_SIZE> using Map = arx::map<K,V,N>;
+#endif
+using namespace arx::stdx;
+template <typename T> using SharedPtr = arx::stdx::shared_ptr<T>;
+
+#else
+
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace std;
+typedef std::string TerraString;
+template<typename T, size_t N = TERRA_DEFAULT_MAXSIZE> using Vector = std::vector<T>;
+template<class T1, class T2> using Pair = std::pair<T1,T2>;
+template<typename K, typename V, size_t N = TERRA_DEFAULT_MAXSIZE> using Map = std::map<K,V>;
+template<typename T> using SharedPtr = std::shared_ptr<T>;
+#if __cplusplus < 201703L
+template<class T, class U> inline SharedPtr<T> reinterpret_pointer_cast(const SharedPtr<U> &ptr) { return ptr ? SharedPtr<T>(ptr, reinterpret_cast<T *>(ptr.get())) : SharedPtr<T>(); }
+#endif
+
+#endif
+
 #include "TerraTypes.h"
 #include "TerraSetup.h"
 #include "TerraStrings.h"

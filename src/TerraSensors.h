@@ -24,11 +24,11 @@ public:
     SharedPtr<TerraInputDriver> getDriver() const { return _driver; }
     void setUpdateInterval(uint32_t intervalMs) { _updateIntervalMs = intervalMs; }
     uint32_t getUpdateInterval() const { return _updateIntervalMs; }
-    void setMeasurement(float value, Terra_Unit unit, uint32_t timestamp = terraMillis(), bool valid = true);
+    void setMeasurement(float value, Terra_Unit unit, uint32_t timestamp = millis(), bool valid = true);
     TerraMeasurement getMeasurement() const override { return _measurement; }
     Terra_SensorType getSensorType() const { return _sensorType; }
-    bool isStale(uint32_t now = terraMillis(), uint32_t staleAfterMs = 0) const;
-    void update(uint32_t now = terraMillis()) override;
+    bool isStale(uint32_t now = millis(), uint32_t staleAfterMs = 0) const;
+    void update(uint32_t now = millis()) override;
 
 protected:
     Terra_SensorType _sensorType;                           // Sensor type
@@ -50,7 +50,7 @@ public:
                         float valueMinimum, float valueMaximum);
     bool getCalibration(float &rawMinimum, float &rawMaximum,
                         float &valueMinimum, float &valueMaximum) const;
-    void update(uint32_t now = terraMillis()) override;
+    void update(uint32_t now = millis()) override;
 
 protected:
     float _rawMinimum;                                      // Raw calibration minimum
@@ -65,7 +65,7 @@ protected:
 class TerraBinarySensor : public TerraSensor {
 public:
     TerraBinarySensor(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
-    void setState(bool active, uint32_t timestamp = terraMillis());
+    void setState(bool active, uint32_t timestamp = millis());
     bool isActive() const { return _measurement.valid && _measurement.value >= 0.5f; }
 };
 
@@ -156,13 +156,13 @@ public:
                       uint32_t key = TERRA_INVALID_KEY,
                       const TerraString &name = TerraString());
 
-    void receiveReport(float value, Terra_Unit unit, uint32_t reportTime = terraMillis(), bool valid = true);
+    void receiveReport(float value, Terra_Unit unit, uint32_t reportTime = millis(), bool valid = true);
     void setStaleAfter(uint32_t staleAfterMs) { _staleAfterMs = staleAfterMs; }
     uint32_t getStaleAfter() const { return _staleAfterMs; }
     Terra_SensorType getReportedType() const { return _reportedType; }
     uint32_t getLastReportTime() const { return _lastReportAt; }
-    bool isOnline(uint32_t now = terraMillis()) const;
-    void update(uint32_t now = terraMillis()) override;
+    bool isOnline(uint32_t now = millis()) const;
+    void update(uint32_t now = millis()) override;
 
 protected:
     Terra_SensorType _reportedType;                         // Remote reported sensor type

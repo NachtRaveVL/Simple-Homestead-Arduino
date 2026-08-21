@@ -40,7 +40,7 @@ public:
     virtual ~TerraAttachment() { detachObject(); }
 
     template<class U> inline void setObject(const SharedPtr<U> &object) {
-        setObjectImpl(terraReinterpretPointerCast<TerraObject>(object));
+        setObjectImpl(reinterpret_pointer_cast<TerraObject>(object));
     }
     void setObject(TObject *object);
     inline void initObject(uint32_t key)
@@ -79,7 +79,7 @@ public:
     TerraSensorAttachment(TerraObject *parent = nullptr)
         : TerraAttachment<TerraSensor>(parent), _measurement() { }
 
-    TerraMeasurement getMeasurement(uint32_t now = terraMillis(), bool poll = false);
+    TerraMeasurement getMeasurement(uint32_t now = millis(), bool poll = false);
     inline const TerraMeasurement &getCachedMeasurement() const { return _measurement; }
 
 protected:
@@ -94,7 +94,7 @@ public:
     TerraActuatorAttachment(TerraObject *parent = nullptr);
     virtual ~TerraActuatorAttachment();
 
-    void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis());
+    void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = millis());
     void off();
     inline bool isActive() const { return _activation.isActive(); }
 

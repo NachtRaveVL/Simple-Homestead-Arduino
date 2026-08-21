@@ -53,7 +53,7 @@ public:
     inline TerraSensorAttachment &getLevelSensorAttachment() { return _levelSensor; }
     inline const TerraSensorAttachment &getLevelSensorAttachment() const { return _levelSensor; }
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:
@@ -124,8 +124,8 @@ public:
 
     void setPriority(uint8_t priority) { _priority = priority; }
     void setAvailable(bool available) { _available = available; }
-    void setLevel(float level) { _level = terraClamp(level, 0.0f, 100.0f); }
-    void setReserveLevel(float reserve) { _reserveLevel = terraClamp(reserve, 0.0f, 100.0f); }
+    void setLevel(float level) { _level = constrain(level, 0.0f, 100.0f); }
+    void setReserveLevel(float reserve) { _reserveLevel = constrain(reserve, 0.0f, 100.0f); }
     void setMaximumFlowLpm(float flow) { _maximumFlowLpm = flow < 0.0f ? 0.0f : flow; }
 
     // Level Sensor Attachment Point
@@ -133,7 +133,7 @@ public:
     inline TerraSensorAttachment &getLevelSensorAttachment() { return _levelSensor; }
     inline const TerraSensorAttachment &getLevelSensorAttachment() const { return _levelSensor; }
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:
@@ -177,7 +177,7 @@ public:
     inline TerraWaterBalancer &getBalancer() { return _balancer; }
     inline const TerraWaterBalancer &getBalancer() const { return _balancer; }
 
-    virtual void update(uint32_t now = terraMillis()) override;
+    virtual void update(uint32_t now = millis()) override;
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:
@@ -210,7 +210,7 @@ public:
                        const TerraString &name = TerraString());
 
     void setAreaSquareMeters(float area) { _areaSquareMeters = area < 0.0f ? 0.0f : area; }
-    void setCollectionEfficiency(float efficiency) { _collectionEfficiency = terraClamp(efficiency, 0.0f, 1.0f); }
+    void setCollectionEfficiency(float efficiency) { _collectionEfficiency = constrain(efficiency, 0.0f, 1.0f); }
     float getAreaSquareMeters() const { return _areaSquareMeters; }
     float getCollectionEfficiency() const { return _collectionEfficiency; }
     float estimateCaptureLiters(float rainfallMm) const;

@@ -3,7 +3,7 @@
     Terraduino Resources
 */
 
-#include "TerraResource.h"
+#include "Terraduino.h"
 #include "TerraUtils.h"
 
 TerraResource::TerraResource(Terra_ResourceType type, uint32_t key, const TerraString &name)
@@ -20,7 +20,7 @@ bool TerraResource::setThresholds(float reserveLevel, float lowLevel, float high
 }
 
 void TerraResource::setLevel(float level) {
-    _level = terraClamp(level, 0.0f, 100.0f);
+    _level = constrain(level, 0.0f, 100.0f);
     updateState();
 }
 

@@ -3,7 +3,7 @@
     Terraduino Scheduler
 */
 
-#include "TerraScheduler.h"
+#include "Terraduino.h"
 #include "TerraUtils.h"
 
 TerraScheduler::TerraScheduler()
@@ -21,7 +21,7 @@ int8_t TerraScheduler::addIntervalTask(TerraTaskCallback callback, void *context
     task.intervalMs = intervalMs;
     task.enabled = true;
     task.daily = false;
-    task.lastRunAt = runImmediately ? terraMillis() - intervalMs : terraMillis();
+    task.lastRunAt = runImmediately ? millis() - intervalMs : millis();
     return (int8_t)_count++;
 }
 
@@ -57,7 +57,7 @@ void TerraScheduler::enableTask(uint8_t index, bool enabled)
 
 void TerraScheduler::update()
 {
-    uint32_t nowMs = terraMillis();
+    uint32_t nowMs = millis();
     uint16_t minuteOfDay = 0;
     int32_t dayNumber = -1;
 
@@ -85,7 +85,7 @@ void TerraScheduler::update()
                 task.lastDay = dayNumber;
                 task.callback(task.context);
             }
-        } else if (task.intervalMs && terraElapsed(nowMs, task.lastRunAt, task.intervalMs)) {
+        } else if (task.intervalMs && (uint32_t)(nowMs - task.lastRunAt) >= task.intervalMs) {
             task.lastRunAt = nowMs;
             task.callback(task.context);
         }

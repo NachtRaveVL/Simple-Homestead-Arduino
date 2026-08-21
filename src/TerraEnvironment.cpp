@@ -3,7 +3,7 @@
     Terraduino Environment
 */
 
-#include "TerraEnvironment.h"
+#include "Terraduino.h"
 #include "TerraUtils.h"
 
 TerraEnvironment::TerraEnvironment(uint32_t key, const TerraString &name)

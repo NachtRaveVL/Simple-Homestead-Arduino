@@ -40,7 +40,7 @@ public:
     void setFault(const TerraString &message = TerraString());
     void clearFault();
 
-    void update(uint32_t now = terraMillis()) override { (void)now; }
+    void update(uint32_t now = millis()) override { (void)now; }
 
     // Adds a parent-object linkage, incrementing its reference count when already linked.
     bool addLinkage(TerraObject *object);

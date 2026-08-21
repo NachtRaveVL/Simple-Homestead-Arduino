@@ -130,112 +130,112 @@ static void terraFillObjectData(const TerraObject *object, TerraObjectData *data
 SharedPtr<TerraSensor> TerraFactory::addSensor(Terra_SensorType sensorType, Terra_Unit unit, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraSensor> object(newSensorObject(sensorType, unit, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraSensor>();
 }
 
 SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_Unit unit, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraRemoteSensor> object(new TerraRemoteSensor(reportedType, unit, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraRemoteSensor>();
 }
 
 SharedPtr<TerraActuator> TerraFactory::addActuator(Terra_ActuatorType actuatorType, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraActuator> object(newActuatorObject(actuatorType, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraActuator>();
 }
 
 SharedPtr<TerraPump> TerraFactory::addPump(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraPump> object(new TerraPump(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraPump>();
 }
 
 SharedPtr<TerraSumpPump> TerraFactory::addSumpPump(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraSumpPump> object(new TerraSumpPump(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraSumpPump>();
 }
 
 SharedPtr<TerraCirculator> TerraFactory::addCirculator(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraCirculator> object(new TerraCirculator(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraCirculator>();
 }
 
 SharedPtr<TerraResource> TerraFactory::addResource(Terra_ResourceType resourceType, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraResource> object(newResourceObject(resourceType, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraResource>();
 }
 
 SharedPtr<TerraWaterStorage> TerraFactory::addWaterStorage(Terra_WaterStorageType storageType, float capacityLiters, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraWaterStorage> object(newWaterStorageObject(storageType, capacityLiters, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraWaterStorage>();
 }
 
 SharedPtr<TerraCistern> TerraFactory::addCistern(float capacityLiters, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraCistern> object(new TerraCistern(capacityLiters, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraCistern>();
 }
 
 SharedPtr<TerraWaterSource> TerraFactory::addWaterSource(Terra_WaterSourceType sourceType, uint8_t priority, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraWaterSource> object(newWaterSourceObject(sourceType, priority, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraWaterSource>();
 }
 
 SharedPtr<TerraWaterRoute> TerraFactory::addWaterRoute(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraWaterRoute> object(new TerraWaterRoute(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraWaterRoute>();
 }
 
 SharedPtr<TerraRainCatchment> TerraFactory::addRainCatchment(float areaSquareMeters, float collectionEfficiency, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraRainCatchment> object(new TerraRainCatchment(areaSquareMeters, collectionEfficiency, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraRainCatchment>();
 }
 
 SharedPtr<TerraThermalStore> TerraFactory::addThermalStore(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraThermalStore> object(new TerraThermalStore(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraThermalStore>();
 }
 
 SharedPtr<TerraThermalLoop> TerraFactory::addThermalLoop(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraThermalLoop> object(new TerraThermalLoop(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraThermalLoop>();
 }
 
 SharedPtr<TerraEnvironment> TerraFactory::addEnvironment(uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraEnvironment> object(new TerraEnvironment(key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraEnvironment>();
 }
 
 SharedPtr<TerraPowerRail> TerraFactory::addPowerRail(Terra_RailType railType, uint32_t key, const TerraString &name)
 {
     SharedPtr<TerraPowerRail> object(newPowerRailObject(railType, key, name));
-    if (object && getController() && getController()->registerObject(terraStaticPointerCast<TerraObject>(object))) return object;
+    if (object && getController() && getController()->registerObject(static_pointer_cast<TerraObject>(object))) return object;
     return SharedPtr<TerraPowerRail>();
 }
 

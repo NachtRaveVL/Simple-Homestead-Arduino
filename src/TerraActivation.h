@@ -6,7 +6,6 @@
 #ifndef TerraActivation_H
 #define TerraActivation_H
 
-#include "TerraPlatform.h"
 
 class TerraActuator;
 
@@ -41,9 +40,9 @@ public:
 
     void setActuator(TerraActuator *actuator);
     void setup(float intensity, uint32_t durationMs = 0);
-    void enable(uint32_t now = terraMillis());
+    void enable(uint32_t now = millis());
     void unset();
-    void update(uint32_t now = terraMillis());
+    void update(uint32_t now = millis());
 
     inline bool isActive() const { return _actuator && _active; }
     inline float getIntensity() const { return _activation.getIntensity(); }

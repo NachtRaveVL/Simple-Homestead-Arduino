@@ -27,7 +27,7 @@ public:
     template<class T> inline void setDestination(const SharedPtr<T> &destination) { _destination.setObject(destination); }
     template<class T> inline void setPump(const SharedPtr<T> &pump) { _pump.setObject(pump); }
     template<class T> inline void setFlowSensor(const SharedPtr<T> &sensor) { _flowSensor.setObject(sensor); }
-    void update(uint32_t now = terraMillis());
+    void update(uint32_t now = millis());
     void unresolveAny(TerraObject *object);
 
     // Selects the usable source with the lowest numeric priority value.
@@ -73,7 +73,7 @@ public:
     template<class T> inline void setSourceTemperatureSensor(const SharedPtr<T> &sensor) { _sourceTemperature.setObject(sensor); }
     template<class T> inline void setThermalStore(const SharedPtr<T> &store) { _store.setObject(store); }
     template<class T> inline void setCirculator(const SharedPtr<T> &circulator) { _circulator.setObject(circulator); }
-    void update(uint32_t now = terraMillis());
+    void update(uint32_t now = millis());
     void unresolveAny(TerraObject *object);
 
     TerraSensorAttachment &getSourceTemperatureAttachment() { return _sourceTemperature; }
