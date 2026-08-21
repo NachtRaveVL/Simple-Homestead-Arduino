@@ -39,19 +39,19 @@ struct TerraMeasurement {
     inline bool isUnknownType() const { return type <= Unknown; }
 
     time_t timestamp;                                       // Time event recorded (UTC)
-    hframe_t frame;                                         // Polling frame # measurement taken on, or 0 if not-set else 1 if user-set
+    tframe_t frame;                                         // Polling frame # measurement taken on, or 0 if not-set else 1 if user-set
 
     inline TerraMeasurement() : type(Unknown), timestamp(unixNow()), frame(0) { ; }
-    inline TerraMeasurement(int classType, time_t timestampIn, hframe_t frameIn) : type((typeof(type))classType), timestamp(timestampIn), frame(frameIn) { ; }
+    inline TerraMeasurement(int classType, time_t timestampIn, tframe_t frameIn) : type((typeof(type))classType), timestamp(timestampIn), frame(frameIn) { ; }
     TerraMeasurement(int classType, time_t timestamp = 0);
     TerraMeasurement(const TerraMeasurementData *dataIn);
 
     void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
 
     inline void updateTimestamp() { timestamp = unixNow(); }
-    void updateFrame(hframe_t minFrame = 0);
-    inline void setMinFrame(hframe_t minFrame = 0) { frame = max(minFrame, frame); }
-    inline bool isSet() const { return frame != hframe_none; }
+    void updateFrame(tframe_t minFrame = 0);
+    inline void setMinFrame(tframe_t minFrame = 0) { frame = max(minFrame, frame); }
+    inline bool isSet() const { return frame != tframe_none; }
 };
 
 // Single Value Sensor Data Measurement
@@ -61,7 +61,7 @@ struct TerraSingleMeasurement : public TerraMeasurement {
 
     TerraSingleMeasurement();
     TerraSingleMeasurement(float value, Terra_UnitsType units, time_t timestamp = unixNow());
-    TerraSingleMeasurement(float value, Terra_UnitsType units, time_t timestamp, hframe_t frame);
+    TerraSingleMeasurement(float value, Terra_UnitsType units, time_t timestamp, tframe_t frame);
     TerraSingleMeasurement(const TerraMeasurementData *dataIn);
 
     void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
@@ -99,7 +99,7 @@ struct TerraBinaryMeasurement : public TerraMeasurement {
 
     TerraBinaryMeasurement();
     TerraBinaryMeasurement(bool state, time_t timestamp = unixNow());
-    TerraBinaryMeasurement(bool state, time_t timestamp, hframe_t frame);
+    TerraBinaryMeasurement(bool state, time_t timestamp, tframe_t frame);
     TerraBinaryMeasurement(const TerraMeasurementData *dataIn);
 
     void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
@@ -118,7 +118,7 @@ struct TerraDoubleMeasurement : public TerraMeasurement {
                            time_t timestamp = unixNow());
     TerraDoubleMeasurement(float value1, Terra_UnitsType units1, 
                            float value2, Terra_UnitsType units2, 
-                           time_t timestamp, hframe_t frame);
+                           time_t timestamp, tframe_t frame);
     TerraDoubleMeasurement(const TerraMeasurementData *dataIn);
 
     void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
@@ -139,7 +139,7 @@ struct TerraTripleMeasurement : public TerraMeasurement {
     TerraTripleMeasurement(float value1, Terra_UnitsType units1, 
                            float value2, Terra_UnitsType units2, 
                            float value3, Terra_UnitsType units3,
-                           time_t timestamp, hframe_t frame);
+                           time_t timestamp, tframe_t frame);
     TerraTripleMeasurement(const TerraMeasurementData *dataIn);
 
     void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
