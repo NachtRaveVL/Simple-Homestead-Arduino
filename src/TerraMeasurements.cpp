@@ -8,7 +8,7 @@
 TerraMeasurement *newMeasurementObjectFromSubData(const TerraMeasurementData *dataIn)
 {
     if (!dataIn || !isValidType(dataIn->type)) return nullptr;
-    Terra_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(HStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(HStr_Err_InvalidParameter));
 
     if (dataIn) {
         switch (dataIn->type) {
@@ -273,6 +273,6 @@ void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
     } else if (variantIn.is<float>() || variantIn.is<int>()) {
         value = variantIn.as<float>();
     } else {
-        Terra_SOFT_ASSERT(false, SFP(HStr_Err_UnsupportedOperation));
+        TERRA_SOFT_ASSERT(false, SFP(HStr_Err_UnsupportedOperation));
     }
 }
