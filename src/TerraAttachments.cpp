@@ -28,7 +28,7 @@ TerraActuatorAttachment::~TerraActuatorAttachment()
     off();
 }
 
-void TerraActuatorAttachment::setOutput(float intensity, uint32_t durationMs, uint32_t now)
+void TerraActuatorAttachment::setOutput(float intensity, millis_t duration, uint32_t now)
 {
     SharedPtr<TerraActuator> actuator = getObject();
     if (!actuator || intensity <= FLT_EPSILON) {
@@ -37,11 +37,14 @@ void TerraActuatorAttachment::setOutput(float intensity, uint32_t durationMs, ui
     }
 
     _activation.setActuator(actuator.get());
-    _activation.setup(intensity, durationMs);
-    _activation.enable(now);
+    _activation.setup(intensity, duration);
+    _activation.enable();
+    actuator->resolveActivations(now);
 }
 
 void TerraActuatorAttachment::off()
 {
+    TerraActuator *actuator = _activation.actuator;
     _activation.unset();
+    if (actuator) { actuator->resolveActivations(); }
 }

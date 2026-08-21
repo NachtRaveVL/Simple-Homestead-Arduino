@@ -23,7 +23,7 @@ public:
     void setDriver(const SharedPtr<TerraOutputDriver> &driver);
     SharedPtr<TerraOutputDriver> getDriver() const { return _driver; }
     void setEnabled(bool enabled) override;
-    virtual void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = millis());
+    virtual void setOutput(float intensity, millis_t duration = (millis_t)-1, uint32_t now = millis());
     virtual void off();
     bool isActive() const { return _output > FLT_EPSILON; }
     float getOutput() const { return _output; }
@@ -31,14 +31,16 @@ public:
     inline void setEnableMode(Terra_EnableMode mode)
     {
         _enableMode = mode;
-        resolveActivations();
+        setNeedsUpdate();
     }
     Terra_EnableMode getEnableMode() const { return _enableMode; }
+    inline void setNeedsUpdate() { _needsUpdate = true; }
+    inline bool needsUpdate() const { return _needsUpdate; }
     void update(uint32_t now = millis()) override;
 
     bool addActivationHandle(TerraActivationHandle *handle);
     bool removeActivationHandle(TerraActivationHandle *handle);
-    void resolveActivations();
+    void resolveActivations(uint32_t now = millis());
 
 protected:
     Terra_ActuatorType _actuatorType;                       // Actuator type
@@ -47,8 +49,10 @@ protected:
     TerraActivationHandle *_handles[TERRA_MAX_ATTACHMENTS]; // Active attachment requests
     TerraActivationHandle _directActivation;                // Direct user request
     float _output;                                          // Applied normalized output
+    bool _needsUpdate;                                      // Stale flag for handle updates
 
     void applyOutput(float intensity);
+    virtual bool getCanEnable() const { return _enabled && !_fault; }
 };
 
 // Pump Actuator
@@ -112,7 +116,7 @@ class TerraValve : public TerraActuator {
 public:
     TerraValve(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
         : TerraActuator(Terra_ActuatorType_Valve, key, name) { }
-    void open(uint32_t durationMs = 0) { setOutput(1.0f, durationMs); }
+    void open(millis_t duration = (millis_t)-1) { setOutput(1.0f, duration); }
     void close() { off(); }
 };
 

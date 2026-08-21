@@ -12,6 +12,55 @@
 #include "TerraPins.h"
 #include "TerraAttachments.h"
 
+
+// Calibration Data
+// Stores a simple Ax+B linear transformation mapping for sensor values.
+struct TerraCalibrationData {
+    uint32_t ownerKey;                                      // Owning object key
+    Terra_Unit calibrationUnits;                            // Calibration output units
+    float multiplier;                                       // Linear calibration multiplier
+    float offset;                                           // Linear calibration offset
+
+    TerraCalibrationData();
+    TerraCalibrationData(uint32_t ownerKeyIn, Terra_Unit calibrationUnitsIn = Terra_Unit_Undefined);
+
+    // Transforms value from raw (or initial) value into calibrated (or transformed) value.
+    inline float transform(float value) const { return (value * multiplier) + offset; }
+    // Transforms value in-place from raw (or initial) value into calibrated (or transformed) value, with optional units write out.
+    inline void transform(float *valueInOut, Terra_Unit *unitsOut = nullptr) const { *valueInOut = transform(*valueInOut);
+                                                                                   if (unitsOut) { *unitsOut = calibrationUnits; } }
+
+    // Inverse transforms value from calibrated (or transformed) value back into raw (or initial) value.
+    inline float inverseTransform(float value) const { return (value - offset) / multiplier; }
+    // Inverse transforms value in-place from calibrated (or transformed) value back into raw (or initial) value, with optional units write out.
+    inline void inverseTransform(float *valueInOut, Terra_Unit *unitsOut = nullptr) const { *valueInOut = inverseTransform(*valueInOut);
+                                                                                          if (unitsOut) { *unitsOut = Terra_Unit_Raw; } }
+
+    // Sets linear calibration curvature from two points.
+    void setFromTwoPoints(float point1RawMeasuredAt,
+                          float point1CalibratedTo,
+                          float point2RawMeasuredAt,
+                          float point2CalibratedTo);
+
+    // Sets linear calibration curvature from two voltages.
+    inline void setFromTwoVoltages(float point1VoltsAt,
+                                   float point1CalibTo,
+                                   float point2VoltsAt,
+                                   float point2CalibTo,
+                                   float analogRefVolts) {
+        setFromTwoPoints(point1VoltsAt / analogRefVolts, point1CalibTo,
+                         point2VoltsAt / analogRefVolts, point2CalibTo);
+    }
+
+    // Sets linear calibration curvature from known output range.
+    inline void setFromRange(float minValue, float maxValue) { setFromTwoPoints(0.0f, minValue, 1.0f, maxValue); }
+    // Sets linear calibration curvature from known output scale.
+    inline void setFromScale(float scale) { setFromRange(0.0f, scale); }
+
+    TerraString toJSON() const;
+    bool fromJSON(const TerraString &json);
+};
+
 struct TerraObjectData {
     uint32_t key;                                           // Object key
     Terra_ObjectType objectType;                            // Object type
@@ -35,11 +84,6 @@ struct TerraSensorData : public TerraObjectData {
     uint32_t staleAfterMs;                                  // Remote stale timeout, milliseconds
     bool hasPinDriver;                                      // Pin-backed driver configured flag
     TerraPinSetup pinSetup;                                 // Saved pin setup
-    bool sensorCalibrated;                                  // Sensor calibration available flag
-    float sensorRawMinimum;                                 // Sensor raw calibration minimum
-    float sensorRawMaximum;                                 // Sensor raw calibration maximum
-    float sensorValueMinimum;                               // Sensor calibrated minimum
-    float sensorValueMaximum;                               // Sensor calibrated maximum
 
     TerraSensorData();
     TerraString toJSON() const;

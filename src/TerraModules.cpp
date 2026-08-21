@@ -27,6 +27,57 @@ TerraModule *TerraModuleRegistry::at(uint8_t index) { return index < _count ? &_
 const TerraModule *TerraModuleRegistry::at(uint8_t index) const { return index < _count ? &_modules[index] : nullptr; }
 TerraModule *TerraModuleRegistry::find(Terra_ModuleType type) { for (uint8_t i = 0; i < _count; ++i) if (_modules[i].type == type) return &_modules[i]; return nullptr; }
 
+const TerraCalibrationData *TerraCalibrations::getUserCalibrationData(uint32_t key) const
+{
+    auto iter = _calibrationData.find(key);
+    if (iter != _calibrationData.end()) {
+        return iter->second;
+    }
+    return nullptr;
+}
+
+bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calibrationData)
+{
+    TERRA_SOFT_ASSERT(calibrationData, TerraString("Invalid calibration data"));
+
+    if (calibrationData && calibrationData->ownerKey != TERRA_INVALID_KEY) {
+        auto iter = _calibrationData.find(calibrationData->ownerKey);
+        bool retVal = false;
+
+        if (iter == _calibrationData.end()) {
+            auto calibData = new TerraCalibrationData();
+
+            TERRA_SOFT_ASSERT(calibData, TerraString("Calibration allocation failure"));
+            if (calibData) {
+                *calibData = *calibrationData;
+                _calibrationData[calibrationData->ownerKey] = calibData;
+                retVal = (_calibrationData.find(calibrationData->ownerKey) != _calibrationData.end());
+            }
+        } else {
+            *(iter->second) = *calibrationData;
+            retVal = true;
+        }
+
+        return retVal;
+    }
+    return false;
+}
+
+bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *calibrationData)
+{
+    TERRA_HARD_ASSERT(calibrationData, TerraString("Invalid calibration data"));
+    if (!calibrationData) return false;
+
+    auto iter = _calibrationData.find(calibrationData->ownerKey);
+    if (iter != _calibrationData.end()) {
+        if (iter->second) { delete iter->second; }
+        _calibrationData.erase(iter);
+        return true;
+    }
+
+    return false;
+}
+
 TerraObjectRegistration::TerraObjectRegistration()
     : _objects(), _nextKey(1)
 { ; }
@@ -109,4 +160,3 @@ void TerraObjectRegistration::updateObjects(uint32_t now)
         if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
     }
 }
-

@@ -91,6 +91,48 @@ static void copyObjectFields(const TerraObjectData &from, TerraObjectData &to)
     for (uint8_t i = 0; i < TERRA_MAX_ATTACHMENTS; ++i) to.attachments[i] = from.attachments[i];
 }
 
+TerraCalibrationData::TerraCalibrationData()
+    : ownerKey(TERRA_INVALID_KEY), calibrationUnits(Terra_Unit_Undefined), multiplier(1.0f), offset(0.0f)
+{ }
+
+TerraCalibrationData::TerraCalibrationData(uint32_t ownerKeyIn, Terra_Unit calibrationUnitsIn)
+    : ownerKey(ownerKeyIn), calibrationUnits(calibrationUnitsIn), multiplier(1.0f), offset(0.0f)
+{ }
+
+void TerraCalibrationData::setFromTwoPoints(float point1RawMeasuredAt, float point1CalibratedTo,
+                                            float point2RawMeasuredAt, float point2CalibratedTo)
+{
+    float rawDelta = point2RawMeasuredAt - point1RawMeasuredAt;
+    TERRA_SOFT_ASSERT(!isFPEqual(rawDelta, 0.0f), TerraString("Invalid calibration points"));
+    if (!isFPEqual(rawDelta, 0.0f)) {
+        multiplier = (point2CalibratedTo - point1CalibratedTo) / rawDelta;
+        offset = point1CalibratedTo - multiplier * point1RawMeasuredAt;
+    }
+}
+
+TerraString TerraCalibrationData::toJSON() const
+{
+    return TerraString("{\"type\":\"TCAL\",\"ownerKey\":") + terraUnsigned(ownerKey) +
+           ",\"unit\":\"" + terraUnitToString(calibrationUnits) +
+           "\",\"multiplier\":" + terraFloat(multiplier) +
+           ",\"offset\":" + terraFloat(offset) + "}";
+}
+
+bool TerraCalibrationData::fromJSON(const TerraString &json)
+{
+    TerraString type, unit;
+    long owner = 0;
+    if (!terraJsonExtractString(json, "type", type) || type != TerraString("TCAL")) return false;
+    if (!terraJsonExtractLong(json, "ownerKey", owner) || owner <= 0) return false;
+    if (!terraJsonExtractString(json, "unit", unit)) return false;
+    if (!terraJsonExtractFloat(json, "multiplier", multiplier)) return false;
+    if (!terraJsonExtractFloat(json, "offset", offset)) return false;
+    ownerKey = (uint32_t)owner;
+    calibrationUnits = terraUnitFromString(unit);
+    return calibrationUnits != Terra_Unit_Undefined &&
+           terraStringEqualsIgnoreCase(unit, terraUnitToString(calibrationUnits));
+}
+
 TerraObjectData::TerraObjectData()
     : key(TERRA_INVALID_KEY), objectType(Terra_ObjectType_Undefined), name(), enabled(true), attachmentCount(0)
 { }
@@ -108,9 +150,7 @@ bool TerraObjectData::fromJSON(const TerraString &json)
 TerraSensorData::TerraSensorData()
     : TerraObjectData(), sensorType(Terra_SensorType_Undefined), reportedType(Terra_SensorType_Undefined), unit(Terra_Unit_Raw),
       updateIntervalMs(1000), staleAfterMs(0), hasPinDriver(false),
-      pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false),
-      sensorCalibrated(false), sensorRawMinimum(0.0f), sensorRawMaximum(1023.0f),
-      sensorValueMinimum(0.0f), sensorValueMaximum(100.0f)
+      pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false)
 {
     objectType = Terra_ObjectType_Sensor;
 }
@@ -126,12 +166,7 @@ TerraString TerraSensorData::toJSON() const
            ",\"hasPinDriver\":" + terraBool(hasPinDriver) +
            ",\"pin\":" + terraNumber(pinSetup.pin) +
            ",\"pinMode\":\"" + terraPinModeToString(pinSetup.mode) +
-           "\",\"activeLow\":" + terraBool(pinSetup.activeLow) +
-           ",\"sensorCalibrated\":" + terraBool(sensorCalibrated) +
-           ",\"sensorRawMinimum\":" + terraFloat(sensorRawMinimum) +
-           ",\"sensorRawMaximum\":" + terraFloat(sensorRawMaximum) +
-           ",\"sensorValueMinimum\":" + terraFloat(sensorValueMinimum) +
-           ",\"sensorValueMaximum\":" + terraFloat(sensorValueMaximum) + "}";
+           "\",\"activeLow\":" + terraBool(pinSetup.activeLow) + "}";
 }
 
 bool TerraSensorData::fromJSON(const TerraString &json)
@@ -148,11 +183,6 @@ bool TerraSensorData::fromJSON(const TerraString &json)
     if (!terraJsonExtractLong(json, "pin", pin) || pin < 0 || pin > 255) return false;
     if (!terraJsonExtractString(json, "pinMode", pinModeStr)) return false;
     if (!terraJsonExtractBool(json, "activeLow", pinSetup.activeLow)) return false;
-    if (!terraJsonExtractBool(json, "sensorCalibrated", sensorCalibrated)) return false;
-    if (!terraJsonExtractFloat(json, "sensorRawMinimum", sensorRawMinimum)) return false;
-    if (!terraJsonExtractFloat(json, "sensorRawMaximum", sensorRawMaximum)) return false;
-    if (!terraJsonExtractFloat(json, "sensorValueMinimum", sensorValueMinimum)) return false;
-    if (!terraJsonExtractFloat(json, "sensorValueMaximum", sensorValueMaximum)) return false;
     sensorType = terraSensorTypeFromString(sensorTypeStr);
     reportedType = terraSensorTypeFromString(reportedTypeStr);
     unit = terraUnitFromString(unitStr);
@@ -163,7 +193,6 @@ bool TerraSensorData::fromJSON(const TerraString &json)
     if (!terraStringEqualsIgnoreCase(unitStr, terraUnitToString(unit))) return false;
     if (!terraStringEqualsIgnoreCase(pinModeStr, terraPinModeToString(pinSetup.mode))) return false;
     if (hasPinDriver && (!pinSetup.isValid() || pinSetup.isOutput())) return false;
-    if (sensorCalibrated && isFPEqual(sensorRawMinimum, sensorRawMaximum)) return false;
     updateIntervalMs = (uint32_t)updateInterval;
     staleAfterMs = (uint32_t)staleAfter;
     return true;

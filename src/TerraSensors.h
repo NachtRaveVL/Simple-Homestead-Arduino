@@ -9,6 +9,7 @@
 #include "TerraObject.h"
 #include "TerraMeasurements.h"
 #include "TerraDrivers.h"
+#include "TerraDatas.h"
 
 // Sensor Base
 // Base class for local, driver-backed, or remote homestead measurements.
@@ -29,13 +30,30 @@ public:
     Terra_SensorType getSensorType() const { return _sensorType; }
     bool isStale(uint32_t now = millis(), uint32_t staleAfterMs = 0) const;
 
-    bool setCalibration(float rawMinimum, float rawMaximum,
-                        float valueMinimum, float valueMaximum,
-                        Terra_Unit unit = Terra_Unit_Undefined);
-    void clearCalibration();
-    bool getCalibration(float &rawMinimum, float &rawMaximum,
-                        float &valueMinimum, float &valueMaximum) const;
-    bool hasCalibration() const { return _calibrated; }
+    void setUserCalibrationData(TerraCalibrationData *userCalibrationData);
+    inline const TerraCalibrationData *getUserCalibrationData() const { return _calibrationData; }
+
+    // Transformation methods that convert from raw driver values to calibration units.
+    inline float calibrationTransform(float value) const { return _calibrationData ? _calibrationData->transform(value) : value; }
+    inline void calibrationTransform(float *valueInOut, Terra_Unit *unitsOut = nullptr) const { if (valueInOut && _calibrationData) { _calibrationData->transform(valueInOut, unitsOut); } }
+    inline TerraMeasurement calibrationTransform(TerraMeasurement measurement) const {
+        if (_calibrationData && measurement.valid) { _calibrationData->transform(&measurement.value, &measurement.unit); }
+        return measurement;
+    }
+    inline void calibrationTransform(TerraMeasurement *measurementInOut) const {
+        if (measurementInOut && measurementInOut->valid && _calibrationData) { _calibrationData->transform(&measurementInOut->value, &measurementInOut->unit); }
+    }
+
+    // Transformation methods that convert from calibration units back to raw driver values.
+    inline float calibrationInvTransform(float value) const { return _calibrationData ? _calibrationData->inverseTransform(value) : value; }
+    inline void calibrationInvTransform(float *valueInOut, Terra_Unit *unitsOut = nullptr) const { if (valueInOut && _calibrationData) { _calibrationData->inverseTransform(valueInOut, unitsOut); } }
+    inline TerraMeasurement calibrationInvTransform(TerraMeasurement measurement) const {
+        if (_calibrationData && measurement.valid) { _calibrationData->inverseTransform(&measurement.value, &measurement.unit); }
+        return measurement;
+    }
+    inline void calibrationInvTransform(TerraMeasurement *measurementInOut) const {
+        if (measurementInOut && measurementInOut->valid && _calibrationData) { _calibrationData->inverseTransform(&measurementInOut->value, &measurementInOut->unit); }
+    }
 
     void update(uint32_t now = millis()) override;
 
@@ -45,12 +63,7 @@ protected:
     SharedPtr<TerraInputDriver> _driver;                    // Input driver sub-object
     uint32_t _updateIntervalMs;                             // Poll interval, milliseconds
     uint32_t _lastReadAt;                                   // Last driver poll time
-    float _rawMinimum;                                      // Raw calibration minimum
-    float _rawMaximum;                                      // Raw calibration maximum
-    float _valueMinimum;                                    // Calibrated output minimum
-    float _valueMaximum;                                    // Calibrated output maximum
-    Terra_Unit _calibrationUnit;                            // Calibrated output unit
-    bool _calibrated;                                       // Calibration configured flag
+    const TerraCalibrationData *_calibrationData;           // Calibration data
 
     virtual void handleDriverMeasurement(const TerraMeasurement &measurement);
 };

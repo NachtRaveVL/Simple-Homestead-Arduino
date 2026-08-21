@@ -94,7 +94,7 @@ public:
     TerraActuatorAttachment(TerraObject *parent = nullptr);
     virtual ~TerraActuatorAttachment();
 
-    void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = millis());
+    void setOutput(float intensity, millis_t duration = (millis_t)-1, uint32_t now = millis());
     void off();
     inline bool isActive() const { return _activation.isActive(); }
 

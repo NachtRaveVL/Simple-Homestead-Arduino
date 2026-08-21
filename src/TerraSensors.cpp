@@ -10,8 +10,7 @@ TerraSensor::TerraSensor(Terra_SensorType sensorType, Terra_Unit unit,
                          uint32_t key, const TerraString &name)
     : TerraObject(Terra_ObjectType_Sensor, key, name), _sensorType(sensorType),
       _measurement(0.0f, unit, 0, false), _driver(), _updateIntervalMs(1000), _lastReadAt(0),
-      _rawMinimum(0.0f), _rawMaximum(1.0f), _valueMinimum(0.0f), _valueMaximum(1.0f),
-      _calibrationUnit(unit), _calibrated(false)
+      _calibrationData(nullptr)
 { }
 
 void TerraSensor::setDriver(const SharedPtr<TerraInputDriver> &driver)
@@ -31,52 +30,23 @@ bool TerraSensor::isStale(uint32_t now, uint32_t staleAfterMs) const
     return staleAfterMs && (!_measurement.valid || (uint32_t)(now - _measurement.timestamp) >= staleAfterMs);
 }
 
-bool TerraSensor::setCalibration(float rawMinimum, float rawMaximum,
-                                 float valueMinimum, float valueMaximum,
-                                 Terra_Unit unit)
+void TerraSensor::setUserCalibrationData(TerraCalibrationData *userCalibrationData)
 {
-    if (isFPEqual(rawMinimum, rawMaximum)) return false;
-    _rawMinimum = rawMinimum;
-    _rawMaximum = rawMaximum;
-    _valueMinimum = valueMinimum;
-    _valueMaximum = valueMaximum;
-    _calibrationUnit = unit != Terra_Unit_Undefined ? unit : _measurement.unit;
-    _measurement.unit = _calibrationUnit;
-    _calibrated = true;
-    return true;
-}
-
-void TerraSensor::clearCalibration()
-{
-    _calibrated = false;
-    _rawMinimum = 0.0f;
-    _rawMaximum = 1.0f;
-    _valueMinimum = 0.0f;
-    _valueMaximum = 1.0f;
-    _calibrationUnit = _measurement.unit;
-}
-
-bool TerraSensor::getCalibration(float &rawMinimum, float &rawMaximum,
-                                 float &valueMinimum, float &valueMaximum) const
-{
-    if (!_calibrated) return false;
-    rawMinimum = _rawMinimum;
-    rawMaximum = _rawMaximum;
-    valueMinimum = _valueMinimum;
-    valueMaximum = _valueMaximum;
-    return true;
+    if (_calibrationData && _calibrationData != userCalibrationData) { bumpRevisionIfNeeded(); }
+    if (getController()) {
+        if (userCalibrationData && getController()->setUserCalibrationData(userCalibrationData)) {
+            _calibrationData = getController()->getUserCalibrationData(getKey());
+        } else if (!userCalibrationData && _calibrationData && getController()->dropUserCalibrationData(_calibrationData)) {
+            _calibrationData = nullptr;
+        }
+    } else {
+        _calibrationData = userCalibrationData;
+    }
 }
 
 void TerraSensor::handleDriverMeasurement(const TerraMeasurement &measurement)
 {
-    if (!_calibrated) {
-        _measurement = measurement;
-        return;
-    }
-
-    float ratio = (measurement.value - _rawMinimum) / (_rawMaximum - _rawMinimum);
-    _measurement = TerraMeasurement(_valueMinimum + ratio * (_valueMaximum - _valueMinimum),
-                                    _calibrationUnit, measurement.timestamp, measurement.valid);
+    _measurement = calibrationTransform(measurement);
 }
 
 void TerraSensor::update(uint32_t now)

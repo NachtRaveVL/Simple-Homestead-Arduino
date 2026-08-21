@@ -62,24 +62,10 @@ public:
                                                 bool activeLow = true,
                                                 const TerraString &name = TerraString());
     SharedPtr<TerraLevelSensor> addAnalogLevelSensor(uint8_t inputPin,
-                                                     float rawMinimum,
-                                                     float rawMaximum,
-                                                     float levelMinimum = 0.0f,
-                                                     float levelMaximum = 100.0f,
                                                      const TerraString &name = TerraString());
     SharedPtr<TerraTemperatureSensor> addAnalogTemperatureSensor(uint8_t inputPin,
-                                                                 float rawMinimum,
-                                                                 float rawMaximum,
-                                                                 float temperatureMinimum,
-                                                                 float temperatureMaximum,
-                                                                 Terra_Unit unit = Terra_Unit_Celsius,
                                                                  const TerraString &name = TerraString());
     SharedPtr<TerraPressureSensor> addAnalogPressureSensor(uint8_t inputPin,
-                                                           float rawMinimum,
-                                                           float rawMaximum,
-                                                           float pressureMinimum,
-                                                           float pressureMaximum,
-                                                           Terra_Unit unit = Terra_Unit_Kilopascals,
                                                            const TerraString &name = TerraString());
 
     // Convenience builders for common actuators (shared, nullptr return -> failure).

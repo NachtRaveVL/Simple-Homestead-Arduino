@@ -11,6 +11,7 @@
 #include "TerraSetup.h"
 
 class TerraObject;
+struct TerraCalibrationData;
 
 struct TerraModule {
     Terra_ModuleType type;                                  // Object/subsystem type
@@ -37,11 +38,30 @@ protected:
     uint8_t _count;                                         // Active entry count
 };
 
+// Calibrations Storage
+// Stores user calibration data, which calibrates sensor output into usable values.
+class TerraCalibrations {
+public:
+    // Adds/updates user calibration data to the store, returning success flag.
+    bool setUserCalibrationData(const TerraCalibrationData *calibrationData);
+
+    // Drops/removes user calibration data from the store, returning success flag.
+    bool dropUserCalibrationData(const TerraCalibrationData *calibrationData);
+
+    // Returns user calibration data instance in store.
+    const TerraCalibrationData *getUserCalibrationData(uint32_t key) const;
+
+    // Returns if there are user calibrations in the store.
+    inline bool hasUserCalibrations() const { return _calibrationData.size(); };
+
+protected:
+    Map<uint32_t, TerraCalibrationData *, TERRA_MAX_OBJECTS> _calibrationData; // Loaded user calibration data
+};
 
 // Object Registration Storage
 // Stores objects in the main system store, which is used for SharedPtr<> lookups and
 // stable attachment resolution in the same manner as the sibling controller libraries.
-class TerraObjectRegistration {
+class TerraObjectRegistration : public TerraCalibrations {
 public:
     TerraObjectRegistration();
 

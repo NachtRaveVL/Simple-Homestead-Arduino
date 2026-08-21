@@ -253,47 +253,36 @@ SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(uint8_t inputPin, bool
 }
 
 SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(uint8_t inputPin,
-                                                                      float rawMinimum, float rawMaximum,
-                                                                      float levelMinimum, float levelMaximum,
                                                                       const TerraString &name)
 {
-    if (inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) return SharedPtr<TerraLevelSensor>();
-    auto sensor = static_pointer_cast<TerraLevelSensor>(addSensor(Terra_SensorType_Level, Terra_Unit_Percent, TERRA_INVALID_KEY, name));
-    if (sensor && sensor->setCalibration(rawMinimum, rawMaximum, levelMinimum, levelMaximum, Terra_Unit_Percent)) {
+    if (inputPin == TERRA_INVALID_PIN) return SharedPtr<TerraLevelSensor>();
+    auto sensor = static_pointer_cast<TerraLevelSensor>(addSensor(Terra_SensorType_Level, Terra_Unit_Raw, TERRA_INVALID_KEY, name));
+    if (sensor) {
         sensor->setDriver(SharedPtr<TerraInputDriver>(new TerraAnalogInputDriver(inputPin)));
-        return sensor;
     }
-    return SharedPtr<TerraLevelSensor>();
+    return sensor;
 }
 
 SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(uint8_t inputPin,
-                                                                                  float rawMinimum, float rawMaximum,
-                                                                                  float temperatureMinimum, float temperatureMaximum,
-                                                                                  Terra_Unit unit,
                                                                                   const TerraString &name)
 {
-    if (inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) return SharedPtr<TerraTemperatureSensor>();
-    auto sensor = static_pointer_cast<TerraTemperatureSensor>(addSensor(Terra_SensorType_Temperature, unit, TERRA_INVALID_KEY, name));
-    if (sensor && sensor->setCalibration(rawMinimum, rawMaximum, temperatureMinimum, temperatureMaximum, unit)) {
+    if (inputPin == TERRA_INVALID_PIN) return SharedPtr<TerraTemperatureSensor>();
+    auto sensor = static_pointer_cast<TerraTemperatureSensor>(addSensor(Terra_SensorType_Temperature, Terra_Unit_Raw, TERRA_INVALID_KEY, name));
+    if (sensor) {
         sensor->setDriver(SharedPtr<TerraInputDriver>(new TerraAnalogInputDriver(inputPin)));
-        return sensor;
     }
-    return SharedPtr<TerraTemperatureSensor>();
+    return sensor;
 }
 
 SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(uint8_t inputPin,
-                                                                            float rawMinimum, float rawMaximum,
-                                                                            float pressureMinimum, float pressureMaximum,
-                                                                            Terra_Unit unit,
                                                                             const TerraString &name)
 {
-    if (inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) return SharedPtr<TerraPressureSensor>();
-    auto sensor = static_pointer_cast<TerraPressureSensor>(addSensor(Terra_SensorType_Pressure, unit, TERRA_INVALID_KEY, name));
-    if (sensor && sensor->setCalibration(rawMinimum, rawMaximum, pressureMinimum, pressureMaximum, unit)) {
+    if (inputPin == TERRA_INVALID_PIN) return SharedPtr<TerraPressureSensor>();
+    auto sensor = static_pointer_cast<TerraPressureSensor>(addSensor(Terra_SensorType_Pressure, Terra_Unit_Raw, TERRA_INVALID_KEY, name));
+    if (sensor) {
         sensor->setDriver(SharedPtr<TerraInputDriver>(new TerraAnalogInputDriver(inputPin)));
-        return sensor;
     }
-    return SharedPtr<TerraPressureSensor>();
+    return sensor;
 }
 
 SharedPtr<TerraPump> TerraFactory::addPumpRelay(uint8_t outputPin, bool activeLow,
@@ -456,12 +445,6 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
             if (sensor) {
                 sensor->setUpdateInterval(data->updateIntervalMs);
                 sensor->setMeasurement(0.0f, data->unit, 0, false);
-                if (data->sensorCalibrated &&
-                    !sensor->setCalibration(data->sensorRawMinimum, data->sensorRawMaximum,
-                                            data->sensorValueMinimum, data->sensorValueMaximum, data->unit)) {
-                    delete sensor;
-                    return nullptr;
-                }
                 if (data->hasPinDriver) {
                     SharedPtr<TerraInputDriver> driver;
                     if (data->pinSetup.mode == Terra_PinMode_Analog_Input) {
@@ -621,8 +604,6 @@ TerraObjectData *TerraFactory::newDataFromObject(const TerraObject *objectIn)
             if (inputDriver) {
                 out->hasPinDriver = inputDriver->getPinSetup(out->pinSetup);
             }
-            out->sensorCalibrated = sensor->getCalibration(out->sensorRawMinimum, out->sensorRawMaximum,
-                                                            out->sensorValueMinimum, out->sensorValueMaximum);
             if (sensor->getSensorType() == Terra_SensorType_Remote) {
                 const TerraRemoteSensor *remote = static_cast<const TerraRemoteSensor *>(sensor);
                 out->reportedType = remote->getReportedType();
