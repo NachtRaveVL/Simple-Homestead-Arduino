@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-static size_t terraJsonLength(const TerraString &text) {
+static size_t terraJsonLength(const TerraString &text)
+{
 #if defined(ARDUINO)
     return text.length();
 #else
@@ -17,7 +18,8 @@ static size_t terraJsonLength(const TerraString &text) {
 #endif
 }
 
-static long terraJsonIndexOf(const TerraString &text, const TerraString &needle, size_t start = 0) {
+static long terraJsonIndexOf(const TerraString &text, const TerraString &needle, size_t start = 0)
+{
 #if defined(ARDUINO)
     return text.indexOf(needle, (unsigned int)start);
 #else
@@ -26,7 +28,8 @@ static long terraJsonIndexOf(const TerraString &text, const TerraString &needle,
 #endif
 }
 
-static TerraString terraJsonSubstr(const TerraString &text, size_t start, size_t length) {
+static TerraString terraJsonSubstr(const TerraString &text, size_t start, size_t length)
+{
 #if defined(ARDUINO)
     return text.substring((unsigned int)start, (unsigned int)(start + length));
 #else
@@ -34,7 +37,8 @@ static TerraString terraJsonSubstr(const TerraString &text, size_t start, size_t
 #endif
 }
 
-static bool terraJsonValueStart(const TerraString &json, const char *key, size_t &start) {
+static bool terraJsonValueStart(const TerraString &json, const char *key, size_t &start)
+{
     if (!key) return false;
     TerraString marker = TerraString("\"") + key + "\"";
     long keyPos = terraJsonIndexOf(json, marker);
@@ -50,7 +54,8 @@ static bool terraJsonValueStart(const TerraString &json, const char *key, size_t
     return true;
 }
 
-TerraString terraJsonEscape(const TerraString &value) {
+TerraString terraJsonEscape(const TerraString &value)
+{
     TerraString out;
     size_t len = terraJsonLength(value);
 #if defined(ARDUINO)
@@ -72,7 +77,8 @@ TerraString terraJsonEscape(const TerraString &value) {
     return out;
 }
 
-bool terraJsonExtractString(const TerraString &json, const char *key, TerraString &out) {
+bool terraJsonExtractString(const TerraString &json, const char *key, TerraString &out)
+{
     size_t i = 0;
     if (!terraJsonValueStart(json, key, i) || json[i] != '"') return false;
     ++i;
@@ -102,7 +108,8 @@ bool terraJsonExtractString(const TerraString &json, const char *key, TerraStrin
     return false;
 }
 
-static bool terraJsonExtractNumberToken(const TerraString &json, const char *key, TerraString &token) {
+static bool terraJsonExtractNumberToken(const TerraString &json, const char *key, TerraString &token)
+{
     size_t start = 0;
     if (!terraJsonValueStart(json, key, start)) return false;
     size_t len = terraJsonLength(json);
@@ -117,7 +124,8 @@ static bool terraJsonExtractNumberToken(const TerraString &json, const char *key
     return true;
 }
 
-bool terraJsonExtractLong(const TerraString &json, const char *key, long &out) {
+bool terraJsonExtractLong(const TerraString &json, const char *key, long &out)
+{
     TerraString token;
     if (!terraJsonExtractNumberToken(json, key, token)) return false;
     char *end = nullptr;
@@ -127,7 +135,8 @@ bool terraJsonExtractLong(const TerraString &json, const char *key, long &out) {
     return true;
 }
 
-bool terraJsonExtractFloat(const TerraString &json, const char *key, float &out) {
+bool terraJsonExtractFloat(const TerraString &json, const char *key, float &out)
+{
     TerraString token;
     if (!terraJsonExtractNumberToken(json, key, token)) return false;
     char *end = nullptr;
@@ -137,15 +146,23 @@ bool terraJsonExtractFloat(const TerraString &json, const char *key, float &out)
     return true;
 }
 
-bool terraJsonExtractBool(const TerraString &json, const char *key, bool &out) {
+bool terraJsonExtractBool(const TerraString &json, const char *key, bool &out)
+{
     TerraString token;
     if (!terraJsonExtractNumberToken(json, key, token)) return false;
-    if (token == TerraString("true") || token == TerraString("1")) { out = true; return true; }
-    if (token == TerraString("false") || token == TerraString("0")) { out = false; return true; }
+    if (token == TerraString("true") || token == TerraString("1")) {
+        out = true;
+        return true;
+    }
+    if (token == TerraString("false") || token == TerraString("0")) {
+        out = false;
+        return true;
+    }
     return false;
 }
 
-TerraString TerraSystemData::toJSON() const {
+TerraString TerraSystemData::toJSON() const
+{
     TerraString json = "{\"systemName\":\"" + terraJsonEscape(setup.systemName) + "\",\"timeZoneOffset\":";
 #if defined(ARDUINO)
     json += String(setup.timeZoneOffset);
@@ -167,7 +184,8 @@ TerraString TerraSystemData::toJSON() const {
     return json;
 }
 
-bool TerraSystemData::fromJSON(const TerraString &json) {
+bool TerraSystemData::fromJSON(const TerraString &json)
+{
     TerraString name, mode, measurementMode, logLevel;
     long tzOffset = 0, interval = 0, publisherInterval = 0, seq = 0;
     if (!terraJsonExtractString(json, "systemName", name)) return false;
@@ -198,21 +216,24 @@ bool TerraSystemData::fromJSON(const TerraString &json) {
 }
 
 
-static void terraWriteU32(uint8_t *buffer, uint32_t value) {
+static void terraWriteU32(uint8_t *buffer, uint32_t value)
+{
     buffer[0] = (uint8_t)(value & 0xff);
     buffer[1] = (uint8_t)((value >> 8) & 0xff);
     buffer[2] = (uint8_t)((value >> 16) & 0xff);
     buffer[3] = (uint8_t)((value >> 24) & 0xff);
 }
 
-static uint32_t terraReadU32(const uint8_t *buffer) {
+static uint32_t terraReadU32(const uint8_t *buffer)
+{
     return (uint32_t)buffer[0] |
            ((uint32_t)buffer[1] << 8) |
            ((uint32_t)buffer[2] << 16) |
            ((uint32_t)buffer[3] << 24);
 }
 
-static uint32_t terraBinaryChecksum(const uint8_t *buffer, size_t length) {
+static uint32_t terraBinaryChecksum(const uint8_t *buffer, size_t length)
+{
     uint32_t hash = 2166136261UL;
     for (size_t i = 0; i < length; ++i) {
         hash ^= buffer[i];
@@ -221,49 +242,61 @@ static uint32_t terraBinaryChecksum(const uint8_t *buffer, size_t length) {
     return hash;
 }
 
-size_t TerraSystemData::binarySize() const {
+size_t TerraSystemData::binarySize() const
+{
 #if defined(ARDUINO)
     size_t nameLength = setup.systemName.length();
 #else
     size_t nameLength = setup.systemName.size();
 #endif
-    if (nameLength > TERRA_NAME_MAXSIZE) nameLength = TERRA_NAME_MAXSIZE;
+    if (nameLength > TERRA_NAME_MAXSIZE) { nameLength = TERRA_NAME_MAXSIZE; }
     return 23 + nameLength + 4;
 }
 
-size_t TerraSystemData::toBinary(uint8_t *buffer, size_t capacity) const {
+size_t TerraSystemData::toBinary(uint8_t *buffer, size_t capacity) const
+{
     if (!buffer) return 0;
 #if defined(ARDUINO)
     size_t nameLength = setup.systemName.length();
 #else
     size_t nameLength = setup.systemName.size();
 #endif
-    if (nameLength > TERRA_NAME_MAXSIZE) nameLength = TERRA_NAME_MAXSIZE;
+    if (nameLength > TERRA_NAME_MAXSIZE) { nameLength = TERRA_NAME_MAXSIZE; }
     const size_t required = 23 + nameLength + 4;
     if (capacity < required) return 0;
 
     size_t pos = 0;
-    buffer[pos++] = 'T'; buffer[pos++] = 'R'; buffer[pos++] = 'D'; buffer[pos++] = 'U';
-    buffer[pos++] = 3; // binary format version
+    buffer[pos++] = 'T';
+    buffer[pos++] = 'R';
+    buffer[pos++] = 'D';
+    buffer[pos++] = 'U';
+    buffer[pos++] = 4; // binary format version
     buffer[pos++] = (uint8_t)(setup.timeZoneOffset & 0xff);
     buffer[pos++] = (uint8_t)((setup.timeZoneOffset >> 8) & 0xff);
     buffer[pos++] = (uint8_t)setup.controlMode;
     buffer[pos++] = (uint8_t)setup.measurementMode;
     buffer[pos++] = (uint8_t)setup.loggerMinimumLevel;
-    terraWriteU32(buffer + pos, setup.updateIntervalMs); pos += 4;
-    terraWriteU32(buffer + pos, setup.publisherIntervalMs); pos += 4;
-    terraWriteU32(buffer + pos, sequence); pos += 4;
+    terraWriteU32(buffer + pos, setup.updateIntervalMs);
+    pos += 4;
+    terraWriteU32(buffer + pos, setup.publisherIntervalMs);
+    pos += 4;
+    terraWriteU32(buffer + pos, sequence);
+    pos += 4;
     buffer[pos++] = (uint8_t)nameLength;
-    for (size_t i = 0; i < nameLength; ++i) buffer[pos++] = (uint8_t)setup.systemName[i];
+    for (size_t i = 0; i < nameLength; ++i) {
+        buffer[pos++] = (uint8_t)setup.systemName[i];
+    }
     uint32_t checksum = terraBinaryChecksum(buffer, pos);
-    terraWriteU32(buffer + pos, checksum); pos += 4;
+    terraWriteU32(buffer + pos, checksum);
+    pos += 4;
     return pos;
 }
 
-bool TerraSystemData::fromBinary(const uint8_t *buffer, size_t length) {
+bool TerraSystemData::fromBinary(const uint8_t *buffer, size_t length)
+{
     if (!buffer || length < 27) return false;
     if (buffer[0] != 'T' || buffer[1] != 'R' || buffer[2] != 'D' || buffer[3] != 'U') return false;
-    if (buffer[4] != 3) return false;
+    if (buffer[4] != 4) return false;
     uint8_t nameLength = buffer[22];
     const size_t required = 23 + (size_t)nameLength + 4;
     if (nameLength > TERRA_NAME_MAXSIZE || length != required) return false;
@@ -288,7 +321,9 @@ bool TerraSystemData::fromBinary(const uint8_t *buffer, size_t length) {
 #else
     parsed.setup.systemName.reserve(nameLength);
 #endif
-    for (uint8_t i = 0; i < nameLength; ++i) parsed.setup.systemName += (char)buffer[23 + i];
+    for (uint8_t i = 0; i < nameLength; ++i) {
+        parsed.setup.systemName += (char)buffer[23 + i];
+    }
     *this = parsed;
     return true;
 }

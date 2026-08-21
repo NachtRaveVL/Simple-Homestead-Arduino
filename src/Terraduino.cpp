@@ -64,7 +64,7 @@ time_t terraLocalNow()
 #endif
 
 Terraduino::Terraduino(Terra_RTCType rtcType, TerraDeviceSetup rtcSetup)
-    : TerraFactory(), scheduler(), logger(), publisher(), modules(), _data(),
+    : TerraFactory(), TerraObjectRegistration(), scheduler(), logger(), publisher(), modules(), _data(),
       _rtcType(rtcType), _rtcSetup(rtcSetup),
 #ifdef ARDUINO
       _rtc(nullptr),
@@ -77,6 +77,7 @@ Terraduino::Terraduino(Terra_RTCType rtcType, TerraDeviceSetup rtcSetup)
 Terraduino::~Terraduino()
 {
     suspend();
+    while (_objects.size()) { _objects.erase(_objects.begin()); }
     deallocateRTC();
     if (_activeInstance == this) _activeInstance = nullptr;
 }
@@ -169,7 +170,9 @@ TerraRTCInterface *Terraduino::getRTC(bool begin)
     if (_rtc && begin && !_rtcBegan) {
         _rtcBegan = _rtc->begin(_rtcSetup.i2c.wire);
         if (_rtcBegan) {
+            bool rtcBattFailBefore = _rtcBattFail;
             _rtcBattFail = _rtc->lostPower();
+            if (_rtcBattFail && !rtcBattFailBefore) { logger.warning("rtc", "RTC battery failure"); }
         } else {
             deallocateRTC();
         }
@@ -181,9 +184,7 @@ void Terraduino::setRTCTime(DateTime time)
 {
     TerraRTCInterface *rtc = getRTC();
     if (rtc) {
-        time_t unixTime = terraUnixTime(time);
-        rtc->adjust(DateTime((uint32_t)unixTime));
-        setTime(unixTime);
+        rtc->adjust(DateTime((uint32_t)terraUnixTime(time)));
         _rtcBattFail = false;
     }
 }

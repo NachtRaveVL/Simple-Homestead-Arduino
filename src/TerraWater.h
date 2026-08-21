@@ -188,7 +188,6 @@ protected:
     Terra_RouteState _routeState;                           // Current route state
     TerraWaterBalancer _balancer;                           // Route balancing process
 
-    TerraTransferDecision decide(const TerraWaterSource &source, const TerraWaterStorage &destination);
     bool validateFlow(float measuredFlowLpm, bool commandedOn);
     inline void setRouteState(Terra_RouteState state) { _routeState = state; }
 

@@ -37,9 +37,10 @@ public:
 // Common interface used by supported RTClib real-time clock implementations.
 class TerraRTCInterface {
 public:
-    virtual bool begin(TwoWire *wireInstance) = 0;
+    virtual ~TerraRTCInterface() { }
+    virtual bool begin(TwoWire *wire = TERRA_USE_WIRE) = 0;
     virtual void adjust(const DateTime &dt) = 0;
-    virtual bool lostPower(void) = 0;
+    virtual bool lostPower() = 0;
     virtual DateTime now() = 0;
 };
 #endif

@@ -68,14 +68,7 @@ protected:
     TerraSensorAttachment _windDirection;                   // Wind-direction sensor attachment point
     TerraSensorAttachment _solarRadiation;                  // Solar-radiation sensor attachment point
 
-    inline void initAirTemperatureSensorKey(uint32_t key) { _airTemperature.initObject(key); }
-    inline void initHumiditySensorKey(uint32_t key) { _humidity.initObject(key); }
-    inline void initPressureSensorKey(uint32_t key) { _pressure.initObject(key); }
-    inline void initRainfallSensorKey(uint32_t key) { _rainfall.initObject(key); }
-    inline void initRainRateSensorKey(uint32_t key) { _rainRate.initObject(key); }
-    inline void initWindSpeedSensorKey(uint32_t key) { _windSpeed.initObject(key); }
-    inline void initWindDirectionSensorKey(uint32_t key) { _windDirection.initObject(key); }
-    inline void initSolarRadiationSensorKey(uint32_t key) { _solarRadiation.initObject(key); }
+    void initAttachmentKey(Terra_AttachmentRole role, uint32_t key);
 
     friend class TerraFactory;
 };

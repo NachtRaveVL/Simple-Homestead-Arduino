@@ -7,69 +7,68 @@
 #include "TerraActuators.h"
 #include "TerraUtils.h"
 
-TerraActivationHandle::TerraActivationHandle(TerraActuator *actuatorIn, float intensity, uint32_t duration)
-    : actuator(nullptr), activation(terraClamp(intensity, 0.0f, 1.0f), duration),
-      checkTime(0), elapsed(0)
+TerraActivationHandle::TerraActivationHandle(TerraActuator *actuator, float intensity, uint32_t durationMs)
+    : _actuator(nullptr), _activation(terraClamp(intensity, 0.0f, 1.0f), durationMs),
+      _startedAt(0), _active(false)
 {
-    operator=(actuatorIn);
+    setActuator(actuator);
 }
 
-TerraActivationHandle::TerraActivationHandle(const TerraActivationHandle &handle)
-    : actuator(nullptr), activation(handle.activation), checkTime(0), elapsed(0)
-{
-    operator=(handle.actuator);
-}
+TerraActivationHandle::TerraActivationHandle(const TerraActivationHandle &other)
+    : _actuator(nullptr), _activation(other._activation), _startedAt(0), _active(false)
+{ }
 
 TerraActivationHandle::~TerraActivationHandle()
 {
-    if (actuator) { unset(); }
+    unset();
 }
 
-TerraActivationHandle &TerraActivationHandle::operator=(TerraActuator *actuatorIn)
+void TerraActivationHandle::setActuator(TerraActuator *actuator)
 {
-    if (actuator != actuatorIn && isValid()) {
-        if (actuator) { unset(); } else { checkTime = 0; }
+    if (_actuator == actuator) return;
+    unset();
+    _actuator = actuator;
+}
 
-        actuator = actuatorIn;
+void TerraActivationHandle::setup(float intensity, uint32_t durationMs)
+{
+    _activation._intensity = terraClamp(intensity, 0.0f, 1.0f);
+    _activation._durationMs = durationMs;
+    if (_actuator && _active) _actuator->resolveActivations();
+}
 
-        if (actuator) {
-            if (actuator->addActivationHandle(this)) {
-                actuator->setNeedsUpdate();
-            } else {
-                actuator = nullptr;
-            }
-        }
+void TerraActivationHandle::enable(uint32_t now)
+{
+    if (!_actuator || _activation.getIntensity() <= TERRA_EPSILON) {
+        unset();
+        return;
     }
-    return *this;
+
+    if (!_active) {
+        if (!_actuator->addActivationHandle(this)) return;
+        _active = true;
+    }
+    _startedAt = now;
+    _actuator->resolveActivations();
 }
 
 void TerraActivationHandle::unset()
 {
-    if (isActive()) { elapseTo(); }
-    checkTime = 0;
-
-    if (actuator) {
-        TerraActuator *oldActuator = actuator;
-        actuator = nullptr;
-        oldActuator->removeActivationHandle(this);
-        oldActuator->setNeedsUpdate();
+    if (!_actuator || !_active) {
+        _active = false;
+        return;
     }
+
+    TerraActuator *actuator = _actuator;
+    _active = false;
+    actuator->removeActivationHandle(this);
+    actuator->resolveActivations();
 }
 
-void TerraActivationHandle::elapseBy(uint32_t delta)
+void TerraActivationHandle::update(uint32_t now)
 {
-    if (delta && isValid() && isActive()) {
-        if (!isUntimed()) {
-            if (delta <= activation.duration) {
-                activation.duration -= delta;
-                checkTime += delta;
-            } else {
-                delta = activation.duration;
-                activation.duration = 0;
-                checkTime = 0;
-                actuator->setNeedsUpdate();
-            }
-        }
-        elapsed += delta;
+    if (_active && _activation.getDurationMs() &&
+        terraElapsed(now, _startedAt, _activation.getDurationMs())) {
+        unset();
     }
 }

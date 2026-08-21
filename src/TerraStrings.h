@@ -218,6 +218,7 @@ TerraString terraLogLevelToString(Terra_LogLevel value);
 TerraString terraModuleTypeToString(Terra_ModuleType value);
 TerraString terraControlModeToString(Terra_ControlMode value);
 TerraString terraRouteStateToString(Terra_RouteState value);
+TerraString terraAttachmentRoleToString(Terra_AttachmentRole value);
 
 Terra_ObjectType terraObjectTypeFromString(const TerraString &value);
 Terra_ResourceType terraResourceTypeFromString(const TerraString &value);
@@ -238,5 +239,6 @@ Terra_LogLevel terraLogLevelFromString(const TerraString &value);
 Terra_ModuleType terraModuleTypeFromString(const TerraString &value);
 Terra_ControlMode terraControlModeFromString(const TerraString &value);
 Terra_RouteState terraRouteStateFromString(const TerraString &value);
+Terra_AttachmentRole terraAttachmentRoleFromString(const TerraString &value);
 
 #endif // /ifndef TerraStrings_H

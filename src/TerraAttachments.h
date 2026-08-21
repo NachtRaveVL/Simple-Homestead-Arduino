@@ -1,6 +1,6 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Attachments
+    Terraduino Attachment Points
 */
 
 #ifndef TerraAttachments_H
@@ -14,6 +14,18 @@ class TerraActuator;
 #include "TerraActivation.h"
 #include "TerraMeasurements.h"
 
+// Serialized Attachment Data
+// Stable object identity and relationship role used by persistence. Runtime relationships
+// are represented by the attachment-point classes below rather than role/key bags.
+struct TerraAttachmentData {
+    uint32_t objectKey;                                     // Attached object key
+    Terra_AttachmentRole role;                              // Attachment relationship role
+
+    TerraAttachmentData(uint32_t key = TERRA_INVALID_KEY,
+                        Terra_AttachmentRole roleIn = Terra_AttachmentRole_Undefined)
+        : objectKey(key), role(roleIn) { }
+};
+
 // Returns a shared registered object by stable key, or an empty pointer when unresolved.
 extern SharedPtr<TerraObject> terraObjectByKey(uint32_t key);
 
@@ -25,6 +37,8 @@ class TerraAttachment {
 public:
     TerraAttachment(TerraObject *parent = nullptr)
         : _parent(parent), _key(TERRA_INVALID_KEY), _object() { }
+    TerraAttachment(const TerraAttachment<TObject> &attachment)
+        : _parent(attachment._parent), _key(attachment._key), _object(attachment._object) { attachObject(); }
     virtual ~TerraAttachment() { detachObject(); }
 
     template<class U> inline void setObject(const SharedPtr<U> &object) {
@@ -82,18 +96,12 @@ public:
     TerraActuatorAttachment(TerraObject *parent = nullptr);
     virtual ~TerraActuatorAttachment();
 
-    void setupActivation(float intensity = 1.0f, uint32_t duration = (uint32_t)-1);
-    void enableActivation();
-    inline void disableActivation() { _actHandle.unset(); }
-    inline bool isActivated() const { return _actHandle.isActive(); }
-    inline uint32_t getTimeLeft() const { return _actHandle.getTimeLeft(); }
-    inline uint32_t getTimeActive(uint32_t time = terraNZMillis()) const { return _actHandle.getTimeActive(time); }
-    inline float getActiveDriveIntensity() const { return _actHandle.getDriveIntensity(); }
-    inline float getSetupDriveIntensity() const { return _actSetup.getDriveIntensity(); }
+    void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis());
+    void off();
+    inline bool isActive() const { return _activation.isActive(); }
 
 protected:
-    TerraActivationHandle _actHandle;                       // Resident actuator activation handle
-    TerraActivation _actSetup;                              // Actuator activation setup
+    TerraActivationHandle _activation;                      // Resident actuator request
 };
 
 #include "TerraAttachments.hpp"

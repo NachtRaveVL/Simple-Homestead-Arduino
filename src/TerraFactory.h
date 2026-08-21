@@ -28,27 +28,12 @@ class TerraEnvironment;                                     // Terra Environment
 class TerraPowerRail;                                       // Terra Power Rail
 
 // Object Factory
-// Contains convenience builders for system objects and stores registered main objects in
-// the controller's shared object collection for attachment-point resolution.
+// Contains convenience builders for system objects. Objects created through these helpers
+// are registered with the controller's shared object collection for attachment-point resolution.
 class TerraFactory {
 public:
-    TerraFactory();
+    TerraFactory() { }
     virtual ~TerraFactory() { }
-
-    // Adds object to system, returning success.
-    bool registerObject(SharedPtr<TerraObject> object);
-    // Removes object from system, returning success.
-    bool unregisterObject(SharedPtr<TerraObject> object);
-
-    SharedPtr<TerraObject> sharedObjectByKey(uint32_t key) const;
-    TerraObject *findObjectByKey(uint32_t key) const;
-    TerraObject *findObjectByName(const TerraString &name) const;
-    TerraObject *findFirstByType(Terra_ObjectType type) const;
-    uint8_t findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const;
-    TerraObject *objectAt(uint8_t index) const;
-    uint8_t objectCount() const { return (uint8_t)_objects.size(); }
-    uint32_t allocateKey(const TerraString &name = TerraString());
-    void updateObjects(uint32_t now = terraMillis());
 
     // Convenience builders for common sensors (shared, nullptr return -> failure).
     SharedPtr<TerraSensor> addSensor(Terra_SensorType sensorType,
@@ -109,9 +94,6 @@ public:
     static TerraObjectData *newDataFromObject(const TerraObject *objectIn);
 
 protected:
-    TerraMap<uint32_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by stable object key
-    uint32_t _nextKey;                                      // Next automatically assigned object key
-
     static TerraSensor *newSensorObject(Terra_SensorType sensorType, Terra_Unit unit,
                                         uint32_t key, const TerraString &name);
     static TerraActuator *newActuatorObject(Terra_ActuatorType actuatorType,

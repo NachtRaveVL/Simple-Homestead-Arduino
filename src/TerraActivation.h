@@ -10,54 +10,51 @@
 
 class TerraActuator;
 
-// Activation Data
-// Activation setup data that defines a normalized actuator-output request.
-struct TerraActivation {
-    float intensity;                                        // Normalized driving intensity ([0.0,1.0])
-    uint32_t duration;                                      // Duration remaining, milliseconds; -1 untimed, 0 finished
+// Activation Setup
+// Stores one normalized actuator-output request and optional duration.
+class TerraActivation {
+public:
+    TerraActivation(float intensity = 0.0f, uint32_t durationMs = 0)
+        : _intensity(intensity), _durationMs(durationMs) { }
 
-    inline TerraActivation(float intensityIn = 0.0f, uint32_t durationIn = 0)
-        : intensity(intensityIn < 0.0f ? 0.0f : intensityIn > 1.0f ? 1.0f : intensityIn), duration(durationIn) { ; }
+    inline float getIntensity() const { return _intensity; }
+    inline uint32_t getDurationMs() const { return _durationMs; }
+    inline bool isUntimed() const { return _durationMs == 0; }
 
-    inline bool isValid() const { return intensity > 0.0f; }
-    inline bool isDone() const { return duration == 0; }
-    inline bool isUntimed() const { return duration == (uint32_t)-1; }
-    inline float getDriveIntensity() const { return intensity; }
+protected:
+    float _intensity;                                       // Requested normalized intensity
+    uint32_t _durationMs;                                   // Requested duration, milliseconds
+
+    friend class TerraActivationHandle;
 };
 
 // Activation Handle
-// Resident actuator request. Handles must stay memory resident while assigned to an
-// actuator so the actuator can combine them with other active requests.
-struct TerraActivationHandle {
-    TerraActuator *actuator;                                // Actuator owner, set only when activation requested
-    TerraActivation activation;                             // Activation data
-    uint32_t checkTime;                                     // Last active check time, else 0 when not started
-    uint32_t elapsed;                                       // Elapsed active time, milliseconds
-
-    TerraActivationHandle(TerraActuator *actuatorIn = nullptr,
+// Resident actuator request used by attachment points. The handle must stay memory
+// resident while active so the actuator can aggregate it with other requests.
+class TerraActivationHandle {
+public:
+    TerraActivationHandle(TerraActuator *actuator = nullptr,
                           float intensity = 0.0f,
-                          uint32_t duration = 0);
-    TerraActivationHandle(const TerraActivationHandle &handle);
+                          uint32_t durationMs = 0);
+    TerraActivationHandle(const TerraActivationHandle &other);
     ~TerraActivationHandle();
 
-    TerraActivationHandle &operator=(TerraActuator *actuatorIn);
-    inline TerraActivationHandle &operator=(const TerraActivation &activationIn) { activation = activationIn; return *this; }
-    inline TerraActivationHandle &operator=(const TerraActivationHandle &handle) { activation = handle.activation; return operator=(handle.actuator); }
-
-    // Disconnects activation from an actuator.
+    void setActuator(TerraActuator *actuator);
+    void setup(float intensity, uint32_t durationMs = 0);
+    void enable(uint32_t now = terraMillis());
     void unset();
+    void update(uint32_t now = terraMillis());
 
-    // Elapses activation by delta, updating remaining duration and elapsed time.
-    void elapseBy(uint32_t delta);
-    inline void elapseTo(uint32_t time = terraNZMillis()) { elapseBy(time - checkTime); }
+    inline bool isActive() const { return _actuator && _active; }
+    inline float getIntensity() const { return _activation.getIntensity(); }
 
-    inline bool isActive() const { return actuator && checkTime; }
-    inline bool isValid() const { return activation.isValid(); }
-    inline bool isDone() const { return activation.isDone(); }
-    inline bool isUntimed() const { return activation.isUntimed(); }
-    inline uint32_t getTimeLeft() const { return activation.duration; }
-    inline uint32_t getTimeActive(uint32_t time = terraNZMillis()) const { return isActive() ? (time - checkTime) + elapsed : elapsed; }
-    inline float getDriveIntensity() const { return activation.getDriveIntensity(); }
+protected:
+    TerraActuator *_actuator;                               // Actuator owner; attachment retains shared object
+    TerraActivation _activation;                            // Requested activation
+    uint32_t _startedAt;                                    // Activation start millis
+    bool _active;                                           // Active request flag
+
+    friend class TerraActuator;
 };
 
-#endif // /ifndef TerraActivation_H
+#endif

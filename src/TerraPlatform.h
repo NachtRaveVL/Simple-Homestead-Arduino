@@ -31,12 +31,6 @@ inline uint32_t terraMillis() {
 }
 #endif
 
-inline uint32_t terraNZMillis()
-{
-    uint32_t time = terraMillis();
-    return time ? time : 1;
-}
-
 #if defined(ARDUINO)
 template<typename T> using SharedPtr = arx::stdx::shared_ptr<T>;
 template<typename K, typename V, size_t N> using TerraMap = arx::map<K,V,N>;

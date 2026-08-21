@@ -4,7 +4,6 @@
 */
 
 #include "TerraEnvironment.h"
-#include "TerraCoreLogic.h"
 #include "TerraUtils.h"
 
 TerraEnvironment::TerraEnvironment(uint32_t key, const TerraString &name)
@@ -67,7 +66,7 @@ float TerraEnvironment::getSolarRadiation() const
 bool TerraEnvironment::isFreezing(float thresholdC) const
 {
     float temperature = getAirTemperature();
-    return !isnan(temperature) && terraFreezeRisk(temperature, thresholdC);
+    return !isnan(temperature) && temperature <= thresholdC;
 }
 
 float TerraEnvironment::dewPointC() const
@@ -105,4 +104,19 @@ void TerraEnvironment::unresolveAny(TerraObject *object)
     _windDirection.unresolveAny(object);
     _solarRadiation.unresolveAny(object);
     TerraObject::unresolveAny(object);
+}
+
+void TerraEnvironment::initAttachmentKey(Terra_AttachmentRole role, uint32_t key)
+{
+    switch (role) {
+        case Terra_AttachmentRole_TemperatureSensor: _airTemperature.initObject(key); break;
+        case Terra_AttachmentRole_HumiditySensor: _humidity.initObject(key); break;
+        case Terra_AttachmentRole_PressureSensor: _pressure.initObject(key); break;
+        case Terra_AttachmentRole_RainfallSensor: _rainfall.initObject(key); break;
+        case Terra_AttachmentRole_RainRateSensor: _rainRate.initObject(key); break;
+        case Terra_AttachmentRole_WindSpeedSensor: _windSpeed.initObject(key); break;
+        case Terra_AttachmentRole_WindDirectionSensor: _windDirection.initObject(key); break;
+        case Terra_AttachmentRole_SolarRadiationSensor: _solarRadiation.initObject(key); break;
+        default: break;
+    }
 }

@@ -1,6 +1,6 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Attachments
+    Terraduino Attachment Points
 */
 
 #include "Terraduino.h"
@@ -20,25 +20,28 @@ TerraMeasurement TerraSensorAttachment::getMeasurement(uint32_t now, bool poll)
 }
 
 TerraActuatorAttachment::TerraActuatorAttachment(TerraObject *parent)
-    : TerraAttachment<TerraActuator>(parent), _actHandle(), _actSetup()
+    : TerraAttachment<TerraActuator>(parent), _activation()
 { }
 
 TerraActuatorAttachment::~TerraActuatorAttachment()
 {
-    disableActivation();
+    off();
 }
 
-void TerraActuatorAttachment::setupActivation(float intensity, uint32_t duration)
+void TerraActuatorAttachment::setOutput(float intensity, uint32_t durationMs, uint32_t now)
 {
-    _actSetup = TerraActivation(intensity, duration);
-    _actHandle.activation = _actSetup;
-    if (_actHandle.actuator) { _actHandle.actuator->setNeedsUpdate(); }
-}
-
-void TerraActuatorAttachment::enableActivation()
-{
-    if (!_actHandle.actuator && _actSetup.isValid() && resolve()) {
-        if (_actHandle.isDone()) { _actHandle.activation = _actSetup; }
-        _actHandle = get();
+    SharedPtr<TerraActuator> actuator = getObject();
+    if (!actuator || intensity <= TERRA_EPSILON) {
+        off();
+        return;
     }
+
+    _activation.setActuator(actuator.get());
+    _activation.setup(intensity, durationMs);
+    _activation.enable(now);
+}
+
+void TerraActuatorAttachment::off()
+{
+    _activation.unset();
 }

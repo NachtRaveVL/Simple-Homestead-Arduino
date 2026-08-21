@@ -38,23 +38,48 @@ static TerraString terraBool(bool value)
 
 static TerraString objectFields(const TerraObjectData &data)
 {
-    return TerraString("\"key\":") + terraUnsigned(data.key) +
+    TerraString result = TerraString("\"key\":") + terraUnsigned(data.key) +
            ",\"objectType\":\"" + terraObjectTypeToString(data.objectType) +
            "\",\"name\":\"" + terraJsonEscape(data.name) +
-           "\",\"enabled\":" + terraBool(data.enabled);
+           "\",\"enabled\":" + terraBool(data.enabled) +
+           ",\"attachmentCount\":" + terraNumber(data.attachmentCount);
+    for (uint8_t i = 0; i < data.attachmentCount && i < TERRA_MAX_ATTACHMENTS; ++i) {
+        TerraString prefix = TerraString("attachment") + terraNumber(i);
+        result += TerraString(",\"") + prefix + "Key\":" + terraUnsigned(data.attachments[i].objectKey);
+        result += TerraString(",\"") + prefix + "Role\":\"" + terraAttachmentRoleToString(data.attachments[i].role) + "\"";
+    }
+    return result;
 }
 
 static bool parseObjectFields(const TerraString &json, TerraObjectData &data)
 {
-    long key = 0;
+    long key = 0, attachmentCount = 0;
     TerraString objectType;
     if (!terraJsonExtractLong(json, "key", key) || key < 0) return false;
     if (!terraJsonExtractString(json, "objectType", objectType)) return false;
     if (!terraJsonExtractString(json, "name", data.name)) return false;
     if (!terraJsonExtractBool(json, "enabled", data.enabled)) return false;
+    if (!terraJsonExtractLong(json, "attachmentCount", attachmentCount) ||
+        attachmentCount < 0 || attachmentCount > TERRA_MAX_ATTACHMENTS) return false;
     data.key = (uint32_t)key;
     data.objectType = terraObjectTypeFromString(objectType);
-    return terraStringEqualsIgnoreCase(objectType, terraObjectTypeToString(data.objectType));
+    if (!terraStringEqualsIgnoreCase(objectType, terraObjectTypeToString(data.objectType))) return false;
+    data.attachmentCount = (uint8_t)attachmentCount;
+    for (uint8_t i = 0; i < data.attachmentCount; ++i) {
+        TerraString prefix = TerraString("attachment") + terraNumber(i);
+        TerraString keyName = prefix + "Key";
+        TerraString roleName = prefix + "Role";
+        TerraString roleString;
+        long objectKey = 0;
+        if (!terraJsonExtractLong(json, keyName.c_str(), objectKey) || objectKey <= 0) return false;
+        if (!terraJsonExtractString(json, roleName.c_str(), roleString)) return false;
+        data.attachments[i].objectKey = (uint32_t)objectKey;
+        data.attachments[i].role = terraAttachmentRoleFromString(roleString);
+        if (!terraStringEqualsIgnoreCase(roleString, terraAttachmentRoleToString(data.attachments[i].role)) ||
+            data.attachments[i].role == Terra_AttachmentRole_Undefined) return false;
+    }
+    for (uint8_t i = data.attachmentCount; i < TERRA_MAX_ATTACHMENTS; ++i) data.attachments[i] = TerraAttachmentData();
+    return true;
 }
 
 static void copyObjectFields(const TerraObjectData &from, TerraObjectData &to)
@@ -62,10 +87,12 @@ static void copyObjectFields(const TerraObjectData &from, TerraObjectData &to)
     to.key = from.key;
     to.name = from.name;
     to.enabled = from.enabled;
+    to.attachmentCount = from.attachmentCount;
+    for (uint8_t i = 0; i < TERRA_MAX_ATTACHMENTS; ++i) to.attachments[i] = from.attachments[i];
 }
 
 TerraObjectData::TerraObjectData()
-    : key(TERRA_INVALID_KEY), objectType(Terra_ObjectType_Undefined), name(), enabled(true)
+    : key(TERRA_INVALID_KEY), objectType(Terra_ObjectType_Undefined), name(), enabled(true), attachmentCount(0)
 { }
 
 TerraString TerraObjectData::toJSON() const
@@ -160,7 +187,7 @@ TerraActuatorData::TerraActuatorData()
       enableMode(Terra_EnableMode_Highest), maxContinuousMs(0), hasPinDriver(false),
       pinSetup(TERRA_INVALID_PIN, Terra_PinMode_Undefined, false), maximumRaw(255),
       sumpStartPercent(TERRA_SUMP_START_LEVEL_PERCENT), sumpStopPercent(TERRA_SUMP_STOP_LEVEL_PERCENT),
-      sumpAlarmPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT), levelSensorKey(TERRA_INVALID_KEY)
+      sumpAlarmPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT)
 {
     objectType = Terra_ObjectType_Actuator;
 }
@@ -177,10 +204,9 @@ TerraString TerraActuatorData::toJSON() const
                        "\",\"activeLow\":" + terraBool(pinSetup.activeLow) +
                        ",\"maximumRaw\":" + terraNumber(maximumRaw);
     if (actuatorType == Terra_ActuatorType_SumpPump) {
-        json += ",\"sumpStartPercent\":" + terraFloat(sumpStartPercent) +
-                ",\"sumpStopPercent\":" + terraFloat(sumpStopPercent) +
-                ",\"sumpAlarmPercent\":" + terraFloat(sumpAlarmPercent) +
-                ",\"levelSensorKey\":" + terraUnsigned(levelSensorKey);
+        json += ",\"sumpStartPercent\":" + terraNumber(sumpStartPercent) +
+                ",\"sumpStopPercent\":" + terraNumber(sumpStopPercent) +
+                ",\"sumpAlarmPercent\":" + terraNumber(sumpAlarmPercent);
     }
     return json + "}";
 }
@@ -207,14 +233,11 @@ bool TerraActuatorData::fromJSON(const TerraString &json)
     if (!terraStringEqualsIgnoreCase(pinModeStr, terraPinModeToString(pinSetup.mode))) return false;
     if (hasPinDriver && (!pinSetup.isValid() || !pinSetup.isOutput())) return false;
     if (actuatorType == Terra_ActuatorType_SumpPump) {
-        long levelSensor = 0;
         if (!terraJsonExtractFloat(json, "sumpStartPercent", sumpStartPercent) ||
             !terraJsonExtractFloat(json, "sumpStopPercent", sumpStopPercent) ||
             !terraJsonExtractFloat(json, "sumpAlarmPercent", sumpAlarmPercent) ||
-            !terraJsonExtractLong(json, "levelSensorKey", levelSensor) || levelSensor < 0 ||
             sumpStopPercent < 0.0f || sumpStopPercent >= sumpStartPercent ||
             sumpStartPercent >= sumpAlarmPercent || sumpAlarmPercent > 100.0f) return false;
-        levelSensorKey = (uint32_t)levelSensor;
     }
     maxContinuousMs = (uint32_t)maxRuntime;
     maximumRaw = (int)maxRaw;
@@ -254,8 +277,7 @@ bool TerraResourceData::fromJSON(const TerraString &json)
 
 TerraWaterStorageData::TerraWaterStorageData()
     : TerraResourceData(), storageType(Terra_WaterStorageType_Undefined), capacityLiters(0.0f),
-      fillStartPercent(35.0f), fillStopPercent(90.0f), overflowPercent(99.0f),
-      levelSensorKey(TERRA_INVALID_KEY)
+      fillStartPercent(35.0f), fillStopPercent(90.0f), overflowPercent(99.0f)
 {
     objectType = Terra_ObjectType_WaterStorage;
     resourceType = Terra_ResourceType_Water;
@@ -273,15 +295,13 @@ TerraString TerraWaterStorageData::toJSON() const
            ",\"capacityLiters\":" + terraFloat(capacityLiters) +
            ",\"fillStartPercent\":" + terraFloat(fillStartPercent) +
            ",\"fillStopPercent\":" + terraFloat(fillStopPercent) +
-           ",\"overflowPercent\":" + terraFloat(overflowPercent) +
-           ",\"levelSensorKey\":" + terraUnsigned(levelSensorKey) + "}";
+           ",\"overflowPercent\":" + terraFloat(overflowPercent) + "}";
 }
 
 bool TerraWaterStorageData::fromJSON(const TerraString &json)
 {
     TerraResourceData base;
     TerraString type;
-    long levelSensor = 0;
     if (!base.fromJSON(json)) return false;
     if (base.objectType != Terra_ObjectType_WaterStorage || base.resourceType != Terra_ResourceType_Water) return false;
     if (!terraJsonExtractString(json, "storageType", type)) return false;
@@ -289,7 +309,6 @@ bool TerraWaterStorageData::fromJSON(const TerraString &json)
     if (!terraJsonExtractFloat(json, "fillStartPercent", fillStartPercent)) return false;
     if (!terraJsonExtractFloat(json, "fillStopPercent", fillStopPercent)) return false;
     if (!terraJsonExtractFloat(json, "overflowPercent", overflowPercent)) return false;
-    if (!terraJsonExtractLong(json, "levelSensorKey", levelSensor) || levelSensor < 0) return false;
     storageType = terraWaterStorageTypeFromString(type);
     if (!terraStringEqualsIgnoreCase(type, terraWaterStorageTypeToString(storageType))) return false;
     if (fillStartPercent < 0.0f || fillStartPercent >= fillStopPercent ||
@@ -301,7 +320,6 @@ bool TerraWaterStorageData::fromJSON(const TerraString &json)
     reserveLevel = base.reserveLevel;
     lowLevel = base.lowLevel;
     highLevel = base.highLevel;
-    levelSensorKey = (uint32_t)levelSensor;
     return true;
 }
 
@@ -322,7 +340,7 @@ bool TerraCisternData::fromJSON(const TerraString &json)
 
 TerraWaterSourceData::TerraWaterSourceData()
     : TerraObjectData(), sourceType(Terra_WaterSourceType_Undefined), priority(0), available(true),
-      level(100.0f), reserveLevel(0.0f), maximumFlowLpm(0.0f), levelSensorKey(TERRA_INVALID_KEY)
+      level(100.0f), reserveLevel(0.0f), maximumFlowLpm(0.0f)
 {
     objectType = Terra_ObjectType_WaterSource;
 }
@@ -335,14 +353,13 @@ TerraString TerraWaterSourceData::toJSON() const
            ",\"available\":" + terraBool(available) +
            ",\"level\":" + terraFloat(level) +
            ",\"reserveLevel\":" + terraFloat(reserveLevel) +
-           ",\"maximumFlowLpm\":" + terraFloat(maximumFlowLpm) +
-           ",\"levelSensorKey\":" + terraUnsigned(levelSensorKey) + "}";
+           ",\"maximumFlowLpm\":" + terraFloat(maximumFlowLpm) + "}";
 }
 
 bool TerraWaterSourceData::fromJSON(const TerraString &json)
 {
     TerraString type;
-    long priorityValue = 0, levelSensor = 0;
+    long priorityValue = 0;
     if (!parseObjectFields(json, *this)) return false;
     if (!terraJsonExtractString(json, "sourceType", type)) return false;
     if (!terraJsonExtractLong(json, "priority", priorityValue) || priorityValue < 0 || priorityValue > 255) return false;
@@ -350,18 +367,15 @@ bool TerraWaterSourceData::fromJSON(const TerraString &json)
     if (!terraJsonExtractFloat(json, "level", level) || level < 0.0f || level > 100.0f) return false;
     if (!terraJsonExtractFloat(json, "reserveLevel", reserveLevel) || reserveLevel < 0.0f || reserveLevel > 100.0f) return false;
     if (!terraJsonExtractFloat(json, "maximumFlowLpm", maximumFlowLpm) || maximumFlowLpm < 0.0f) return false;
-    if (!terraJsonExtractLong(json, "levelSensorKey", levelSensor) || levelSensor < 0) return false;
     if (objectType != Terra_ObjectType_WaterSource) return false;
     sourceType = terraWaterSourceTypeFromString(type);
     if (!terraStringEqualsIgnoreCase(type, terraWaterSourceTypeToString(sourceType))) return false;
     priority = (uint8_t)priorityValue;
-    levelSensorKey = (uint32_t)levelSensor;
     return true;
 }
 
 TerraWaterRouteData::TerraWaterRouteData()
     : TerraObjectData(), sourceKey(TERRA_INVALID_KEY), destinationKey(TERRA_INVALID_KEY),
-      pumpKey(TERRA_INVALID_KEY), flowSensorKey(TERRA_INVALID_KEY),
       destinationStartPercent(40.0f), destinationStopPercent(90.0f), minimumFlowLpm(0.0f),
       maximumFlowLpm(0.0f), routeState(Terra_RouteState_Idle)
 {
@@ -373,8 +387,6 @@ TerraString TerraWaterRouteData::toJSON() const
     return TerraString("{") + objectFields(*this) +
            ",\"sourceKey\":" + terraUnsigned(sourceKey) +
            ",\"destinationKey\":" + terraUnsigned(destinationKey) +
-           ",\"pumpKey\":" + terraUnsigned(pumpKey) +
-           ",\"flowSensorKey\":" + terraUnsigned(flowSensorKey) +
            ",\"destinationStartPercent\":" + terraFloat(destinationStartPercent) +
            ",\"destinationStopPercent\":" + terraFloat(destinationStopPercent) +
            ",\"minimumFlowLpm\":" + terraFloat(minimumFlowLpm) +
@@ -384,13 +396,11 @@ TerraString TerraWaterRouteData::toJSON() const
 
 bool TerraWaterRouteData::fromJSON(const TerraString &json)
 {
-    long source = 0, destination = 0, pump = 0, flowSensor = 0;
+    long source = 0, destination = 0;
     TerraString state;
     if (!parseObjectFields(json, *this)) return false;
     if (!terraJsonExtractLong(json, "sourceKey", source) || source < 0) return false;
     if (!terraJsonExtractLong(json, "destinationKey", destination) || destination < 0) return false;
-    if (!terraJsonExtractLong(json, "pumpKey", pump) || pump < 0) return false;
-    if (!terraJsonExtractLong(json, "flowSensorKey", flowSensor) || flowSensor < 0) return false;
     if (!terraJsonExtractFloat(json, "destinationStartPercent", destinationStartPercent)) return false;
     if (!terraJsonExtractFloat(json, "destinationStopPercent", destinationStopPercent)) return false;
     if (!terraJsonExtractFloat(json, "minimumFlowLpm", minimumFlowLpm)) return false;
@@ -402,8 +412,6 @@ bool TerraWaterRouteData::fromJSON(const TerraString &json)
     if (objectType != Terra_ObjectType_WaterRoute) return false;
     sourceKey = (uint32_t)source;
     destinationKey = (uint32_t)destination;
-    pumpKey = (uint32_t)pump;
-    flowSensorKey = (uint32_t)flowSensor;
     routeState = terraRouteStateFromString(state);
     return terraStringEqualsIgnoreCase(state, terraRouteStateToString(routeState));
 }
@@ -432,7 +440,7 @@ bool TerraRainCatchmentData::fromJSON(const TerraString &json)
 }
 
 TerraThermalStoreData::TerraThermalStoreData()
-    : TerraResourceData(), temperatureC(0.0f), temperatureSensorKey(TERRA_INVALID_KEY), minimumTargetC(0.0f),
+    : TerraResourceData(), temperatureC(0.0f), minimumTargetC(0.0f),
       maximumTargetC(80.0f), absoluteMaximumC(95.0f)
 {
     objectType = Terra_ObjectType_ThermalStore;
@@ -448,7 +456,6 @@ TerraString TerraThermalStoreData::toJSON() const
            ",\"lowLevel\":" + terraFloat(lowLevel) +
            ",\"highLevel\":" + terraFloat(highLevel) +
            ",\"temperatureC\":" + terraFloat(temperatureC) +
-           ",\"temperatureSensorKey\":" + terraUnsigned(temperatureSensorKey) +
            ",\"minimumTargetC\":" + terraFloat(minimumTargetC) +
            ",\"maximumTargetC\":" + terraFloat(maximumTargetC) +
            ",\"absoluteMaximumC\":" + terraFloat(absoluteMaximumC) + "}";
@@ -457,11 +464,9 @@ TerraString TerraThermalStoreData::toJSON() const
 bool TerraThermalStoreData::fromJSON(const TerraString &json)
 {
     TerraResourceData base;
-    long temperatureSensor = 0;
     if (!base.fromJSON(json)) return false;
     if (base.objectType != Terra_ObjectType_ThermalStore || base.resourceType != Terra_ResourceType_Thermal) return false;
     if (!terraJsonExtractFloat(json, "temperatureC", temperatureC)) return false;
-    if (!terraJsonExtractLong(json, "temperatureSensorKey", temperatureSensor) || temperatureSensor < 0) return false;
     if (!terraJsonExtractFloat(json, "minimumTargetC", minimumTargetC)) return false;
     if (!terraJsonExtractFloat(json, "maximumTargetC", maximumTargetC)) return false;
     if (!terraJsonExtractFloat(json, "absoluteMaximumC", absoluteMaximumC)) return false;
@@ -473,14 +478,11 @@ bool TerraThermalStoreData::fromJSON(const TerraString &json)
     reserveLevel = base.reserveLevel;
     lowLevel = base.lowLevel;
     highLevel = base.highLevel;
-    temperatureSensorKey = (uint32_t)temperatureSensor;
     return true;
 }
 
 TerraThermalLoopData::TerraThermalLoopData()
-    : TerraObjectData(), sourceTemperatureSensorKey(TERRA_INVALID_KEY),
-      thermalStoreKey(TERRA_INVALID_KEY), circulatorKey(TERRA_INVALID_KEY),
-      onDifferentialC(8.0f), offDifferentialC(3.0f), maxStoreTempC(80.0f)
+    : TerraObjectData(), onDifferentialC(8.0f), offDifferentialC(3.0f), maxStoreTempC(80.0f)
 {
     objectType = Terra_ObjectType_ThermalLoop;
 }
@@ -488,9 +490,6 @@ TerraThermalLoopData::TerraThermalLoopData()
 TerraString TerraThermalLoopData::toJSON() const
 {
     return TerraString("{") + objectFields(*this) +
-           ",\"sourceTemperatureSensorKey\":" + terraUnsigned(sourceTemperatureSensorKey) +
-           ",\"thermalStoreKey\":" + terraUnsigned(thermalStoreKey) +
-           ",\"circulatorKey\":" + terraUnsigned(circulatorKey) +
            ",\"onDifferentialC\":" + terraFloat(onDifferentialC) +
            ",\"offDifferentialC\":" + terraFloat(offDifferentialC) +
            ",\"maxStoreTempC\":" + terraFloat(maxStoreTempC) + "}";
@@ -498,17 +497,10 @@ TerraString TerraThermalLoopData::toJSON() const
 
 bool TerraThermalLoopData::fromJSON(const TerraString &json)
 {
-    long sourceTemperatureSensor = 0, thermalStore = 0, circulator = 0;
     if (!parseObjectFields(json, *this) || objectType != Terra_ObjectType_ThermalLoop) return false;
-    if (!terraJsonExtractLong(json, "sourceTemperatureSensorKey", sourceTemperatureSensor) || sourceTemperatureSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "thermalStoreKey", thermalStore) || thermalStore < 0) return false;
-    if (!terraJsonExtractLong(json, "circulatorKey", circulator) || circulator < 0) return false;
     if (!terraJsonExtractFloat(json, "onDifferentialC", onDifferentialC)) return false;
     if (!terraJsonExtractFloat(json, "offDifferentialC", offDifferentialC)) return false;
     if (!terraJsonExtractFloat(json, "maxStoreTempC", maxStoreTempC)) return false;
-    sourceTemperatureSensorKey = (uint32_t)sourceTemperatureSensor;
-    thermalStoreKey = (uint32_t)thermalStore;
-    circulatorKey = (uint32_t)circulator;
     return offDifferentialC >= 0.0f && onDifferentialC > offDifferentialC;
 }
 
@@ -536,48 +528,17 @@ bool TerraPowerRailData::fromJSON(const TerraString &json)
 }
 
 TerraEnvironmentData::TerraEnvironmentData()
-    : TerraObjectData(),
-      airTemperatureSensorKey(TERRA_INVALID_KEY), humiditySensorKey(TERRA_INVALID_KEY),
-      pressureSensorKey(TERRA_INVALID_KEY), rainfallSensorKey(TERRA_INVALID_KEY),
-      rainRateSensorKey(TERRA_INVALID_KEY), windSpeedSensorKey(TERRA_INVALID_KEY),
-      windDirectionSensorKey(TERRA_INVALID_KEY), solarRadiationSensorKey(TERRA_INVALID_KEY)
+    : TerraObjectData()
 {
     objectType = Terra_ObjectType_Environment;
 }
 
 TerraString TerraEnvironmentData::toJSON() const
 {
-    return TerraString("{") + objectFields(*this) +
-           ",\"airTemperatureSensorKey\":" + terraUnsigned(airTemperatureSensorKey) +
-           ",\"humiditySensorKey\":" + terraUnsigned(humiditySensorKey) +
-           ",\"pressureSensorKey\":" + terraUnsigned(pressureSensorKey) +
-           ",\"rainfallSensorKey\":" + terraUnsigned(rainfallSensorKey) +
-           ",\"rainRateSensorKey\":" + terraUnsigned(rainRateSensorKey) +
-           ",\"windSpeedSensorKey\":" + terraUnsigned(windSpeedSensorKey) +
-           ",\"windDirectionSensorKey\":" + terraUnsigned(windDirectionSensorKey) +
-           ",\"solarRadiationSensorKey\":" + terraUnsigned(solarRadiationSensorKey) + "}";
+    return TerraString("{") + objectFields(*this) + "}";
 }
 
 bool TerraEnvironmentData::fromJSON(const TerraString &json)
 {
-    long airTemperatureSensor = 0, humiditySensor = 0, pressureSensor = 0, rainfallSensor = 0;
-    long rainRateSensor = 0, windSpeedSensor = 0, windDirectionSensor = 0, solarRadiationSensor = 0;
-    if (!parseObjectFields(json, *this) || objectType != Terra_ObjectType_Environment) return false;
-    if (!terraJsonExtractLong(json, "airTemperatureSensorKey", airTemperatureSensor) || airTemperatureSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "humiditySensorKey", humiditySensor) || humiditySensor < 0) return false;
-    if (!terraJsonExtractLong(json, "pressureSensorKey", pressureSensor) || pressureSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "rainfallSensorKey", rainfallSensor) || rainfallSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "rainRateSensorKey", rainRateSensor) || rainRateSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "windSpeedSensorKey", windSpeedSensor) || windSpeedSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "windDirectionSensorKey", windDirectionSensor) || windDirectionSensor < 0) return false;
-    if (!terraJsonExtractLong(json, "solarRadiationSensorKey", solarRadiationSensor) || solarRadiationSensor < 0) return false;
-    airTemperatureSensorKey = (uint32_t)airTemperatureSensor;
-    humiditySensorKey = (uint32_t)humiditySensor;
-    pressureSensorKey = (uint32_t)pressureSensor;
-    rainfallSensorKey = (uint32_t)rainfallSensor;
-    rainRateSensorKey = (uint32_t)rainRateSensor;
-    windSpeedSensorKey = (uint32_t)windSpeedSensor;
-    windDirectionSensorKey = (uint32_t)windDirectionSensor;
-    solarRadiationSensorKey = (uint32_t)solarRadiationSensor;
-    return true;
+    return parseObjectFields(json, *this) && objectType == Terra_ObjectType_Environment;
 }

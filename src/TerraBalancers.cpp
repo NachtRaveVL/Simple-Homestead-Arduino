@@ -11,7 +11,7 @@
 
 TerraWaterBalancer::TerraWaterBalancer(TerraWaterRoute *route)
     : _route(route), _source(route), _destination(route),
-      _pump(route), _flowSensor(route), _lastDecision()
+      _pump(route), _flowSensor(route)
 { ; }
 
 void TerraWaterBalancer::setParent(TerraWaterRoute *route)
@@ -26,20 +26,47 @@ void TerraWaterBalancer::setParent(TerraWaterRoute *route)
 void TerraWaterBalancer::update(uint32_t now)
 {
     if (!_route || !_route->isEnabled() || _route->hasFault()) {
-        _pump.disableActivation();
+        _pump.off();
         return;
     }
 
     SharedPtr<TerraWaterSource> source = _source.getObject();
     SharedPtr<TerraWaterStorage> destination = _destination.getObject();
     if (!source || !destination || !_pump.isSet()) {
-        _pump.disableActivation();
+        _pump.off();
         return;
     }
 
-    _lastDecision = _route->decide(*source, *destination);
-    bool run = _lastDecision.run;
-    bool pumpWasActive = _pump.isActivated();
+    bool run = false;
+    bool pumpWasActive = _pump.isActive();
+    const TerraCistern *cistern = destination->getStorageType() == Terra_WaterStorageType_Cistern
+                                ? static_cast<const TerraCistern *>(destination.get())
+                                : nullptr;
+
+    if (cistern && cistern->isOverflowDetected()) {
+        _route->setRouteState(Terra_RouteState_Fault);
+    } else if (!destination->isEnabled() || destination->hasFault()) {
+        _route->setRouteState(Terra_RouteState_Fault);
+    } else if (!source->isAvailable() || source->getLevel() <= source->getReserveLevel()) {
+        _route->setRouteState(Terra_RouteState_Idle);
+    } else {
+        float startPercent = cistern ? cistern->getFillStartPercent() : _route->getDestinationStartPercent();
+        float stopPercent = cistern ? cistern->getFillStopPercent() : _route->getDestinationStopPercent();
+        bool routeWasActive = _route->getRouteState() == Terra_RouteState_Requested ||
+                              _route->getRouteState() == Terra_RouteState_Active;
+
+        if (destination->getLevel() >= stopPercent) {
+            _route->setRouteState(Terra_RouteState_Complete);
+        } else if (routeWasActive || pumpWasActive) {
+            _route->setRouteState(Terra_RouteState_Active);
+            run = true;
+        } else if (destination->getLevel() <= startPercent) {
+            _route->setRouteState(Terra_RouteState_Requested);
+            run = true;
+        } else {
+            _route->setRouteState(Terra_RouteState_Idle);
+        }
+    }
 
     if (_flowSensor.isSet()) {
         TerraMeasurement flow = _flowSensor.getMeasurement(now, true);
@@ -51,8 +78,8 @@ void TerraWaterBalancer::update(uint32_t now)
         }
     }
 
-    if (run) { _pump.setupActivation(); _pump.enableActivation(); }
-    else { _pump.disableActivation(); }
+    if (run) { _pump.setOutput(1.0f, 0, now); }
+    else { _pump.off(); }
 }
 
 void TerraWaterBalancer::unresolveAny(TerraObject *object)
@@ -79,29 +106,29 @@ void TerraThermalBalancer::setParent(TerraThermalLoop *loop)
 void TerraThermalBalancer::update(uint32_t now)
 {
     if (!_loop || !_loop->isEnabled() || _loop->hasFault()) {
-        _circulator.disableActivation();
+        _circulator.off();
         if (_loop) { _loop->setRunning(false); }
         return;
     }
 
     SharedPtr<TerraThermalStore> store = _store.getObject();
     if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
-        _circulator.disableActivation();
+        _circulator.off();
         _loop->setRunning(false);
         return;
     }
 
     TerraMeasurement source = _sourceTemperature.getMeasurement(now, true);
     if (!source.valid || source.unit != Terra_Unit_Celsius) {
-        _circulator.disableActivation();
+        _circulator.off();
         _loop->setRunning(false);
         return;
     }
 
     bool run = _loop->shouldCirculate(source.value, store->getTemperature());
     _loop->setRunning(run);
-    if (run) { _circulator.setupActivation(); _circulator.enableActivation(); }
-    else { _circulator.disableActivation(); }
+    if (run) { _circulator.setOutput(1.0f, 0, now); }
+    else { _circulator.off(); }
 }
 
 void TerraThermalBalancer::unresolveAny(TerraObject *object)

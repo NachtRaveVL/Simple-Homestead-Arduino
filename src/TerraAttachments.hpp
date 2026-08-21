@@ -1,6 +1,6 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Attachments
+    Terraduino Attachment Points
 */
 
 #ifndef TerraAttachments_HPP
@@ -45,13 +45,8 @@ void TerraAttachment<TObject>::setObject(TObject *object)
     }
 
     TerraObject *baseObject = reinterpret_cast<TerraObject *>(object);
-    detachObject();
-    _key = baseObject->getKey();
-    SharedPtr<TerraObject> registered = terraObjectByKey(_key);
-    if (registered) {
-        _object = terraReinterpretPointerCast<TObject>(registered);
-        attachObject();
-    }
+    SharedPtr<TerraObject> registered = terraObjectByKey(baseObject->getKey());
+    setObjectImpl(registered ? terraReinterpretPointerCast<TObject>(registered) : SharedPtr<TObject>());
 }
 
 template<class TObject>

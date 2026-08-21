@@ -23,29 +23,32 @@ public:
     void setDriver(const SharedPtr<TerraOutputDriver> &driver);
     SharedPtr<TerraOutputDriver> getDriver() const { return _driver; }
     void setEnabled(bool enabled) override;
-    inline TerraActivationHandle enableActuator(float intensity = 1.0f, uint32_t duration = (uint32_t)-1) { return TerraActivationHandle(this, intensity, duration); }
+    virtual void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis());
+    virtual void off();
     bool isActive() const { return _output > TERRA_EPSILON; }
     float getOutput() const { return _output; }
     Terra_ActuatorType getActuatorType() const { return _actuatorType; }
-    inline void setEnableMode(Terra_EnableMode mode) { _enableMode = mode; setNeedsUpdate(); }
+    inline void setEnableMode(Terra_EnableMode mode)
+    {
+        _enableMode = mode;
+        resolveActivations();
+    }
     Terra_EnableMode getEnableMode() const { return _enableMode; }
     void update(uint32_t now = terraMillis()) override;
 
     bool addActivationHandle(TerraActivationHandle *handle);
     bool removeActivationHandle(TerraActivationHandle *handle);
-    inline void setNeedsUpdate() { _needsUpdate = true; }
-    inline bool needsUpdate() const { return _needsUpdate; }
+    void resolveActivations();
 
 protected:
     Terra_ActuatorType _actuatorType;                       // Actuator type
     SharedPtr<TerraOutputDriver> _driver;                   // Output driver sub-object
     Terra_EnableMode _enableMode;                           // Request aggregation mode
-    bool _needsUpdate;                                      // Stale activation aggregation flag
-    TerraActivationHandle *_handles[TERRA_MAX_ATTACHMENTS]; // Resident activation handles
+    TerraActivationHandle *_handles[TERRA_MAX_ATTACHMENTS]; // Active attachment requests
+    TerraActivationHandle _directActivation;                // Direct user request
     float _output;                                          // Applied normalized output
 
     void applyOutput(float intensity);
-    void resolveActivations(uint32_t now);
 };
 
 // Pump Actuator
@@ -91,7 +94,6 @@ protected:
     float _lastLevelPercent;                                // Last valid level, percent
     bool _levelValid;                                       // Valid level state
     bool _highWaterAlarm;                                   // High-water alarm state
-    TerraActivationHandle _levelActivation;                 // Automatic sump-level activation request
 
     void initLevelSensorKey(uint32_t key) { _levelSensor.initObject(key); }
 
@@ -108,14 +110,16 @@ class TerraValve : public TerraActuator {
 public:
     TerraValve(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
         : TerraActuator(Terra_ActuatorType_Valve, key, name) { }
-    inline TerraActivationHandle open(uint32_t duration = (uint32_t)-1) { return enableActuator(1.0f, duration); }
+    void open(uint32_t durationMs = 0) { setOutput(1.0f, durationMs); }
+    void close() { off(); }
 };
 
 class TerraDiverter : public TerraActuator {
 public:
     TerraDiverter(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
         : TerraActuator(Terra_ActuatorType_Diverter, key, name) { }
-    inline TerraActivationHandle routeSecondary(uint32_t duration = (uint32_t)-1) { return enableActuator(1.0f, duration); }
+    void routePrimary() { off(); }
+    void routeSecondary() { setOutput(1.0f); }
 };
 
 class TerraHeater : public TerraActuator {

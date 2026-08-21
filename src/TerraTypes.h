@@ -249,5 +249,28 @@ enum Terra_RouteState : uint8_t {
     Terra_RouteState_Fault                      ///< Route faulted
 };
 
+// Common relationships between homestead objects.
+enum Terra_AttachmentRole : uint8_t {
+    Terra_AttachmentRole_Undefined = 0,         ///< Undefined relationship
+    Terra_AttachmentRole_PrimarySensor,         ///< Primary sensor
+    Terra_AttachmentRole_SecondarySensor,       ///< Secondary/redundant sensor
+    Terra_AttachmentRole_LevelSensor,           ///< Level sensor
+    Terra_AttachmentRole_FlowSensor,            ///< Flow sensor
+    Terra_AttachmentRole_TemperatureSensor,     ///< Temperature sensor
+    Terra_AttachmentRole_HumiditySensor,        ///< Humidity sensor
+    Terra_AttachmentRole_PressureSensor,        ///< Pressure sensor
+    Terra_AttachmentRole_RainfallSensor,        ///< Accumulated rainfall sensor
+    Terra_AttachmentRole_RainRateSensor,        ///< Rainfall rate sensor
+    Terra_AttachmentRole_WindSpeedSensor,       ///< Wind speed sensor
+    Terra_AttachmentRole_WindDirectionSensor,   ///< Wind direction sensor
+    Terra_AttachmentRole_SolarRadiationSensor,  ///< Solar irradiance sensor
+    Terra_AttachmentRole_LeakSensor,            ///< Leak/flood sensor
+    Terra_AttachmentRole_Storage,               ///< Storage object
+    Terra_AttachmentRole_Pump,                  ///< Pump actuator
+    Terra_AttachmentRole_Valve,                 ///< Valve actuator
+    Terra_AttachmentRole_Diverter,              ///< Diverter actuator
+    Terra_AttachmentRole_Heater,                ///< Heater actuator
+    Terra_AttachmentRole_Circulator             ///< Circulation pump
+};
 
 #endif // /ifndef TerraTypes_H

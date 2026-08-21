@@ -7,7 +7,6 @@
 #define TerraBalancers_H
 
 #include "TerraAttachments.h"
-#include "TerraCoreLogic.h"
 
 class TerraWaterRoute;
 class TerraWaterSource;
@@ -30,7 +29,6 @@ public:
     void update(uint32_t now = terraMillis());
     void unresolveAny(TerraObject *object);
 
-    const TerraTransferDecision &getLastDecision() const { return _lastDecision; }
     TerraAttachment<TerraWaterSource> &getSourceAttachment() { return _source; }
     const TerraAttachment<TerraWaterSource> &getSourceAttachment() const { return _source; }
     TerraAttachment<TerraWaterStorage> &getDestinationAttachment() { return _destination; }
@@ -46,7 +44,6 @@ protected:
     TerraAttachment<TerraWaterStorage> _destination;        // Destination storage attachment
     TerraActuatorAttachment _pump;                          // Transfer pump attachment
     TerraSensorAttachment _flowSensor;                      // Optional flow sensor attachment
-    TerraTransferDecision _lastDecision;                    // Last transfer decision
 
     void initSourceKey(uint32_t key) { _source.initObject(key); }
     void initDestinationKey(uint32_t key) { _destination.initObject(key); }

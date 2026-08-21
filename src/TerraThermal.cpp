@@ -4,7 +4,6 @@
 */
 
 #include "TerraThermal.h"
-#include "TerraCoreLogic.h"
 
 TerraThermalStore::TerraThermalStore(uint32_t key, const TerraString &name)
     : TerraResource(Terra_ResourceType_Thermal, key, name),
@@ -74,9 +73,10 @@ void TerraThermalLoop::setEnabled(bool enabled)
 
 bool TerraThermalLoop::shouldCirculate(float sourceTempC, float storeTempC) const
 {
-    return terraThermalLoopShouldRun(sourceTempC, storeTempC,
-                                     _onDifferentialC, _offDifferentialC,
-                                     _maxStoreTempC, _running);
+    if (storeTempC >= _maxStoreTempC) { return false; }
+
+    float differential = sourceTempC - storeTempC;
+    return _running ? differential > _offDifferentialC : differential >= _onDifferentialC;
 }
 
 void TerraThermalLoop::setRunning(bool running)

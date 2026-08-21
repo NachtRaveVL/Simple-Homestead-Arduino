@@ -4,7 +4,6 @@
 */
 
 #include "TerraWater.h"
-#include "TerraCoreLogic.h"
 
 TerraWaterStorage::TerraWaterStorage(float capacityLiters, uint32_t key, const TerraString &name,
                                      Terra_WaterStorageType storageType)
@@ -181,36 +180,11 @@ bool TerraWaterRoute::setDestinationBand(float startPercent, float stopPercent)
     return true;
 }
 
-TerraTransferDecision TerraWaterRoute::decide(const TerraWaterSource &source,
-                                               const TerraWaterStorage &destination)
-{
-    const TerraCistern *cistern = destination.getStorageType() == Terra_WaterStorageType_Cistern
-                                ? static_cast<const TerraCistern *>(&destination)
-                                : nullptr;
-
-    if (cistern && cistern->isOverflowDetected()) {
-        _routeState = Terra_RouteState_Fault;
-        return TerraTransferDecision(false, _routeState, "cistern overflow detected");
-    }
-    if (!destination.isEnabled() || destination.hasFault()) {
-        _routeState = Terra_RouteState_Fault;
-        return TerraTransferDecision(false, _routeState, "destination unavailable");
-    }
-
-    float startPercent = cistern ? cistern->getFillStartPercent() : _destinationStartPercent;
-    float stopPercent = cistern ? cistern->getFillStopPercent() : _destinationStopPercent;
-    TerraTransferDecision decision = terraEvaluateWaterTransfer(
-        source.isAvailable(), source.getLevel(), source.getReserveLevel(), destination.getLevel(),
-        startPercent, stopPercent, hasFault(),
-        _routeState == Terra_RouteState_Requested || _routeState == Terra_RouteState_Active);
-
-    _routeState = decision.state;
-    return decision;
-}
-
 bool TerraWaterRoute::validateFlow(float measuredFlowLpm, bool commandedOn)
 {
-    bool fault = terraFlowFault(commandedOn, measuredFlowLpm, _minimumFlowLpm, _maximumFlowLpm);
+    bool fault = !commandedOn ? measuredFlowLpm > _minimumFlowLpm
+                                : measuredFlowLpm < _minimumFlowLpm ||
+                                  (_maximumFlowLpm > 0.0f && measuredFlowLpm > _maximumFlowLpm);
     if (fault) {
         _routeState = Terra_RouteState_Fault;
         setFault(commandedOn ? TerraString("route flow outside limits")
