@@ -1,162 +1,278 @@
-/*  Terraduino: Simple automation controller for homestead resource and environmental systems.
-    Copyright (C) 2026 NachtRaveVL
-    Terraduino Measurements
+/*  Terraduino: Simple automation controller for solar tracking systems.
+    Copyright (C) 2023 NachtRaveVL          <nachtravevl@gmail.com>
+    Terraduino Sensor Measurements
 */
 
-#include "TerraMeasurements.h"
-#include <math.h>
+#include "Terraduino.h"
 
-static bool terraSameFamily(Terra_Unit from, Terra_Unit to,
-                            Terra_Unit a, Terra_Unit b,
-                            Terra_Unit c = Terra_Unit_Undefined)
+TerraMeasurement *newMeasurementObjectFromSubData(const TerraMeasurementData *dataIn)
 {
-    const bool fromMatches = from == a || from == b || (c != Terra_Unit_Undefined && from == c);
-    const bool toMatches = to == a || to == b || (c != Terra_Unit_Undefined && to == c);
-    return fromMatches && toMatches;
-}
+    if (!dataIn || !isValidType(dataIn->type)) return nullptr;
+    Terra_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(HStr_Err_InvalidParameter));
 
-Terra_UnitsCategory terraUnitsCategory(Terra_Unit unit)
-{
-    switch (unit) {
-        case Terra_Unit_Raw: return Terra_UnitsCategory_Raw;
-        case Terra_Unit_Percent: return Terra_UnitsCategory_Percentile;
-        case Terra_Unit_Celsius:
-        case Terra_Unit_Fahrenheit:
-        case Terra_Unit_Kelvin: return Terra_UnitsCategory_Temperature;
-        case Terra_Unit_Liters:
-        case Terra_Unit_GallonsUS: return Terra_UnitsCategory_LiquidVolume;
-        case Terra_Unit_LitersPerMinute:
-        case Terra_Unit_GallonsPerMinute: return Terra_UnitsCategory_LiquidFlowRate;
-        case Terra_Unit_Kilopascals:
-        case Terra_Unit_PSI:
-        case Terra_Unit_Hectopascals: return Terra_UnitsCategory_Pressure;
-        case Terra_Unit_Millimeters:
-        case Terra_Unit_Inches: return Terra_UnitsCategory_Distance;
-        case Terra_Unit_MillimetersPerHour:
-        case Terra_Unit_InchesPerHour: return Terra_UnitsCategory_RainRate;
-        case Terra_Unit_Watts: return Terra_UnitsCategory_Power;
-        case Terra_Unit_WattsPerSquareMeter: return Terra_UnitsCategory_Irradiance;
-        case Terra_Unit_KilowattHours: return Terra_UnitsCategory_Energy;
-        case Terra_Unit_MetersPerSecond:
-        case Terra_Unit_KilometersPerHour:
-        case Terra_Unit_MilesPerHour: return Terra_UnitsCategory_Speed;
-        case Terra_Unit_Degrees: return Terra_UnitsCategory_Angle;
-        case Terra_Unit_Volts: return Terra_UnitsCategory_Voltage;
-        case Terra_Unit_Amps: return Terra_UnitsCategory_Current;
-        case Terra_Unit_Undefined: break;
-    }
-    return Terra_UnitsCategory_Undefined;
-}
-
-Terra_Unit terraDefaultUnit(Terra_UnitsCategory category, Terra_MeasurementMode mode)
-{
-    switch (category) {
-        case Terra_UnitsCategory_Raw: return Terra_Unit_Raw;
-        case Terra_UnitsCategory_Percentile: return Terra_Unit_Percent;
-        case Terra_UnitsCategory_Temperature:
-            if (mode == Terra_MeasurementMode_Imperial) return Terra_Unit_Fahrenheit;
-            if (mode == Terra_MeasurementMode_Scientific) return Terra_Unit_Kelvin;
-            return Terra_Unit_Celsius;
-        case Terra_UnitsCategory_LiquidVolume:
-            return mode == Terra_MeasurementMode_Imperial ? Terra_Unit_GallonsUS : Terra_Unit_Liters;
-        case Terra_UnitsCategory_LiquidFlowRate:
-            return mode == Terra_MeasurementMode_Imperial ? Terra_Unit_GallonsPerMinute : Terra_Unit_LitersPerMinute;
-        case Terra_UnitsCategory_Pressure:
-            return mode == Terra_MeasurementMode_Imperial ? Terra_Unit_PSI : Terra_Unit_Kilopascals;
-        case Terra_UnitsCategory_Distance:
-            return mode == Terra_MeasurementMode_Imperial ? Terra_Unit_Inches : Terra_Unit_Millimeters;
-        case Terra_UnitsCategory_RainRate:
-            return mode == Terra_MeasurementMode_Imperial ? Terra_Unit_InchesPerHour : Terra_Unit_MillimetersPerHour;
-        case Terra_UnitsCategory_Power: return Terra_Unit_Watts;
-        case Terra_UnitsCategory_Irradiance: return Terra_Unit_WattsPerSquareMeter;
-        case Terra_UnitsCategory_Energy: return Terra_Unit_KilowattHours;
-        case Terra_UnitsCategory_Speed:
-            if (mode == Terra_MeasurementMode_Imperial) return Terra_Unit_MilesPerHour;
-            if (mode == Terra_MeasurementMode_Scientific) return Terra_Unit_MetersPerSecond;
-            return Terra_Unit_KilometersPerHour;
-        case Terra_UnitsCategory_Angle: return Terra_Unit_Degrees;
-        case Terra_UnitsCategory_Voltage: return Terra_Unit_Volts;
-        case Terra_UnitsCategory_Current: return Terra_Unit_Amps;
-        case Terra_UnitsCategory_Count:
-        case Terra_UnitsCategory_Undefined: break;
-    }
-    return Terra_Unit_Undefined;
-}
-
-bool terraCanConvertUnits(Terra_Unit from, Terra_Unit to)
-{
-    if (from == to) return true;
-    if (from == Terra_Unit_Undefined || to == Terra_Unit_Undefined) return false;
-    if (terraSameFamily(from, to, Terra_Unit_Celsius, Terra_Unit_Fahrenheit, Terra_Unit_Kelvin)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_Liters, Terra_Unit_GallonsUS)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_LitersPerMinute, Terra_Unit_GallonsPerMinute)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_Kilopascals, Terra_Unit_PSI, Terra_Unit_Hectopascals)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_Millimeters, Terra_Unit_Inches)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_MillimetersPerHour, Terra_Unit_InchesPerHour)) return true;
-    if (terraSameFamily(from, to, Terra_Unit_MetersPerSecond, Terra_Unit_KilometersPerHour, Terra_Unit_MilesPerHour)) return true;
-    return false;
-}
-
-float terraConvertUnits(float value, Terra_Unit from, Terra_Unit to)
-{
-    if (from == to) return value;
-    if (!terraCanConvertUnits(from, to)) return NAN;
-
-    if (from == Terra_Unit_Celsius) {
-        if (to == Terra_Unit_Fahrenheit) return value * 9.0f / 5.0f + 32.0f;
-        if (to == Terra_Unit_Kelvin) return value + 273.15f;
-    } else if (from == Terra_Unit_Fahrenheit) {
-        const float celsius = (value - 32.0f) * 5.0f / 9.0f;
-        if (to == Terra_Unit_Celsius) return celsius;
-        if (to == Terra_Unit_Kelvin) return celsius + 273.15f;
-    } else if (from == Terra_Unit_Kelvin) {
-        const float celsius = value - 273.15f;
-        if (to == Terra_Unit_Celsius) return celsius;
-        if (to == Terra_Unit_Fahrenheit) return celsius * 9.0f / 5.0f + 32.0f;
+    if (dataIn) {
+        switch (dataIn->type) {
+            case (hid_t)TerraMeasurement::Binary:
+                return new TerraBinaryMeasurement(dataIn);
+            case (hid_t)TerraMeasurement::Single:
+                return new TerraSingleMeasurement(dataIn);
+            case (hid_t)TerraMeasurement::Double:
+                return new TerraDoubleMeasurement(dataIn);
+            case (hid_t)TerraMeasurement::Triple:
+                return new TerraTripleMeasurement(dataIn);
+            default: break;
+        }
     }
 
-    if (from == Terra_Unit_Liters) return value / 3.785411784f;
-    if (from == Terra_Unit_GallonsUS) return value * 3.785411784f;
-    if (from == Terra_Unit_LitersPerMinute) return value / 3.785411784f;
-    if (from == Terra_Unit_GallonsPerMinute) return value * 3.785411784f;
-
-    if (from == Terra_Unit_Kilopascals) {
-        if (to == Terra_Unit_PSI) return value * 0.145037738f;
-        if (to == Terra_Unit_Hectopascals) return value * 10.0f;
-    } else if (from == Terra_Unit_PSI) {
-        const float kpa = value / 0.145037738f;
-        if (to == Terra_Unit_Kilopascals) return kpa;
-        if (to == Terra_Unit_Hectopascals) return kpa * 10.0f;
-    } else if (from == Terra_Unit_Hectopascals) {
-        const float kpa = value / 10.0f;
-        if (to == Terra_Unit_Kilopascals) return kpa;
-        if (to == Terra_Unit_PSI) return kpa * 0.145037738f;
-    }
-
-    if (from == Terra_Unit_Millimeters) return value / 25.4f;
-    if (from == Terra_Unit_Inches) return value * 25.4f;
-    if (from == Terra_Unit_MillimetersPerHour) return value / 25.4f;
-    if (from == Terra_Unit_InchesPerHour) return value * 25.4f;
-
-    if (from == Terra_Unit_MetersPerSecond) {
-        if (to == Terra_Unit_KilometersPerHour) return value * 3.6f;
-        if (to == Terra_Unit_MilesPerHour) return value * 2.236936292f;
-    } else if (from == Terra_Unit_KilometersPerHour) {
-        const float mps = value / 3.6f;
-        if (to == Terra_Unit_MetersPerSecond) return mps;
-        if (to == Terra_Unit_MilesPerHour) return mps * 2.236936292f;
-    } else if (from == Terra_Unit_MilesPerHour) {
-        const float mps = value / 2.236936292f;
-        if (to == Terra_Unit_MetersPerSecond) return mps;
-        if (to == Terra_Unit_KilometersPerHour) return mps * 3.6f;
-    }
-
-    return NAN;
+    return nullptr;
 }
 
-TerraMeasurement terraConvertMeasurement(const TerraMeasurement &measurement, Terra_Unit to)
+float getMeasurementValue(const TerraMeasurement *measurement, uint8_t measurementRow, float binScale)
 {
-    if (!measurement.valid) return TerraMeasurement(measurement.value, to, measurement.timestamp, false);
-    const float converted = terraConvertUnits(measurement.value, measurement.unit, to);
-    return TerraMeasurement(converted, to, measurement.timestamp, !isnan(converted));
+    if (measurement) {
+        switch (measurement->type) {
+            case TerraMeasurement::Binary:
+                return ((TerraBinaryMeasurement *)measurement)->state ? binScale : 0.0f;
+            case TerraMeasurement::Single:
+                return ((TerraSingleMeasurement *)measurement)->value;
+            case TerraMeasurement::Double:
+                return ((TerraDoubleMeasurement *)measurement)->value[measurementRow];
+            case TerraMeasurement::Triple:
+                return ((TerraTripleMeasurement *)measurement)->value[measurementRow];
+            default: break;
+        }
+    }
+    return 0.0f;
+}
+
+Terra_UnitsType getMeasurementUnits(const TerraMeasurement *measurement, uint8_t measurementRow, Terra_UnitsType binUnits)
+{
+    if (measurement) {
+        switch (measurement->type) {
+            case TerraMeasurement::Binary:
+                return binUnits;
+            case TerraMeasurement::Single:
+                return ((TerraSingleMeasurement *)measurement)->units;
+            case TerraMeasurement::Double:
+                return ((TerraDoubleMeasurement *)measurement)->units[measurementRow];
+            case TerraMeasurement::Triple:
+                return ((TerraTripleMeasurement *)measurement)->units[measurementRow];
+            default: break;
+        }
+    }
+    return Terra_UnitsType_Undefined;
+}
+
+uint8_t getMeasurementRowCount(const TerraMeasurement *measurement)
+{
+    return measurement ? max(1, (int)(measurement->type)) : 0;
+}
+
+TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measurement, uint8_t measurementRow, float binScale, Terra_UnitsType binUnits)
+{
+    if (measurement) {
+        switch (measurement->type) {
+            case TerraMeasurement::Binary:
+                return ((TerraBinaryMeasurement *)measurement)->getAsSingleMeasurement(binScale, binUnits);
+            case TerraMeasurement::Single:
+                return *((const TerraSingleMeasurement *)measurement);
+            case TerraMeasurement::Double:
+                return ((TerraDoubleMeasurement *)measurement)->getAsSingleMeasurement(measurementRow);
+            case TerraMeasurement::Triple:
+                return ((TerraTripleMeasurement *)measurement)->getAsSingleMeasurement(measurementRow);
+            default: break;
+        }
+    }
+    TerraSingleMeasurement retVal;
+    retVal.frame = hframe_none; // meant to fail frame checks
+    return retVal;
+}
+
+
+TerraMeasurement::TerraMeasurement(int classType, time_t timestampIn)
+    : type((typeof(type))classType), timestamp(timestampIn)
+{
+    updateFrame();
+}
+
+TerraMeasurement::TerraMeasurement(const TerraMeasurementData *dataIn)
+    : type((typeof(type))(dataIn->type)), timestamp(dataIn->timestamp)
+{
+    updateFrame(1);
+}
+
+void TerraMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow, unsigned int additionalDecPlaces) const
+{
+    dataOut->type = (int8_t)type;
+    dataOut->measurementRow = measurementRow;
+    dataOut->timestamp = timestamp;
+}
+
+void TerraMeasurement::updateFrame(hframe_t minFrame)
+{
+    frame = max(minFrame, getController() ? getController()->getPollingFrame() : 0);
+}
+
+
+TerraBinaryMeasurement::TerraBinaryMeasurement()
+    : TerraMeasurement(), state(false)
+{ ; }
+
+TerraBinaryMeasurement::TerraBinaryMeasurement(bool stateIn, time_t timestamp)
+    : TerraMeasurement((int)Binary, timestamp), state(stateIn)
+{ ; }
+
+TerraBinaryMeasurement::TerraBinaryMeasurement(bool stateIn, time_t timestamp, hframe_t frame)
+    : TerraMeasurement((int)Binary, timestamp, frame), state(stateIn)
+{ ; }
+
+TerraBinaryMeasurement::TerraBinaryMeasurement(const TerraMeasurementData *dataIn)
+    : TerraMeasurement(dataIn),
+      state(dataIn->measurementRow == 0 && dataIn->value >= 0.5f - FLT_EPSILON)
+{ ; }
+
+void TerraBinaryMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow, unsigned int additionalDecPlaces) const
+{
+    TerraMeasurement::saveToData(dataOut, measurementRow, additionalDecPlaces);
+
+    dataOut->value = measurementRow == 0 && state ? 1.0f : 0.0f;
+    dataOut->units = measurementRow == 0 ? Terra_UnitsType_Raw_1 : Terra_UnitsType_Undefined;
+}
+
+
+TerraSingleMeasurement::TerraSingleMeasurement()
+    : TerraMeasurement((int)Single), value(0.0f), units(Terra_UnitsType_Undefined)
+{ ; }
+
+TerraSingleMeasurement::TerraSingleMeasurement(float valueIn, Terra_UnitsType unitsIn, time_t timestamp)
+    : TerraMeasurement((int)Single, timestamp), value(valueIn), units(unitsIn)
+{ ; }
+
+TerraSingleMeasurement::TerraSingleMeasurement(float valueIn, Terra_UnitsType unitsIn, time_t timestamp, hframe_t frame)
+    : TerraMeasurement((int)Single, timestamp, frame), value(valueIn), units(unitsIn)
+{ ; }
+
+TerraSingleMeasurement::TerraSingleMeasurement(const TerraMeasurementData *dataIn)
+    : TerraMeasurement(dataIn),
+      value(dataIn->measurementRow == 0 ? dataIn->value : 0.0f),
+      units(dataIn->measurementRow == 0 ? dataIn->units : Terra_UnitsType_Undefined)
+{ ; }
+
+void TerraSingleMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow, unsigned int additionalDecPlaces) const
+{
+    TerraMeasurement::saveToData(dataOut, measurementRow, additionalDecPlaces);
+
+    dataOut->value = measurementRow == 0 ? roundForExport(value, additionalDecPlaces) : 0.0f;
+    dataOut->units = measurementRow == 0 ? units : Terra_UnitsType_Undefined;
+}
+
+
+TerraDoubleMeasurement::TerraDoubleMeasurement()
+    : TerraMeasurement((int)Double), value{0}, units{Terra_UnitsType_Undefined,Terra_UnitsType_Undefined}
+{ ; }
+
+TerraDoubleMeasurement::TerraDoubleMeasurement(float value1, Terra_UnitsType units1,
+                                               float value2, Terra_UnitsType units2,
+                                               time_t timestamp)
+    : TerraMeasurement((int)Double, timestamp), value{value1,value2}, units{units1,units2}
+{ ; }
+
+TerraDoubleMeasurement::TerraDoubleMeasurement(float value1, Terra_UnitsType units1,
+                                               float value2, Terra_UnitsType units2,
+                                               time_t timestamp, hframe_t frame)
+    : TerraMeasurement((int)Double, timestamp, frame), value{value1,value2}, units{units1,units2}
+{ ; }
+
+TerraDoubleMeasurement::TerraDoubleMeasurement(const TerraMeasurementData *dataIn)
+    : TerraMeasurement(dataIn),
+      value{dataIn->measurementRow == 0 ? dataIn->value : 0.0f,
+            dataIn->measurementRow == 1 ? dataIn->value : 0.0f
+      },
+      units{dataIn->measurementRow == 0 ? dataIn->units : Terra_UnitsType_Undefined,
+            dataIn->measurementRow == 1 ? dataIn->units : Terra_UnitsType_Undefined
+      }
+{ ; }
+
+void TerraDoubleMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow, unsigned int additionalDecPlaces) const
+{
+    TerraMeasurement::saveToData(dataOut, measurementRow, additionalDecPlaces);
+
+    dataOut->value = measurementRow >= 0 && measurementRow < 2 ? roundForExport(value[measurementRow], additionalDecPlaces) : 0.0f;
+    dataOut->units = measurementRow >= 0 && measurementRow < 2 ? units[measurementRow] : Terra_UnitsType_Undefined;
+}
+
+
+TerraTripleMeasurement::TerraTripleMeasurement()
+    : TerraMeasurement((int)Triple), value{0}, units{Terra_UnitsType_Undefined,Terra_UnitsType_Undefined,Terra_UnitsType_Undefined}
+{ ; }
+
+TerraTripleMeasurement::TerraTripleMeasurement(float value1, Terra_UnitsType units1,
+                                               float value2, Terra_UnitsType units2,
+                                               float value3, Terra_UnitsType units3,
+                                               time_t timestamp)
+    : TerraMeasurement((int)Triple, timestamp), value{value1,value2,value3}, units{units1,units2,units3}
+{ ; }
+
+TerraTripleMeasurement::TerraTripleMeasurement(float value1, Terra_UnitsType units1,
+                                               float value2, Terra_UnitsType units2,
+                                               float value3, Terra_UnitsType units3,
+                                               time_t timestamp, hframe_t frame)
+    : TerraMeasurement((int)Triple, timestamp, frame), value{value1,value2,value3}, units{units1,units2,units3}
+{ ; }
+
+TerraTripleMeasurement::TerraTripleMeasurement(const TerraMeasurementData *dataIn)
+    : TerraMeasurement(dataIn),
+      value{dataIn->measurementRow == 0 ? dataIn->value : 0.0f,
+            dataIn->measurementRow == 1 ? dataIn->value : 0.0f,
+            dataIn->measurementRow == 2 ? dataIn->value : 0.0f,
+      },
+      units{dataIn->measurementRow == 0 ? dataIn->units : Terra_UnitsType_Undefined,
+            dataIn->measurementRow == 1 ? dataIn->units : Terra_UnitsType_Undefined,
+            dataIn->measurementRow == 2 ? dataIn->units : Terra_UnitsType_Undefined,
+      }
+{ ; }
+
+void TerraTripleMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow, unsigned int additionalDecPlaces) const
+{
+    TerraMeasurement::saveToData(dataOut, measurementRow, additionalDecPlaces);
+
+    dataOut->value = measurementRow >= 0 && measurementRow < 3 ? roundForExport(value[measurementRow], additionalDecPlaces) : 0.0f;
+    dataOut->units = measurementRow >= 0 && measurementRow < 3 ? units[measurementRow] : Terra_UnitsType_Undefined;
+}
+
+
+TerraMeasurementData::TerraMeasurementData()
+    : TerraSubData(0), measurementRow(0), value(0.0f), units(Terra_UnitsType_Undefined), timestamp(0)
+{ ; }
+
+void TerraMeasurementData::toJSONObject(JsonObject &objectOut) const
+{
+    //TerraSubData::toJSONObject(objectOut); // purposeful no call to base method (ignores type)
+
+    objectOut[SFP(HStr_Key_MeasurementRow)] = measurementRow;
+    objectOut[SFP(HStr_Key_Value)] = value;
+    objectOut[SFP(HStr_Key_Units)] = unitsTypeToSymbol(units);
+    objectOut[SFP(HStr_Key_Timestamp)] = timestamp;
+}
+
+void TerraMeasurementData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    //TerraSubData::fromJSONObject(objectIn); // purposeful no call to base method (ignores type)
+
+    measurementRow = objectIn[SFP(HStr_Key_MeasurementRow)] | measurementRow;
+    value = objectIn[SFP(HStr_Key_Value)] | value;
+    units = unitsTypeFromSymbol(objectIn[SFP(HStr_Key_Units)]);
+    timestamp = objectIn[SFP(HStr_Key_Timestamp)] | timestamp;
+}
+
+void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
+{
+    if (variantIn.is<JsonObjectConst>()) {
+        JsonObjectConst variantObj = variantIn;
+        fromJSONObject(variantObj);
+    } else if (variantIn.is<float>() || variantIn.is<int>()) {
+        value = variantIn.as<float>();
+    } else {
+        Terra_SOFT_ASSERT(false, SFP(HStr_Err_UnsupportedOperation));
+    }
 }
