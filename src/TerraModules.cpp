@@ -5,29 +5,23 @@
 
 #include "Terraduino.h"
 #include "TerraObject.h"
-#include "TerraUtils.h"
+#include "TerraDatas.h"
 
-TerraModuleRegistry::TerraModuleRegistry() : _count(0) { }
 
-int8_t TerraModuleRegistry::add(Terra_ModuleType type, const TerraString &name, const TerraDeviceSetup &setup) {
-    if (type == Terra_ModuleType_Undefined || _count >= TERRA_MAX_MODULES) return -1;
-    TerraModule &module = _modules[_count];
-    module.type = type; module.name = name; module.setup = setup; module.enabled = true; module.online = false;
-    return (int8_t)_count++;
+TerraCalibrations::~TerraCalibrations()
+{
+    clearUserCalibrations();
 }
 
-bool TerraModuleRegistry::remove(uint8_t index) {
-    if (index >= _count) return false;
-    for (uint8_t i = index + 1; i < _count; ++i) _modules[i - 1] = _modules[i];
-    --_count;
-    return true;
+void TerraCalibrations::clearUserCalibrations()
+{
+    for (auto iter = _calibrationData.begin(); iter != _calibrationData.end(); ++iter) {
+        if (iter->second) { delete iter->second; }
+    }
+    _calibrationData.clear();
 }
 
-TerraModule *TerraModuleRegistry::at(uint8_t index) { return index < _count ? &_modules[index] : nullptr; }
-const TerraModule *TerraModuleRegistry::at(uint8_t index) const { return index < _count ? &_modules[index] : nullptr; }
-TerraModule *TerraModuleRegistry::find(Terra_ModuleType type) { for (uint8_t i = 0; i < _count; ++i) if (_modules[i].type == type) return &_modules[i]; return nullptr; }
-
-const TerraCalibrationData *TerraCalibrations::getUserCalibrationData(uint32_t key) const
+const TerraCalibrationData *TerraCalibrations::getUserCalibrationData(tkey_t key) const
 {
     auto iter = _calibrationData.find(key);
     if (iter != _calibrationData.end()) {
@@ -40,8 +34,9 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
 {
     TERRA_SOFT_ASSERT(calibrationData, TerraString("Invalid calibration data"));
 
-    if (calibrationData && calibrationData->ownerKey != TERRA_INVALID_KEY) {
-        auto iter = _calibrationData.find(calibrationData->ownerKey);
+    if (calibrationData && calibrationData->ownerName[0]) {
+        tkey_t key = terraHashString(calibrationData->ownerName);
+        auto iter = _calibrationData.find(key);
         bool retVal = false;
 
         if (iter == _calibrationData.end()) {
@@ -50,8 +45,8 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
             TERRA_SOFT_ASSERT(calibData, TerraString("Calibration allocation failure"));
             if (calibData) {
                 *calibData = *calibrationData;
-                _calibrationData[calibrationData->ownerKey] = calibData;
-                retVal = (_calibrationData.find(calibrationData->ownerKey) != _calibrationData.end());
+                _calibrationData[key] = calibData;
+                retVal = (_calibrationData.find(key) != _calibrationData.end());
             }
         } else {
             *(iter->second) = *calibrationData;
@@ -66,9 +61,10 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
 bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *calibrationData)
 {
     TERRA_HARD_ASSERT(calibrationData, TerraString("Invalid calibration data"));
-    if (!calibrationData) return false;
+    if (!calibrationData) { return false; }
 
-    auto iter = _calibrationData.find(calibrationData->ownerKey);
+    tkey_t key = terraHashString(calibrationData->ownerName);
+    auto iter = _calibrationData.find(key);
     if (iter != _calibrationData.end()) {
         if (iter->second) { delete iter->second; }
         _calibrationData.erase(iter);
@@ -78,16 +74,21 @@ bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *cali
     return false;
 }
 
-TerraObjectRegistration::TerraObjectRegistration()
-    : _objects(), _nextKey(1)
-{ ; }
+
+void TerraObjectRegistration::clearObjects()
+{
+    while (_objects.size()) {
+        auto iter = _objects.begin();
+        if (iter->second) { iter->second->unresolve(); }
+        _objects.erase(iter);
+    }
+}
 
 bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 {
-    if (!object || _objects.size() >= TERRA_MAX_OBJECTS) { return false; }
-    if (object->getKey() == TERRA_INVALID_KEY) { object->setKey(allocateKey(object->getName())); }
-    if (_objects.find(object->getKey()) != _objects.end()) { return false; }
+    if (!object || object->getKey() == tkey_none || _objects.find(object->getKey()) != _objects.end()) { return false; }
     _objects[object->getKey()] = object;
+    if (getScheduler()) { getScheduler()->setNeedsScheduling(); }
     return true;
 }
 
@@ -96,23 +97,85 @@ bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
     if (!object) { return false; }
     auto iter = _objects.find(object->getKey());
     if (iter == _objects.end() || iter->second.get() != object.get()) { return false; }
+
     object->unresolve();
     _objects.erase(iter);
+    if (getScheduler()) { getScheduler()->setNeedsScheduling(); }
     return true;
 }
 
-SharedPtr<TerraObject> TerraObjectRegistration::sharedObjectByKey(uint32_t key) const
+SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) const
 {
-    auto iter = _objects.find(key);
-    return iter != _objects.end() ? iter->second : SharedPtr<TerraObject>();
+    if (id.posIndex == TERRA_POS_SEARCH_FROMBEG) {
+        while (++id.posIndex < TERRA_POS_MAXSIZE) {
+            auto iter = _objects.find(id.regenKey());
+            if (iter != _objects.end()) {
+                if (id.keyString == iter->second->getKeyString()) {
+                    return iter->second;
+                } else {
+                    return objectById_Col(id);
+                }
+            }
+        }
+    } else if (id.posIndex == TERRA_POS_SEARCH_FROMEND) {
+        while (--id.posIndex >= 0) {
+            auto iter = _objects.find(id.regenKey());
+            if (iter != _objects.end()) {
+                if (id.keyString == iter->second->getKeyString()) {
+                    return iter->second;
+                } else {
+                    return objectById_Col(id);
+                }
+            }
+        }
+    } else {
+        auto iter = _objects.find(id.key);
+        if (iter != _objects.end()) {
+            if (id.type == Terra_ObjectType_Undefined || !id.keyString.length() || id.keyString == iter->second->getKeyString()) {
+                return iter->second;
+            } else {
+                return objectById_Col(id);
+            }
+        }
+    }
+
+    return nullptr;
 }
 
-TerraObject *TerraObjectRegistration::findObjectByName(const TerraString &name) const
+SharedPtr<TerraObject> TerraObjectRegistration::objectById_Col(const TerraIdentity &id) const
 {
+    TERRA_SOFT_ASSERT(false, TerraString("Hashing collision"));
+
     for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->getName() == name) { return iter->second.get(); }
+        if (id.keyString == iter->second->getKeyString()) {
+            return iter->second;
+        }
     }
+
     return nullptr;
+}
+
+tposi_t TerraObjectRegistration::firstPosition(TerraIdentity id, bool taken) const
+{
+    if (id.posIndex != TERRA_POS_SEARCH_FROMEND) {
+        id.posIndex = TERRA_POS_SEARCH_FROMBEG;
+        while (++id.posIndex < TERRA_POS_MAXSIZE) {
+            auto iter = _objects.find(id.regenKey());
+            if (taken == (iter != _objects.end())) {
+                return id.posIndex;
+            }
+        }
+    } else {
+        id.posIndex = TERRA_POS_SEARCH_FROMEND;
+        while (--id.posIndex >= 0) {
+            auto iter = _objects.find(id.regenKey());
+            if (taken == (iter != _objects.end())) {
+                return id.posIndex;
+            }
+        }
+    }
+
+    return tposi_none;
 }
 
 TerraObject *TerraObjectRegistration::findFirstByType(Terra_ObjectType type) const
@@ -139,19 +202,6 @@ TerraObject *TerraObjectRegistration::objectAt(uint8_t index) const
     auto iter = _objects.begin();
     while (index--) { ++iter; }
     return iter->second.get();
-}
-
-uint32_t TerraObjectRegistration::allocateKey(const TerraString &name)
-{
-    uint32_t candidate = 0;
-#if defined(ARDUINO)
-    if (name.length()) { candidate = terraHashString(name.c_str()); }
-#else
-    if (!name.empty()) { candidate = terraHashString(name.c_str()); }
-#endif
-    if (candidate && _objects.find(candidate) == _objects.end()) { return candidate; }
-    while (!_nextKey || _objects.find(_nextKey) != _objects.end()) { ++_nextKey; }
-    return _nextKey++;
 }
 
 void TerraObjectRegistration::updateObjects(uint32_t now)

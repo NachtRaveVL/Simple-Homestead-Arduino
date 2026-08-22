@@ -6,16 +6,21 @@
 #ifndef TerraThermal_H
 #define TerraThermal_H
 
+struct TerraThermalStoreData;
+struct TerraThermalLoopData;
+
 #include "TerraResource.h"
 #include "TerraAttachments.h"
 #include "TerraBalancers.h"
+#include "TerraDatas.h"
 
 // Thermal Store
 // Tracks stored heat temperature and normal/safety target ranges.
 class TerraThermalStore : public TerraResource {
 public:
-    TerraThermalStore(uint32_t key = TERRA_INVALID_KEY,
+    TerraThermalStore(tposi_t storeIndex = TERRA_POS_SEARCH_FROMBEG,
                       const TerraString &name = TerraString());
+    TerraThermalStore(const TerraThermalStoreData *dataIn);
 
     inline void setTemperature(float celsius) { _temperatureC = celsius; }
     inline float getTemperature() const { return _temperatureC; }
@@ -45,17 +50,17 @@ protected:
     float _absoluteMaximumC;                                // Absolute temperature safety limit
     TerraSensorAttachment _temperatureSensor;               // Temperature sensor attachment point
 
-    inline void initTemperatureSensorKey(uint32_t key) { _temperatureSensor.initObject(key); }
-
-    friend class TerraFactory;
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Thermal Loop
 // Differential circulation state for moving heat between a source and storage.
 class TerraThermalLoop : public TerraObject {
 public:
-    TerraThermalLoop(uint32_t key = TERRA_INVALID_KEY,
+    TerraThermalLoop(tposi_t loopIndex = TERRA_POS_SEARCH_FROMBEG,
                      const TerraString &name = TerraString());
+    TerraThermalLoop(const TerraThermalLoopData *dataIn);
 
     bool configure(float onDifferentialC, float offDifferentialC, float maxStoreTempC);
 
@@ -69,9 +74,9 @@ public:
     inline float getOnDifferential() const { return _onDifferentialC; }
     inline float getOffDifferential() const { return _offDifferentialC; }
     inline float getMaxStoreTemperature() const { return _maxStoreTempC; }
-    inline uint32_t getSourceTemperatureSensorKey() const { return _balancer.getSourceTemperatureAttachment().getKey(); }
-    inline uint32_t getThermalStoreKey() const { return _balancer.getStoreAttachment().getKey(); }
-    inline uint32_t getCirculatorKey() const { return _balancer.getCirculatorAttachment().getKey(); }
+    inline tkey_t getSourceTemperatureSensorKey() const { return _balancer.getSourceTemperatureAttachment().getKey(); }
+    inline tkey_t getThermalStoreKey() const { return _balancer.getStoreAttachment().getKey(); }
+    inline tkey_t getCirculatorKey() const { return _balancer.getCirculatorAttachment().getKey(); }
 
     inline TerraThermalBalancer &getBalancer() { return _balancer; }
     inline const TerraThermalBalancer &getBalancer() const { return _balancer; }
@@ -89,12 +94,10 @@ protected:
     bool shouldCirculate(float sourceTempC, float storeTempC) const;
     void setRunning(bool running);
 
-    inline void initSourceTemperatureKey(uint32_t key) { _balancer.initSourceTemperatureKey(key); }
-    inline void initStoreKey(uint32_t key) { _balancer.initStoreKey(key); }
-    inline void initCirculatorKey(uint32_t key) { _balancer.initCirculatorKey(key); }
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 
     friend class TerraThermalBalancer;
-    friend class TerraFactory;
 };
 
 #endif // /ifndef TerraThermal_H

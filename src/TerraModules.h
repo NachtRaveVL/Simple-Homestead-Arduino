@@ -6,42 +6,21 @@
 #ifndef TerraModules_H
 #define TerraModules_H
 
-#include "TerraDefines.h"
-#include "TerraTypes.h"
-#include "TerraSetup.h"
-
+class TerraCalibrations;
+class TerraObjectRegistration;
 class TerraObject;
 struct TerraCalibrationData;
 
-struct TerraModule {
-    Terra_ModuleType type;                                  // Object/subsystem type
-    TerraString name;                                       // Display name
-    TerraDeviceSetup setup;                                 // Saved setup data
-    bool enabled;                                           // Enabled state
-    bool online;                                            // Module online state
-
-    TerraModule() : type(Terra_ModuleType_Undefined), name(), setup(), enabled(false), online(false) { }
-};
-
-class TerraModuleRegistry {
-public:
-    TerraModuleRegistry();
-    int8_t add(Terra_ModuleType type, const TerraString &name, const TerraDeviceSetup &setup = TerraDeviceSetup());
-    bool remove(uint8_t index);
-    TerraModule *at(uint8_t index);
-    const TerraModule *at(uint8_t index) const;
-    TerraModule *find(Terra_ModuleType type);
-    uint8_t count() const { return _count; }
-
-protected:
-    TerraModule _modules[TERRA_MAX_MODULES];                // Modules
-    uint8_t _count;                                         // Active entry count
-};
+#include "TerraDefines.h"
+#include "TerraObject.h"
 
 // Calibrations Storage
 // Stores user calibration data, which calibrates sensor output into usable values.
 class TerraCalibrations {
 public:
+    virtual ~TerraCalibrations();
+    void clearUserCalibrations();
+
     // Adds/updates user calibration data to the store, returning success flag.
     bool setUserCalibrationData(const TerraCalibrationData *calibrationData);
 
@@ -49,44 +28,48 @@ public:
     bool dropUserCalibrationData(const TerraCalibrationData *calibrationData);
 
     // Returns user calibration data instance in store.
-    const TerraCalibrationData *getUserCalibrationData(uint32_t key) const;
+    const TerraCalibrationData *getUserCalibrationData(tkey_t key) const;
 
     // Returns if there are user calibrations in the store.
     inline bool hasUserCalibrations() const { return _calibrationData.size(); };
 
 protected:
-    Map<uint32_t, TerraCalibrationData *, TERRA_MAX_OBJECTS> _calibrationData; // Loaded user calibration data
+    Map<tkey_t, TerraCalibrationData *, TERRA_MAX_OBJECTS> _calibrationData; // Loaded user calibration data
 };
 
 // Object Registration Storage
 // Stores objects in the main system store, which is used for SharedPtr<> lookups and
 // stable attachment resolution in the same manner as the sibling controller libraries.
-class TerraObjectRegistration : public TerraCalibrations {
+class TerraObjectRegistration {
 public:
-    TerraObjectRegistration();
+    void clearObjects();
 
     // Adds object to system, returning success.
     bool registerObject(SharedPtr<TerraObject> object);
     // Removes object from system, returning success.
     bool unregisterObject(SharedPtr<TerraObject> object);
 
-    // Searches for an object by stable key.
-    SharedPtr<TerraObject> sharedObjectByKey(uint32_t key) const;
-    inline TerraObject *findObjectByKey(uint32_t key) const { return sharedObjectByKey(key).get(); }
-    TerraObject *findObjectByName(const TerraString &name) const;
+    // Searches for object by identity key.
+    SharedPtr<TerraObject> objectById(TerraIdentity id) const;
+
+    // Finds first position either open or taken, given the identity type.
+    tposi_t firstPosition(TerraIdentity id, bool taken) const;
+    inline tposi_t firstPositionTaken(TerraIdentity id) const { return firstPosition(id, true); }
+    inline tposi_t firstPositionOpen(TerraIdentity id) const { return firstPosition(id, false); }
+
+    // Updates registered system objects.
+    void updateObjects(uint32_t now = millis());
+
+    // Enumeration helpers retained for domain queries, not identity.
     TerraObject *findFirstByType(Terra_ObjectType type) const;
     uint8_t findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const;
     TerraObject *objectAt(uint8_t index) const;
     inline uint8_t objectCount() const { return (uint8_t)_objects.size(); }
 
-    // Allocates a stable object key, preferring a unique name hash when supplied.
-    uint32_t allocateKey(const TerraString &name = TerraString());
-    // Updates registered system objects.
-    void updateObjects(uint32_t now = millis());
-
 protected:
-    Map<uint32_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by stable object key
-    uint32_t _nextKey;                                      // Next automatically assigned object key
+    Map<tkey_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by TerraIdentity
+
+    SharedPtr<TerraObject> objectById_Col(const TerraIdentity &id) const;
 };
 
 #endif

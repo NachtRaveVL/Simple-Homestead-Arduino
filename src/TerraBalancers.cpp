@@ -4,15 +4,13 @@
 */
 
 #include "Terraduino.h"
-#include "TerraCoreLogic.h"
 #include "TerraActuators.h"
 #include "TerraSensors.h"
 #include "TerraThermal.h"
 #include "TerraWater.h"
 
 TerraWaterBalancer::TerraWaterBalancer(TerraWaterRoute *route)
-    : _route(route), _source(route), _destination(route),
-      _pump(route), _flowSensor(route)
+    : _route(route), _source(route), _destination(route), _pump(route), _flowSensor(route)
 { ; }
 
 void TerraWaterBalancer::setParent(TerraWaterRoute *route)
@@ -31,8 +29,8 @@ void TerraWaterBalancer::update(uint32_t now)
         return;
     }
 
-    SharedPtr<TerraWaterSource> source = _source.getObject();
-    SharedPtr<TerraWaterStorage> destination = _destination.getObject();
+    SharedPtr<TerraWaterSource> source = _source.getObject<TerraWaterSource>();
+    SharedPtr<TerraWaterStorage> destination = _destination.getObject<TerraWaterStorage>();
     if (!source || !destination || !_pump.isSet()) {
         _pump.off();
         return;
@@ -70,8 +68,11 @@ void TerraWaterBalancer::update(uint32_t now)
     }
 
     if (_flowSensor.isSet()) {
-        TerraMeasurement flow = _flowSensor.getMeasurement(now, true);
-        if (!flow.valid || flow.unit != Terra_Unit_LitersPerMinute) {
+        TerraSingleMeasurement flow = _flowSensor.getMeasurement(now, true);
+        if (flow.isSet() && flow.units != Terra_Unit_LitersPerMinute && canConvertUnits(flow.units, Terra_Unit_LitersPerMinute)) {
+            flow.toUnits(Terra_Unit_LitersPerMinute);
+        }
+        if (!flow.isSet() || flow.units != Terra_Unit_LitersPerMinute) {
             run = false;
         } else if ((run && pumpWasActive && !_route->validateFlow(flow.value, true)) ||
                    (!run && !_route->validateFlow(flow.value, false))) {
@@ -79,7 +80,7 @@ void TerraWaterBalancer::update(uint32_t now)
         }
     }
 
-    if (run) { _pump.setOutput(1.0f, 0, now); }
+    if (run) { _pump.setOutput(1.0f, (millis_t)-1, now); }
     else { _pump.off(); }
 }
 
@@ -130,14 +131,19 @@ const TerraCistern *TerraWaterBalancer::selectSupplyCistern(const TerraCistern *
 float TerraWaterBalancer::transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const
 {
     if (!source.canSupplyWater() || !destination.canAcceptWater()) return 0.0f;
+    if (requestedLiters <= 0.0f) { return 0.0f; }
     const float sourceReserve = source.getCapacityLiters() * (source.getReserveLevel() / 100.0f);
+    const float sourceAvailable = source.getStoredLiters() > sourceReserve
+                                ? source.getStoredLiters() - sourceReserve : 0.0f;
     const float destinationTarget = destination.getCapacityLiters() * (destination.getFillStopPercent() / 100.0f);
-    return terraCisternTransferLiters(source.getStoredLiters(), sourceReserve, destination.getStoredLiters(), destinationTarget, requestedLiters);
+    const float destinationRoom = destinationTarget > destination.getStoredLiters()
+                                ? destinationTarget - destination.getStoredLiters() : 0.0f;
+    const float sourceLimited = sourceAvailable < requestedLiters ? sourceAvailable : requestedLiters;
+    return destinationRoom < sourceLimited ? destinationRoom : sourceLimited;
 }
 
 TerraThermalBalancer::TerraThermalBalancer(TerraThermalLoop *loop)
-    : _loop(loop), _sourceTemperature(loop),
-      _store(loop), _circulator(loop)
+    : _loop(loop), _sourceTemperature(loop), _store(loop), _circulator(loop)
 { ; }
 
 void TerraThermalBalancer::setParent(TerraThermalLoop *loop)
@@ -156,15 +162,18 @@ void TerraThermalBalancer::update(uint32_t now)
         return;
     }
 
-    SharedPtr<TerraThermalStore> store = _store.getObject();
+    SharedPtr<TerraThermalStore> store = _store.getObject<TerraThermalStore>();
     if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
         _circulator.off();
         _loop->setRunning(false);
         return;
     }
 
-    TerraMeasurement source = _sourceTemperature.getMeasurement(now, true);
-    if (!source.valid || source.unit != Terra_Unit_Celsius) {
+    TerraSingleMeasurement source = _sourceTemperature.getMeasurement(now, true);
+    if (source.isSet() && source.units != Terra_Unit_Celsius && canConvertUnits(source.units, Terra_Unit_Celsius)) {
+        source.toUnits(Terra_Unit_Celsius);
+    }
+    if (!source.isSet() || source.units != Terra_Unit_Celsius) {
         _circulator.off();
         _loop->setRunning(false);
         return;
@@ -172,7 +181,7 @@ void TerraThermalBalancer::update(uint32_t now)
 
     bool run = _loop->shouldCirculate(source.value, store->getTemperature());
     _loop->setRunning(run);
-    if (run) { _circulator.setOutput(1.0f, 0, now); }
+    if (run) { _circulator.setOutput(1.0f, (millis_t)-1, now); }
     else { _circulator.off(); }
 }
 

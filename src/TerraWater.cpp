@@ -4,14 +4,18 @@
 */
 
 #include "Terraduino.h"
+#include <string.h>
 
-TerraWaterStorage::TerraWaterStorage(float capacityLiters, uint32_t key, const TerraString &name,
+TerraWaterStorage::TerraWaterStorage(float capacityLiters, tposi_t storageIndex, const TerraString &name,
                                      Terra_WaterStorageType storageType)
-    : TerraResource(Terra_ResourceType_Water, key, name),
-      _capacityLiters(capacityLiters < 0.0f ? 0.0f : capacityLiters),
-      _storageType(storageType), _levelSensor(this)
+    : TerraResource(TerraIdentity(storageType, storageIndex), name),
+      _capacityLiters(capacityLiters < 0.0f ? 0.0f : capacityLiters), _levelSensor(this)
+{ ; }
+
+TerraWaterStorage::TerraWaterStorage(const TerraWaterStorageData *dataIn)
+    : TerraResource(dataIn), _capacityLiters(dataIn ? dataIn->capacityLiters : 0.0f), _levelSensor(this)
 {
-    _objectType = Terra_ObjectType_WaterStorage;
+    if (dataIn && dataIn->levelSensor[0]) { _levelSensor.initObject(dataIn->levelSensor); }
 }
 
 void TerraWaterStorage::setStoredLiters(float liters)
@@ -39,10 +43,11 @@ float TerraWaterStorage::freeCapacityLiters() const
 
 void TerraWaterStorage::update(uint32_t now)
 {
+    TerraResource::update(now);
     if (!_levelSensor.isSet()) { return; }
 
-    TerraMeasurement measurement = _levelSensor.getMeasurement(now, true);
-    if (measurement.valid && measurement.unit == Terra_Unit_Percent) {
+    TerraSingleMeasurement measurement = _levelSensor.getMeasurement(now, true);
+    if (measurement.isSet() && measurement.units == Terra_Unit_Percent) {
         setLevel(measurement.value);
     }
 }
@@ -53,10 +58,35 @@ void TerraWaterStorage::unresolveAny(TerraObject *object)
     TerraResource::unresolveAny(object);
 }
 
+TerraData *TerraWaterStorage::allocateData() const
+{
+    return new TerraWaterStorageData();
+}
 
-TerraCistern::TerraCistern(float capacityLiters, uint32_t key, const TerraString &name)
-    : TerraWaterStorage(capacityLiters, key, name, Terra_WaterStorageType_Cistern),
+void TerraWaterStorage::saveToData(TerraData *dataOut) const
+{
+    TerraResource::saveToData(dataOut);
+    auto data = static_cast<TerraWaterStorageData *>(dataOut);
+    data->capacityLiters = _capacityLiters;
+    if (_levelSensor.isSet()) {
+        strncpy(data->levelSensor, _levelSensor.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        data->levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+}
+
+
+TerraCistern::TerraCistern(float capacityLiters, tposi_t storageIndex, const TerraString &name)
+    : TerraWaterStorage(capacityLiters, storageIndex, name, Terra_WaterStorageType_Cistern),
       _fillStartPercent(35.0f), _fillStopPercent(90.0f), _overflowPercent(99.0f),
+      _overflowDetected(false), _totalInflowLiters(0.0f), _totalOutflowLiters(0.0f),
+      _overflowLiters(0.0f)
+{ ; }
+
+TerraCistern::TerraCistern(const TerraCisternData *dataIn)
+    : TerraWaterStorage(dataIn),
+      _fillStartPercent(dataIn ? dataIn->fillStartPercent : 35.0f),
+      _fillStopPercent(dataIn ? dataIn->fillStopPercent : 90.0f),
+      _overflowPercent(dataIn ? dataIn->overflowPercent : 99.0f),
       _overflowDetected(false), _totalInflowLiters(0.0f), _totalOutflowLiters(0.0f),
       _overflowLiters(0.0f)
 { ; }
@@ -69,6 +99,7 @@ bool TerraCistern::configureFillBand(float startPercent, float stopPercent, floa
     _fillStartPercent = startPercent;
     _fillStopPercent = stopPercent;
     _overflowPercent = overflowPercent;
+    bumpRevisionIfNeeded();
     return true;
 }
 
@@ -138,21 +169,44 @@ void TerraCistern::resetFlowTotals()
     _overflowLiters = 0.0f;
 }
 
+TerraData *TerraCistern::allocateData() const
+{
+    return new TerraCisternData();
+}
+
+void TerraCistern::saveToData(TerraData *dataOut) const
+{
+    TerraWaterStorage::saveToData(dataOut);
+    auto data = static_cast<TerraCisternData *>(dataOut);
+    data->fillStartPercent = _fillStartPercent;
+    data->fillStopPercent = _fillStopPercent;
+    data->overflowPercent = _overflowPercent;
+}
+
 
 TerraWaterSource::TerraWaterSource(Terra_WaterSourceType type, uint8_t priority,
-                                   uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_WaterSource, key, name),
-      _type(type), _priority(priority), _available(true),
-      _level(100.0f), _reserveLevel(0.0f), _maximumFlowLpm(0.0f),
-      _levelSensor(this)
+                                   tposi_t sourceIndex, const TerraString &name)
+    : TerraObject(TerraIdentity(type, sourceIndex), name),
+      _priority(priority), _available(true), _level(100.0f), _reserveLevel(0.0f),
+      _maximumFlowLpm(0.0f), _levelSensor(this)
 { ; }
+
+TerraWaterSource::TerraWaterSource(const TerraWaterSourceData *dataIn)
+    : TerraObject(dataIn), _priority(dataIn ? dataIn->priority : 0),
+      _available(dataIn ? dataIn->available : true), _level(dataIn ? dataIn->level : 100.0f),
+      _reserveLevel(dataIn ? dataIn->reserveLevel : 0.0f),
+      _maximumFlowLpm(dataIn ? dataIn->maximumFlowLpm : 0.0f), _levelSensor(this)
+{
+    if (dataIn && dataIn->levelSensor[0]) { _levelSensor.initObject(dataIn->levelSensor); }
+}
 
 void TerraWaterSource::update(uint32_t now)
 {
+    TerraObject::update(now);
     if (!_levelSensor.isSet()) { return; }
 
-    TerraMeasurement measurement = _levelSensor.getMeasurement(now, true);
-    if (measurement.valid && measurement.unit == Terra_Unit_Percent) {
+    TerraSingleMeasurement measurement = _levelSensor.getMeasurement(now, true);
+    if (measurement.isSet() && measurement.units == Terra_Unit_Percent) {
         setLevel(measurement.value);
     }
 }
@@ -163,13 +217,49 @@ void TerraWaterSource::unresolveAny(TerraObject *object)
     TerraObject::unresolveAny(object);
 }
 
+TerraData *TerraWaterSource::allocateData() const
+{
+    return new TerraWaterSourceData();
+}
 
-TerraWaterRoute::TerraWaterRoute(uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_WaterRoute, key, name),
+void TerraWaterSource::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    auto data = static_cast<TerraWaterSourceData *>(dataOut);
+    data->priority = _priority;
+    data->available = _available;
+    data->level = _level;
+    data->reserveLevel = _reserveLevel;
+    data->maximumFlowLpm = _maximumFlowLpm;
+    if (_levelSensor.isSet()) {
+        strncpy(data->levelSensor, _levelSensor.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        data->levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+}
+
+
+TerraWaterRoute::TerraWaterRoute(tposi_t routeIndex, const TerraString &name)
+    : TerraObject(TerraIdentity(Terra_ObjectType_WaterRoute, routeIndex), name),
       _destinationStartPercent(40.0f), _destinationStopPercent(90.0f),
       _minimumFlowLpm(0.0f), _maximumFlowLpm(0.0f),
       _routeState(Terra_RouteState_Idle), _balancer(this)
 { ; }
+
+TerraWaterRoute::TerraWaterRoute(const TerraWaterRouteData *dataIn)
+    : TerraObject(dataIn),
+      _destinationStartPercent(dataIn ? dataIn->destinationStartPercent : 40.0f),
+      _destinationStopPercent(dataIn ? dataIn->destinationStopPercent : 90.0f),
+      _minimumFlowLpm(dataIn ? dataIn->minimumFlowLpm : 0.0f),
+      _maximumFlowLpm(dataIn ? dataIn->maximumFlowLpm : 0.0f),
+      _routeState(Terra_RouteState_Idle), _balancer(this)
+{
+    if (dataIn) {
+        if (dataIn->source[0]) { _balancer.getSourceAttachment().initObject(dataIn->source); }
+        if (dataIn->destination[0]) { _balancer.getDestinationAttachment().initObject(dataIn->destination); }
+        if (dataIn->pump[0]) { _balancer.getPumpAttachment().initObject(dataIn->pump); }
+        if (dataIn->flowSensor[0]) { _balancer.getFlowSensorAttachment().initObject(dataIn->flowSensor); }
+    }
+}
 
 bool TerraWaterRoute::setDestinationBand(float startPercent, float stopPercent)
 {
@@ -177,6 +267,7 @@ bool TerraWaterRoute::setDestinationBand(float startPercent, float stopPercent)
 
     _destinationStartPercent = startPercent;
     _destinationStopPercent = stopPercent;
+    bumpRevisionIfNeeded();
     return true;
 }
 
@@ -195,6 +286,7 @@ bool TerraWaterRoute::validateFlow(float measuredFlowLpm, bool commandedOn)
 
 void TerraWaterRoute::update(uint32_t now)
 {
+    TerraObject::update(now);
     _balancer.update(now);
 }
 
@@ -204,12 +296,43 @@ void TerraWaterRoute::unresolveAny(TerraObject *object)
     TerraObject::unresolveAny(object);
 }
 
+TerraData *TerraWaterRoute::allocateData() const
+{
+    return new TerraWaterRouteData();
+}
+
+void TerraWaterRoute::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    auto data = static_cast<TerraWaterRouteData *>(dataOut);
+    auto copyAttachment = [](char *destination, const TerraAttachment &attachment) {
+        if (attachment.isSet()) {
+            strncpy(destination, attachment.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+            destination[TERRA_NAME_MAXSIZE - 1] = '\0';
+        }
+    };
+    copyAttachment(data->source, _balancer.getSourceAttachment());
+    copyAttachment(data->destination, _balancer.getDestinationAttachment());
+    copyAttachment(data->pump, _balancer.getPumpAttachment());
+    copyAttachment(data->flowSensor, _balancer.getFlowSensorAttachment());
+    data->destinationStartPercent = _destinationStartPercent;
+    data->destinationStopPercent = _destinationStopPercent;
+    data->minimumFlowLpm = _minimumFlowLpm;
+    data->maximumFlowLpm = _maximumFlowLpm;
+}
+
 
 TerraRainCatchment::TerraRainCatchment(float areaSquareMeters, float collectionEfficiency,
-                                       uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_RainCatchment, key, name),
+                                       tposi_t catchmentIndex, const TerraString &name)
+    : TerraObject(TerraIdentity(Terra_ObjectType_RainCatchment, catchmentIndex), name),
       _areaSquareMeters(areaSquareMeters < 0.0f ? 0.0f : areaSquareMeters),
       _collectionEfficiency(constrain(collectionEfficiency, 0.0f, 1.0f))
+{ ; }
+
+TerraRainCatchment::TerraRainCatchment(const TerraRainCatchmentData *dataIn)
+    : TerraObject(dataIn),
+      _areaSquareMeters(dataIn ? dataIn->areaSquareMeters : 0.0f),
+      _collectionEfficiency(dataIn ? dataIn->collectionEfficiency : 0.85f)
 { ; }
 
 float TerraRainCatchment::estimateCaptureLiters(float rainfallMm) const
@@ -244,6 +367,19 @@ TerraRainCollectionResult TerraRainCatchment::collectInto(TerraCistern &cistern,
     result.storedLiters = cistern.receiveWater(storageInput);
     result.overflowLiters = storageInput - result.storedLiters;
     return result;
+}
+
+TerraData *TerraRainCatchment::allocateData() const
+{
+    return new TerraRainCatchmentData();
+}
+
+void TerraRainCatchment::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    auto data = static_cast<TerraRainCatchmentData *>(dataOut);
+    data->areaSquareMeters = _areaSquareMeters;
+    data->collectionEfficiency = _collectionEfficiency;
 }
 
 

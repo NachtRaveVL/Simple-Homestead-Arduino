@@ -1,33 +1,31 @@
+// Simple-Homestead-Arduino Data Writer Example
+//
+// Builds a small controller configuration and exports it through the same TerraData /
+// ArduinoJson persistence path used by normal controller saves.
+
 #include <Terraduino.h>
 
-void setup() {
+Terraduino terraController;
+
+void setup()
+{
     Serial.begin(115200);
-    while (!Serial) { }
+    while (!Serial) { ; }
 
-    TerraCisternData cistern;
-    cistern.key = 1001;
-    cistern.name = "Main Cistern";
-    cistern.capacityLiters = 5000.0f;
-    cistern.level = 63.5f;
-    cistern.reserveLevel = 15.0f;
-    cistern.lowLevel = 30.0f;
-    cistern.highLevel = 95.0f;
-    cistern.fillStartPercent = 35.0f;
-    cistern.fillStopPercent = 90.0f;
-    cistern.overflowPercent = 99.0f;
+    terraController.init();
 
-    Serial.println(cistern.toJSON());
+    auto cistern = terraController.addCistern(5000.0f, "Main Cistern");
+    cistern->setThresholds(15.0f, 30.0f, 95.0f);
+    cistern->configureFillBand(35.0f, 90.0f, 99.0f);
+    cistern->setLevel(63.5f);
 
-    TerraThermalStoreData thermal;
-    thermal.key = 2001;
-    thermal.name = "Thermal Store";
-    thermal.level = 70.0f;
-    thermal.temperatureC = 58.0f;
-    thermal.minimumTargetC = 45.0f;
-    thermal.maximumTargetC = 65.0f;
-    thermal.absoluteMaximumC = 90.0f;
+    auto thermal = terraController.addThermalStore("Thermal Store");
+    thermal->setLevel(70.0f);
+    thermal->setTemperature(58.0f);
+    thermal->setTargetRange(45.0f, 65.0f);
+    thermal->setAbsoluteMaximum(90.0f);
 
-    Serial.println(thermal.toJSON());
+    Serial.println(terraController.exportSystemJSON());
 }
 
-void loop() { }
+void loop() { ; }

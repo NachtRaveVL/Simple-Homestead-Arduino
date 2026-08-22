@@ -24,16 +24,15 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    well = terraController.addWaterSource(Terra_WaterSourceType_Well, "Well");
+    well = terraController.addWaterSource(Terra_WaterSourceType_Well, 0, "Well");
     cistern = terraController.addCistern(5000.0f, "Main Cistern");
     fillRoute = terraController.addWaterRoute("Cistern Fill");
     fillPump = terraController.addPumpRelay(SETUP_FILL_PUMP_PIN, SETUP_FILL_PUMP_ACTIVE_LOW, "Fill Pump");
-    cisternLevel = terraController.addAnalogLevelSensor(SETUP_CISTERN_LEVEL_PIN, "Cistern Level");
-
-    TerraCalibrationData cisternLevelCalibration(cisternLevel->getKey(), Terra_Unit_Percent);
-    cisternLevelCalibration.setFromTwoPoints(SETUP_CISTERN_LEVEL_EMPTY, 0.0f,
-                                              SETUP_CISTERN_LEVEL_FULL, 100.0f);
-    cisternLevel->setUserCalibrationData(&cisternLevelCalibration);
+    cisternLevel = terraController.addAnalogLevelSensor(SETUP_CISTERN_LEVEL_PIN,
+                                                        SETUP_CISTERN_LEVEL_EMPTY,
+                                                        SETUP_CISTERN_LEVEL_FULL,
+                                                        0.0f, 100.0f,
+                                                        "Cistern Level");
 
     well->setLevel(100.0f);
     well->setReserveLevel(10.0f);

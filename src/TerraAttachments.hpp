@@ -1,80 +1,69 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Attachment Points
+    Terraduino Attachment Inlines
 */
-
 #ifndef TerraAttachments_HPP
 #define TerraAttachments_HPP
+inline TerraDLinkObject &TerraDLinkObject::operator=(TerraIdentity rhs) { _key = rhs.key; _obj = nullptr; _keyString = rhs.keyString; return *this; }
+inline TerraDLinkObject &TerraDLinkObject::operator=(const char *rhs) { _key = rhs ? terraHashString(rhs) : tkey_none; _obj = nullptr; _keyString = rhs ? TerraString(rhs) : TerraString(); return *this; }
+inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraObjInterface *rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs ? rhs->getSharedPtr() : nullptr; _keyString = rhs && !_obj ? rhs->getKeyString() : TerraString(); return *this; }
+inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraAttachment *rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs && rhs->isResolved() ? const_cast<TerraAttachment *>(rhs)->getObject<TerraObjInterface>() : nullptr; _keyString = rhs && !rhs->isResolved() ? rhs->getKeyString() : TerraString(); return *this; }
+template<class U> inline TerraDLinkObject &TerraDLinkObject::operator=(SharedPtr<U> rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs ? static_pointer_cast<TerraObjInterface>(rhs) : nullptr; _keyString = TerraString(); return *this; }
+template<class U> void TerraAttachment::setObject(U object, bool modify) { if (!(_obj == object)) { if (_obj.isResolved()) { detachObject(); } _obj = object; if (_obj.isResolved()) { attachObject(); } if (modify) { bumpRevisionIfNeeded(); } } }
+template<class U> SharedPtr<U> TerraAttachment::getObject() { if (_obj) { return _obj.getObject<U>(); } if (!_obj.isSet()) { return nullptr; } if (_obj.needsResolved() && _obj.resolveObject()) { attachObject(); } return _obj.getObject<U>(); }
 
-// Attaches a resolved object and registers the parent linkage.
-template<class TObject>
-void TerraAttachment<TObject>::attachObject()
+
+template<class ParameterType, int Slots>
+template<class U>
+SignalAttachment<ParameterType, Slots>::SignalAttachment(TerraObjInterface *parent, Signal<ParameterType, Slots> &(U::*signalGetter)(void))
+    : TerraAttachment(parent), _signalGetter(nullptr), _handleSlot(nullptr)
 {
-    if (_object && _parent && _object.get() != _parent) _object->addLinkage(_parent);
+    setSignalGetter(signalGetter);
 }
 
-// Detaches a resolved object while retaining its stable key for later resolution.
-template<class TObject>
-void TerraAttachment<TObject>::detachObject()
+template<class ParameterType, int Slots>
+SignalAttachment<ParameterType, Slots>::SignalAttachment(const SignalAttachment<ParameterType, Slots> &attachment)
+    : TerraAttachment(attachment), _signalGetter(attachment._signalGetter), _handleSlot(nullptr)
 {
-    if (_object && _parent && _object.get() != _parent) _object->removeLinkage(_parent);
-    if (_object) _key = _object->getKey();
-    _object.reset();
+    if (attachment._handleSlot) { _handleSlot = attachment._handleSlot->clone(); }
 }
 
-template<class TObject>
-void TerraAttachment<TObject>::setObjectImpl(const SharedPtr<TerraObject> &object)
+template<class ParameterType, int Slots>
+SignalAttachment<ParameterType, Slots>::~SignalAttachment()
 {
-    if (_object == object) return;
-    detachObject();
-    _object = object;
-    _key = _object ? _object->getKey() : TERRA_INVALID_KEY;
-    attachObject();
+    if (isResolved()) { detachObject(); }
+    if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
 }
 
-template<class TObject>
-void TerraAttachment<TObject>::setObject(TObject *object)
+template<class ParameterType, int Slots>
+void SignalAttachment<ParameterType, Slots>::attachObject()
 {
-    if (!object) {
-        detachObject();
-        _key = TERRA_INVALID_KEY;
-        return;
-    }
-
-    TerraObject *baseObject = reinterpret_cast<TerraObject *>(object);
-    SharedPtr<TerraObject> registered = terraObjectByKey(baseObject->getKey());
-    setObjectImpl(registered);
+    TerraAttachment::attachObject();
+    if (_signalGetter && _handleSlot && resolve()) { (get()->*_signalGetter)().attach(*_handleSlot); }
 }
 
-template<class TObject>
-SharedPtr<TObject> TerraAttachment<TObject>::getObject()
+template<class ParameterType, int Slots>
+void SignalAttachment<ParameterType, Slots>::detachObject()
 {
-    if (!_object && _key != TERRA_INVALID_KEY) {
-        _object = terraObjectByKey(_key);
-        if (_object) attachObject();
-    }
-    return _object ? reinterpret_pointer_cast<TObject>(_object) : SharedPtr<TObject>();
+    if (_signalGetter && _handleSlot && isResolved()) { (get()->*_signalGetter)().detach(*_handleSlot); }
+    TerraAttachment::detachObject();
 }
 
-template<class TObject>
-void TerraAttachment<TObject>::unresolve()
+template<class ParameterType, int Slots>
+template<class U>
+void SignalAttachment<ParameterType, Slots>::setSignalGetter(Signal<ParameterType, Slots> &(U::*signalGetter)(void))
 {
-    detachObject();
+    _signalGetter = reinterpret_cast<SignalGetterPtr>(signalGetter);
 }
 
-template<class TObject>
-void TerraAttachment<TObject>::unresolveAny(TerraObject *object)
+template<class ParameterType, int Slots>
+void SignalAttachment<ParameterType, Slots>::setHandleSlot(const Slot<ParameterType> &handleSlot)
 {
-    if (_object && _object.get() == object) detachObject();
+    bool attached = isResolved();
+    if (attached) { detachObject(); }
+    if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
+    _handleSlot = handleSlot.clone();
+    if (attached) { attachObject(); }
 }
 
-template<class TObject>
-void TerraAttachment<TObject>::setParent(TerraObject *parent)
-{
-    if (_parent == parent) return;
-    detachObject();
-    _parent = parent;
-    getObject();
-}
-
-#endif
+#endif // /ifndef TerraAttachments_HPP

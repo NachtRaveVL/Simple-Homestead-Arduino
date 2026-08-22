@@ -66,23 +66,33 @@ typedef uint16_t tframe_t;
 
 #ifndef TERRA_DEFAULT_MAXSIZE
 #define TERRA_DEFAULT_MAXSIZE 8
+#define TERRA_SENSOR_SIGNAL_SLOTS       6                   // Maximum number of sensor measurement signal slots
+#define TERRA_TRIGGER_SIGNAL_SLOTS      4                   // Maximum number of trigger state signal slots
+#endif
+#ifndef TERRA_POS_MAXSIZE
+#define TERRA_POS_MAXSIZE 32                               // Position indices maximum size
 #endif
 
+#define TERRA_PREFIX_MAXSIZE               16
 #define TERRA_NAME_MAXSIZE                 32
+#define TERRA_LOG_MESSAGE_MAXSIZE          96
+#define TERRA_JSON_DOC_SYSSIZE            256                 // JSON document chunk data bytes for main system data
+#define TERRA_JSON_DOC_DEFSIZE            192                 // Default JSON document chunk data bytes
+#define TERRA_JSON_DOC_EXPORTSIZE        16384                 // Whole-controller JSON export/import document bytes
 #define TERRA_MAX_OBJECTS                  48
 #define TERRA_MAX_ATTACHMENTS               8
-#define TERRA_MAX_SCHEDULE_TASKS           16
-#define TERRA_MAX_LOG_RECORDS              24
 #define TERRA_MAX_PUBLISH_CHANNELS         24
-#define TERRA_MAX_MODULES                  12
 #define TERRA_INVALID_PIN                 255
-#define TERRA_INVALID_KEY                   0UL
 #define TERRA_DEFAULT_REMOTE_STALE_MS   300000UL
-#define TERRA_DEFAULT_PUBLISH_INTERVAL   60000UL
 #define TERRA_DEFAULT_LOG_INTERVAL       60000UL
+#define TERRA_CONTROL_LOOP_INTERVAL        100UL
+#define TERRA_DATA_LOOP_INTERVAL          2000UL
 #define TERRA_SUMP_STOP_LEVEL_PERCENT      20.0f       // Default sump pump stop level
 #define TERRA_SUMP_START_LEVEL_PERCENT     70.0f       // Default sump pump start level
 #define TERRA_SUMP_ALARM_LEVEL_PERCENT     90.0f       // Default sump high-water alarm level
+
+#define TERRA_POS_SEARCH_FROMBEG ((tposi_t)-1)              // Search from beginning to end
+#define TERRA_POS_SEARCH_FROMEND ((tposi_t)TERRA_POS_MAXSIZE) // Search from end to beginning
 
 // Networking is optional. Defining these enables transport-specific integration
 // in user code without making networking a requirement for Terraduino itself.

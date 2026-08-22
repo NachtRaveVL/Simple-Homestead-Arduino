@@ -6,32 +6,33 @@
 #ifndef TerraRails_H
 #define TerraRails_H
 
+struct TerraPowerRailData;
+
 #include "TerraObject.h"
-#include "TerraCallback.hh"
+#include "TerraDatas.h"
 
 class TerraPowerRail : public TerraObject {
 public:
     TerraPowerRail(float nominalVoltage = 0.0f,
-                   uint32_t key = TERRA_INVALID_KEY,
+                   tposi_t railIndex = TERRA_POS_SEARCH_FROMBEG,
                    const TerraString &name = TerraString(),
                    Terra_RailType railType = Terra_RailType_Custom);  // Power rail type
+    TerraPowerRail(const TerraPowerRailData *dataIn);
 
-    void setEnableCallback(TerraWriteCallback callback, void *context = nullptr) { _callback = callback; _context = context; }
     void setEnabledState(bool enabled);
     bool isRailEnabled() const { return _railEnabled; }
     float getNominalVoltage() const { return _nominalVoltage; }
-    Terra_RailType getRailType() const { return _railType; }
-    void setRailType(Terra_RailType railType) { _railType = railType; }
+    Terra_RailType getRailType() const { return _id.objTypeAs.railType; }
     void setMeasuredVoltage(float voltage) { _measuredVoltage = voltage; }
     float getMeasuredVoltage() const { return _measuredVoltage; }
 
 protected:
-    Terra_RailType _railType;                               // Power rail type
     float _nominalVoltage;                                  // Nominal rail voltage
     float _measuredVoltage;                                 // Latest measured rail voltage
     bool _railEnabled;                                      // Rail enabled state
-    TerraWriteCallback _callback;                           // Configured callback
-    void *_context;
+
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 #endif

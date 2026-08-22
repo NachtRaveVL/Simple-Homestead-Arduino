@@ -175,6 +175,7 @@ typedef Adafruit_GPS GPSClass;
 #endif
 
 #include "TerraDefines.h"
+#include <ArduinoJson.h>
 
 #ifdef ARDUINO
 
@@ -223,6 +224,7 @@ template<class T, class U> inline SharedPtr<T> reinterpret_pointer_cast(const Sh
 #include "TerraStrings.h"
 #include "TerraInlines.hh"
 #include "TerraCallback.hh"
+#include "TerraCoreLogic.h"
 #include "TerraInterfaces.h"
 #include "TerraActivation.h"
 #include "TerraAttachments.h"
@@ -254,20 +256,20 @@ template<class T, class U> inline SharedPtr<T> reinterpret_pointer_cast(const Sh
 // Main controller interface for homestead resource and environmental systems. Networking,
 // displays, remote transports, and external services remain optional so normal water,
 // thermal, environmental, scheduling, logging, and control behavior can remain local.
-class Terraduino : public TerraFactory, public TerraObjectRegistration {
+class Terraduino : public TerraFactory, public TerraCalibrations, public TerraObjectRegistration {
 public:
     TerraScheduler scheduler;                              // Scheduler public instance
     TerraLogger logger;                                    // Logger public instance
     TerraPublisher publisher;                              // Publisher public instance
-    TerraModuleRegistry modules;                           // Module registry public instance
 
     // Controller constructor. Typically called during class instantiation before setup().
     Terraduino(Terra_RTCType rtcType = Terra_RTCType_None,
                TerraDeviceSetup rtcSetup = TerraDeviceSetup());
     ~Terraduino();
 
-    // Initializes the controller from the supplied system setup.
-    void init(const TerraSystemSetup &setup = TerraSystemSetup());
+    // Initializes the controller with the requested operating and measurement modes.
+    void init(Terra_ControlMode controlMode = Terra_ControlMode_Automatic,
+              Terra_MeasurementMode measurementMode = Terra_MeasurementMode_Metric);
 
     // Launches the controller into operational mode.
     void launch();
@@ -281,36 +283,31 @@ public:
     inline bool isSuspended() const { return !_running; }
 
     // System Settings.
-    inline const TerraSystemSetup &getSetup() const { return _data.setup; }
-    inline void setSystemName(const TerraString &name) { _data.setup.systemName = name; }
+    void setSystemName(const TerraString &name);
     // Sets system time zone offset from UTC, in whole hours.
     void setTimeZoneOffset(int8_t hoursOffset);
     // System time zone offset from UTC, in total offset seconds.
     time_t getTimeZoneOffset() const;
-    inline void setControlMode(Terra_ControlMode mode) { _data.setup.controlMode = mode; }
-    inline Terra_ControlMode getControlMode() const { return _data.setup.controlMode; }
-    inline void setMeasurementMode(Terra_MeasurementMode mode) { _data.setup.measurementMode = mode; }
-    inline Terra_MeasurementMode getMeasurementMode() const { return _data.setup.measurementMode; }
-    inline void setLoggerMinimumLevel(Terra_LogLevel level)
-    {
-        _data.setup.loggerMinimumLevel = level;
-        logger.setMinimumLevel(level);
-    }
-    inline void setPublisherInterval(uint32_t intervalMs)
-    {
-        _data.setup.publisherIntervalMs = intervalMs;
-        publisher.setInterval(intervalMs);
-    }
+    inline void setControlMode(Terra_ControlMode mode) { _data.controlMode = mode; }
+    inline Terra_ControlMode getControlMode() const { return _data.controlMode; }
+    inline void setMeasurementMode(Terra_MeasurementMode mode) { _data.measurementMode = mode; }
+    inline Terra_MeasurementMode getMeasurementMode() const { return _data.measurementMode; }
+    inline void setLoggerMinimumLevel(Terra_LogLevel level) { logger.setLogLevel(level); }
+    inline void setPollingInterval(uint16_t pollingInterval) { _data.pollingInterval = pollingInterval; }
+    inline uint16_t getPollingInterval() const { return _data.pollingInterval; }
 
     // Core subsystem accessors kept alongside the public instances for family parity.
     inline TerraScheduler &getScheduler() { return scheduler; }
     inline TerraLogger &getLogger() { return logger; }
     inline TerraPublisher &getPublisher() { return publisher; }
-    inline TerraModuleRegistry &getModules() { return modules; }
     inline TerraSystemData &getSystemData() { return _data; }
     inline const TerraSystemData &getSystemData() const { return _data; }
     inline TerraSystemData &systemData() { return _data; }
     inline const TerraSystemData &systemData() const { return _data; }
+
+    inline tframe_t getPollingFrame() const { return _pollingFrame; }
+    inline bool isPollingFrameOld(tframe_t frame, tframe_t allowance = 0) const
+        { return !frame || (tframe_t)(_pollingFrame - frame) > allowance; }
 
 #ifdef ARDUINO
     // Real time clock instance (lazily instantiated, nullptr return -> failure/no device).
@@ -324,10 +321,8 @@ public:
     inline bool getRTCBatteryFailure() const { return _rtcBattFail; }
 
     // Persistence helpers.
-    inline TerraString exportSystemJSON() const { return _data.toJSON(); }
+    TerraString exportSystemJSON() const;
     bool importSystemJSON(const TerraString &json);
-    inline size_t exportSystemBinary(uint8_t *buffer, size_t capacity) const { return _data.toBinary(buffer, capacity); }
-    bool importSystemBinary(const uint8_t *buffer, size_t length);
 
     // Returns the currently active Terraduino controller instance, if any.
     static inline Terraduino *getActiveInstance() { return _activeInstance; }
@@ -345,10 +340,14 @@ protected:
     bool _rtcBattFail;                                     // Status of RTC battery failure flag
     bool _initialized;                                     // Initialization state flag
     bool _running;                                         // Operational state flag
-    uint32_t _lastUpdateAt;                                // Last controller update timestamp
+    uint32_t _lastControlAt;                               // Last control update timestamp
+    uint32_t _lastPollAt;                                  // Last sensor polling timestamp
+    tframe_t _pollingFrame;                                // Current sensor polling frame
 
     void allocateRTC();
     void deallocateRTC();
+
+    friend class TerraDLinkObject;
 };
 
 // Returns the currently active controller instance.

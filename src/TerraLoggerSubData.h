@@ -6,19 +6,19 @@
 #ifndef TerraLoggerSubData_H
 #define TerraLoggerSubData_H
 
-#include "TerraTypes.h"
+#include "TerraData.h"
 
-struct TerraLogRecord {
-    uint32_t timestamp;                                     // Measurement timestamp
-    Terra_LogLevel level;                                   // Normalized resource level, percent
-    TerraString category;                                   // Log category
-    TerraString message;                                    // Log message
+// Logger Serialization Sub Data
+// A part of TSYS system data.
+struct TerraLoggerSubData : public TerraSubData {
+    Terra_LogLevel logLevel;                                // Minimum logged event level
+    char logFilePrefix[TERRA_PREFIX_MAXSIZE];               // Log file prefix
+    bool logToSDCard;                                       // SD logging enabled
+    bool logToWiFiStorage;                                  // WiFi storage logging enabled
 
-    TerraLogRecord(uint32_t timestampIn = 0,
-                   Terra_LogLevel levelIn = Terra_LogLevel_Info,
-                   const TerraString &categoryIn = TerraString(),
-                   const TerraString &messageIn = TerraString())
-        : timestamp(timestampIn), level(levelIn), category(categoryIn), message(messageIn) { }
+    TerraLoggerSubData();
+    void toJSONObject(JsonObject &objectOut) const;
+    void fromJSONObject(JsonObjectConst &objectIn);
 };
 
-#endif
+#endif // /ifndef TerraLoggerSubData_H

@@ -6,14 +6,19 @@
 #ifndef TerraWater_H
 #define TerraWater_H
 
+class TerraFirstFlushController;                            // Terra First Flush Controller
+
+struct TerraWaterStorageData;
+struct TerraCisternData;
+struct TerraWaterSourceData;
+struct TerraWaterRouteData;
+struct TerraRainCatchmentData;
+
 #include "TerraResource.h"
 #include "TerraUtils.h"
 #include "TerraAttachments.h"
 #include "TerraBalancers.h"
-
-// First-Flush Controller
-// Tracks the initial diverted volume from a rainfall event before storage is allowed.
-class TerraFirstFlushController;                            // Terra First Flush Controller
+#include "TerraDatas.h"
 
 // Rainwater Collection Result
 // Summarizes one rainfall capture event after first-flush and cistern limits are applied.
@@ -34,13 +39,14 @@ struct TerraRainCollectionResult {
 class TerraWaterStorage : public TerraResource {
 public:
     TerraWaterStorage(float capacityLiters = 0.0f,
-                      uint32_t key = TERRA_INVALID_KEY,
+                      tposi_t storageIndex = TERRA_POS_SEARCH_FROMBEG,
                       const TerraString &name = TerraString(),
                       Terra_WaterStorageType storageType = Terra_WaterStorageType_Undefined);  // Water storage type
+    TerraWaterStorage(const TerraWaterStorageData *dataIn);
 
-    void setCapacityLiters(float capacityLiters) { _capacityLiters = capacityLiters < 0.0f ? 0.0f : capacityLiters; }
+    void setCapacityLiters(float capacityLiters) { _capacityLiters = capacityLiters < 0.0f ? 0.0f : capacityLiters; bumpRevisionIfNeeded(); }
     float getCapacityLiters() const { return _capacityLiters; }
-    Terra_WaterStorageType getStorageType() const { return _storageType; }
+    Terra_WaterStorageType getStorageType() const { return _id.objTypeAs.waterStorageType; }
     float getStoredLiters() const { return _capacityLiters * (getLevel() / 100.0f); }
     void setStoredLiters(float liters);
     float availableAboveReserveLiters() const;
@@ -58,12 +64,10 @@ public:
 
 protected:
     float _capacityLiters;                                  // Storage capacity, liters
-    Terra_WaterStorageType _storageType;                    // Water storage type
     TerraSensorAttachment _levelSensor;                     // Level sensor attachment point
 
-    inline void initLevelSensorKey(uint32_t key) { _levelSensor.initObject(key); }
-
-    friend class TerraFactory;
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Cistern
@@ -71,8 +75,9 @@ protected:
 class TerraCistern : public TerraWaterStorage {
 public:
     TerraCistern(float capacityLiters = 0.0f,
-                 uint32_t key = TERRA_INVALID_KEY,
+                 tposi_t storageIndex = TERRA_POS_SEARCH_FROMBEG,
                  const TerraString &name = TerraString());
+    TerraCistern(const TerraCisternData *dataIn);
 
     bool configureFillBand(float startPercent, float stopPercent, float overflowPercent = 99.0f);
     float getFillStartPercent() const { return _fillStartPercent; }
@@ -103,6 +108,9 @@ protected:
     float _totalInflowLiters;                               // Accumulated accepted inflow, liters
     float _totalOutflowLiters;                              // Accumulated delivered outflow, liters
     float _overflowLiters;                                  // Accumulated overflow volume, liters
+
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Water Source
@@ -111,10 +119,11 @@ class TerraWaterSource : public TerraObject {
 public:
     TerraWaterSource(Terra_WaterSourceType type = Terra_WaterSourceType_Undefined,
                      uint8_t priority = 0,
-                     uint32_t key = TERRA_INVALID_KEY,
+                     tposi_t sourceIndex = TERRA_POS_SEARCH_FROMBEG,
                      const TerraString &name = TerraString());
+    TerraWaterSource(const TerraWaterSourceData *dataIn);
 
-    Terra_WaterSourceType getType() const { return _type; }
+    Terra_WaterSourceType getType() const { return _id.objTypeAs.waterSourceType; }
     uint8_t getPriority() const { return _priority; }
     bool isAvailable() const { return _available && !_fault && _enabled; }
     bool isConfiguredAvailable() const { return _available; }
@@ -122,11 +131,11 @@ public:
     float getReserveLevel() const { return _reserveLevel; }
     float getMaximumFlowLpm() const { return _maximumFlowLpm; }
 
-    void setPriority(uint8_t priority) { _priority = priority; }
-    void setAvailable(bool available) { _available = available; }
-    void setLevel(float level) { _level = constrain(level, 0.0f, 100.0f); }
-    void setReserveLevel(float reserve) { _reserveLevel = constrain(reserve, 0.0f, 100.0f); }
-    void setMaximumFlowLpm(float flow) { _maximumFlowLpm = flow < 0.0f ? 0.0f : flow; }
+    void setPriority(uint8_t priority) { _priority = priority; bumpRevisionIfNeeded(); }
+    void setAvailable(bool available) { _available = available; bumpRevisionIfNeeded(); }
+    void setLevel(float level) { _level = constrain(level, 0.0f, 100.0f); bumpRevisionIfNeeded(); }
+    void setReserveLevel(float reserve) { _reserveLevel = constrain(reserve, 0.0f, 100.0f); bumpRevisionIfNeeded(); }
+    void setMaximumFlowLpm(float flow) { _maximumFlowLpm = flow < 0.0f ? 0.0f : flow; bumpRevisionIfNeeded(); }
 
     // Level Sensor Attachment Point
     template<class T> inline void setLevelSensor(const SharedPtr<T> &sensor) { _levelSensor.setObject(sensor); }
@@ -137,7 +146,6 @@ public:
     virtual void unresolveAny(TerraObject *object) override;
 
 protected:
-    Terra_WaterSourceType _type;                            // Resource/source type
     uint8_t _priority;                                      // Source priority
     bool _available;                                        // Configured availability
     float _level;                                           // Normalized level, percent
@@ -145,16 +153,16 @@ protected:
     float _maximumFlowLpm;                                  // Maximum allowed flow
     TerraSensorAttachment _levelSensor;                     // Level sensor attachment point
 
-    inline void initLevelSensorKey(uint32_t key) { _levelSensor.initObject(key); }
-
-    friend class TerraFactory;
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Water Route
 // Defines one controlled transfer path between a source and destination storage object.
 class TerraWaterRoute : public TerraObject {
 public:
-    TerraWaterRoute(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
+    TerraWaterRoute(tposi_t routeIndex = TERRA_POS_SEARCH_FROMBEG, const TerraString &name = TerraString());
+    TerraWaterRoute(const TerraWaterRouteData *dataIn);
 
     template<class T> inline void setSource(const SharedPtr<T> &source) { _balancer.setSource(source); }
     template<class T> inline void setDestination(const SharedPtr<T> &destination) { _balancer.setDestination(destination); }
@@ -162,12 +170,12 @@ public:
     template<class T> inline void setFlowSensor(const SharedPtr<T> &sensor) { _balancer.setFlowSensor(sensor); }
 
     bool setDestinationBand(float startPercent, float stopPercent);
-    void setMinimumFlow(float lpm) { _minimumFlowLpm = lpm < 0.0f ? 0.0f : lpm; }
-    void setMaximumFlow(float lpm) { _maximumFlowLpm = lpm < 0.0f ? 0.0f : lpm; }
-    uint32_t getSourceKey() const { return _balancer.getSourceAttachment().getKey(); }
-    uint32_t getDestinationKey() const { return _balancer.getDestinationAttachment().getKey(); }
-    uint32_t getPumpKey() const { return _balancer.getPumpAttachment().getKey(); }
-    uint32_t getFlowSensorKey() const { return _balancer.getFlowSensorAttachment().getKey(); }
+    void setMinimumFlow(float lpm) { _minimumFlowLpm = lpm < 0.0f ? 0.0f : lpm; bumpRevisionIfNeeded(); }
+    void setMaximumFlow(float lpm) { _maximumFlowLpm = lpm < 0.0f ? 0.0f : lpm; bumpRevisionIfNeeded(); }
+    tkey_t getSourceKey() const { return _balancer.getSourceAttachment().getKey(); }
+    tkey_t getDestinationKey() const { return _balancer.getDestinationAttachment().getKey(); }
+    tkey_t getPumpKey() const { return _balancer.getPumpAttachment().getKey(); }
+    tkey_t getFlowSensorKey() const { return _balancer.getFlowSensorAttachment().getKey(); }
     float getDestinationStartPercent() const { return _destinationStartPercent; }
     float getDestinationStopPercent() const { return _destinationStopPercent; }
     float getMinimumFlow() const { return _minimumFlowLpm; }
@@ -191,13 +199,10 @@ protected:
     bool validateFlow(float measuredFlowLpm, bool commandedOn);
     inline void setRouteState(Terra_RouteState state) { _routeState = state; }
 
-    inline void initSourceKey(uint32_t key) { _balancer.initSourceKey(key); }
-    inline void initDestinationKey(uint32_t key) { _balancer.initDestinationKey(key); }
-    inline void initPumpKey(uint32_t key) { _balancer.initPumpKey(key); }
-    inline void initFlowSensorKey(uint32_t key) { _balancer.initFlowSensorKey(key); }
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 
     friend class TerraWaterBalancer;
-    friend class TerraFactory;
 };
 
 // Rain Catchment
@@ -206,11 +211,12 @@ class TerraRainCatchment : public TerraObject {
 public:
     TerraRainCatchment(float areaSquareMeters = 0.0f,
                        float collectionEfficiency = 0.85f,
-                       uint32_t key = TERRA_INVALID_KEY,
+                       tposi_t catchmentIndex = TERRA_POS_SEARCH_FROMBEG,
                        const TerraString &name = TerraString());
+    TerraRainCatchment(const TerraRainCatchmentData *dataIn);
 
-    void setAreaSquareMeters(float area) { _areaSquareMeters = area < 0.0f ? 0.0f : area; }
-    void setCollectionEfficiency(float efficiency) { _collectionEfficiency = constrain(efficiency, 0.0f, 1.0f); }
+    void setAreaSquareMeters(float area) { _areaSquareMeters = area < 0.0f ? 0.0f : area; bumpRevisionIfNeeded(); }
+    void setCollectionEfficiency(float efficiency) { _collectionEfficiency = constrain(efficiency, 0.0f, 1.0f); bumpRevisionIfNeeded(); }
     float getAreaSquareMeters() const { return _areaSquareMeters; }
     float getCollectionEfficiency() const { return _collectionEfficiency; }
     float estimateCaptureLiters(float rainfallMm) const;
@@ -221,6 +227,9 @@ public:
 protected:
     float _areaSquareMeters;                                // Effective collection area, square meters
     float _collectionEfficiency;                            // Fraction of rainfall reaching storage
+
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // First-Flush Controller

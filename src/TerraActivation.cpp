@@ -4,21 +4,18 @@
 */
 
 #include "Terraduino.h"
-#include "TerraActuators.h"
 
-TerraActivationHandle::TerraActivationHandle(TerraActuator *actuatorIn, float intensity,
-                                             millis_t duration, bool force)
-    : actuator(nullptr), activation(intensity, duration, force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None),
+TerraActivationHandle::TerraActivationHandle(SharedPtr<TerraActuator> actuatorIn, Terra_DirectionMode direction, float intensity, millis_t duration, bool force)
+    : actuator(nullptr), activation(direction, constrain(intensity, 0.0f, 1.0f), duration, (force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None)),
       checkTime(0), elapsed(0)
 {
-    setActuator(actuatorIn);
+    operator=(actuatorIn);
 }
 
-TerraActivationHandle::TerraActivationHandle(const TerraActivationHandle &other)
-    : actuator(nullptr), activation(other.activation), checkTime(0), elapsed(0)
+TerraActivationHandle::TerraActivationHandle(const TerraActivationHandle &handle)
+    : actuator(nullptr), activation(handle.activation), checkTime(0), elapsed(0)
 {
-    setActuator(other.actuator);
-    if (actuator && isValid() && !isDone()) { enable(); }
+    operator=(handle.actuator);
 }
 
 TerraActivationHandle::~TerraActivationHandle()
@@ -26,28 +23,16 @@ TerraActivationHandle::~TerraActivationHandle()
     if (actuator) { unset(); }
 }
 
-void TerraActivationHandle::setActuator(TerraActuator *actuatorIn)
+TerraActivationHandle &TerraActivationHandle::operator=(SharedPtr<TerraActuator> actuatorIn)
 {
-    if (actuator == actuatorIn) return;
-    if (actuator) { unset(); } else { checkTime = 0; }
-    actuator = actuatorIn;
-}
+    if (actuator != actuatorIn && isValid()) {
+        if (actuator) { unset(); } else { checkTime = 0; }
 
-void TerraActivationHandle::setup(float intensity, millis_t duration, bool force)
-{
-    activation = TerraActivation(intensity, duration, force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None);
-    elapsed = 0;
-    if (actuator) { actuator->setNeedsUpdate(); }
-}
+        actuator = actuatorIn;
 
-void TerraActivationHandle::enable()
-{
-    if (!actuator || !isValid() || isDone()) {
-        unset();
-        return;
+        if (actuator) { actuator->_handles.push_back(this); actuator->setNeedsUpdate(); }
     }
-
-    if (!actuator->addActivationHandle(this)) { actuator = nullptr; }
+    return *this;
 }
 
 void TerraActivationHandle::unset()
@@ -56,9 +41,14 @@ void TerraActivationHandle::unset()
     checkTime = 0;
 
     if (actuator) {
-        TerraActuator *oldActuator = actuator;
+        for (auto handleIter = actuator->_handles.end() - 1; handleIter != actuator->_handles.begin() - 1; --handleIter) {
+            if ((*handleIter) == this) {
+                actuator->_handles.erase(handleIter);
+                break;
+            }
+        }
+        actuator->setNeedsUpdate();
         actuator = nullptr;
-        oldActuator->removeActivationHandle(this);
     }
 }
 
@@ -73,7 +63,7 @@ void TerraActivationHandle::elapseBy(millis_t delta)
                 delta = activation.duration;
                 activation.duration = 0;
                 checkTime = 0;
-                if (actuator) { actuator->setNeedsUpdate(); }
+                actuator->setNeedsUpdate();
             }
         }
         elapsed += delta;

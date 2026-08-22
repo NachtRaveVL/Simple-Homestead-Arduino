@@ -3,13 +3,30 @@
     Terraduino Power Rails
 */
 
-#include "TerraRails.h"
+#include "Terraduino.h"
 
-TerraPowerRail::TerraPowerRail(float nominalVoltage, uint32_t key, const TerraString &name, Terra_RailType railType)
-    : TerraObject(Terra_ObjectType_PowerRail, key, name), _railType(railType), _nominalVoltage(nominalVoltage), _measuredVoltage(0.0f),
-      _railEnabled(false), _callback(nullptr), _context(nullptr) { }
+TerraPowerRail::TerraPowerRail(float nominalVoltage, tposi_t railIndex, const TerraString &name, Terra_RailType railType)
+    : TerraObject(TerraIdentity(railType, railIndex), name), _nominalVoltage(nominalVoltage), _measuredVoltage(0.0f),
+      _railEnabled(false)
+{ ; }
 
-void TerraPowerRail::setEnabledState(bool enabled) {
+TerraPowerRail::TerraPowerRail(const TerraPowerRailData *dataIn)
+    : TerraObject(dataIn), _nominalVoltage(dataIn ? dataIn->nominalVoltage : 0.0f), _measuredVoltage(0.0f),
+      _railEnabled(false)
+{ ; }
+
+void TerraPowerRail::setEnabledState(bool enabled)
+{
     _railEnabled = enabled;
-    if (_callback) _callback(_context, enabled ? 1.0f : 0.0f);
+}
+
+TerraData *TerraPowerRail::allocateData() const
+{
+    return new TerraPowerRailData();
+}
+
+void TerraPowerRail::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    static_cast<TerraPowerRailData *>(dataOut)->nominalVoltage = _nominalVoltage;
 }

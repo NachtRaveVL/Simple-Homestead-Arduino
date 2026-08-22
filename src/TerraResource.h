@@ -6,17 +6,26 @@
 #ifndef TerraResource_H
 #define TerraResource_H
 
+struct TerraResourceData;
+
 #include "TerraObject.h"
+#include "TerraDatas.h"
 
 // Resource Base
 // Normalized resource level with reserve, low, high, and fault states.
 class TerraResource : public TerraObject {
 public:
     TerraResource(Terra_ResourceType type = Terra_ResourceType_Undefined,
-                  uint32_t key = TERRA_INVALID_KEY,
+                  tposi_t resourceIndex = TERRA_POS_SEARCH_FROMBEG,
                   const TerraString &name = TerraString());
+    TerraResource(const TerraResourceData *dataIn);
 
-    Terra_ResourceType getType() const { return _type; }
+protected:
+    TerraResource(TerraIdentity id, const TerraString &name = TerraString());
+
+public:
+
+    Terra_ResourceType getType() const { return _id.objTypeAs.resourceType; }
     Terra_ResourceState getState() const { return _state; }
     float getLevel() const { return _level; }
     float getReserveLevel() const { return _reserveLevel; }
@@ -29,13 +38,15 @@ public:
     void clearFault();
 
 protected:
-    void updateState();
-    Terra_ResourceType _type;                               // Resource/source type
     Terra_ResourceState _state;                             // Current trigger/resource state
     float _level;                                           // Normalized level, percent
     float _reserveLevel;                                    // Protected reserve level, percent
     float _lowLevel;                                        // Low threshold, percent
     float _highLevel;                                       // High threshold, percent
+
+    void updateState();
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 #endif

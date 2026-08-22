@@ -6,11 +6,10 @@
 #ifndef TerraTypes_H
 #define TerraTypes_H
 
-
 // Runtime object categories.
-enum Terra_ObjectType : uint8_t {
-    Terra_ObjectType_Undefined = 0,             ///< Undefined object
-    Terra_ObjectType_Sensor,                    ///< Sensor input
+enum Terra_ObjectType : int8_t {
+    Terra_ObjectType_Undefined = -1,            ///< Undefined object
+    Terra_ObjectType_Sensor = 0,                ///< Sensor input
     Terra_ObjectType_Actuator,                  ///< Controlled output
     Terra_ObjectType_Resource,                  ///< Generic resource state
     Terra_ObjectType_WaterStorage,              ///< Water tank, cistern, or reservoir
@@ -20,19 +19,21 @@ enum Terra_ObjectType : uint8_t {
     Terra_ObjectType_ThermalStore,              ///< Thermal energy store
     Terra_ObjectType_ThermalLoop,               ///< Thermal circulation loop
     Terra_ObjectType_Environment,               ///< Local weather/environment observations
-    Terra_ObjectType_PowerRail                  ///< Low-voltage equipment rail
+    Terra_ObjectType_PowerRail,                 ///< Low-voltage equipment rail
+    Terra_ObjectType_Count                      ///< Number of concrete object types
 };
 
 // Managed resource categories.
-enum Terra_ResourceType : uint8_t {
-    Terra_ResourceType_Undefined = 0,           ///< Undefined resource
-    Terra_ResourceType_Water,                   ///< Stored or available water
-    Terra_ResourceType_Thermal                  ///< Stored thermal energy
+enum Terra_ResourceType : int8_t {
+    Terra_ResourceType_Water = 0,               ///< Stored or available water
+    Terra_ResourceType_Thermal,                 ///< Stored thermal energy
+    Terra_ResourceType_Count,                   ///< Number of concrete resource types
+    Terra_ResourceType_Undefined = -1           ///< Undefined resource
 };
 
 // Normalized resource state.
-enum Terra_ResourceState : uint8_t {
-    Terra_ResourceState_Unknown = 0,            ///< No reliable state
+enum Terra_ResourceState : int8_t {
+    Terra_ResourceState_Unknown = 0,             ///< No reliable state
     Terra_ResourceState_Normal,                 ///< Within normal operating band
     Terra_ResourceState_Low,                    ///< Below low threshold
     Terra_ResourceState_Reserve,                ///< At or below protected reserve
@@ -41,28 +42,29 @@ enum Terra_ResourceState : uint8_t {
 };
 
 // Water source categories.
-enum Terra_WaterSourceType : uint8_t {
-    Terra_WaterSourceType_Undefined = 0,        ///< Undefined water source
-    Terra_WaterSourceType_Rainwater,            ///< Rainwater catchment
+enum Terra_WaterSourceType : int8_t {
+    Terra_WaterSourceType_Rainwater = 0,        ///< Rainwater catchment
     Terra_WaterSourceType_Well,                 ///< Groundwater well
     Terra_WaterSourceType_Municipal,            ///< Municipal or utility supply
     Terra_WaterSourceType_Surface,              ///< Pond, creek, lake, or other surface source
     Terra_WaterSourceType_Reclaimed,            ///< Reclaimed or greywater source
-    Terra_WaterSourceType_Stored                ///< Previously stored water source
+    Terra_WaterSourceType_Stored,               ///< Previously stored water source
+    Terra_WaterSourceType_Count,                ///< Number of concrete source types
+    Terra_WaterSourceType_Undefined = -1        ///< Undefined water source
 };
 
 // Water storage categories.
-enum Terra_WaterStorageType : uint8_t {
-    Terra_WaterStorageType_Undefined = 0,       ///< Generic or unspecified storage
-    Terra_WaterStorageType_Tank,                ///< General-purpose water tank
+enum Terra_WaterStorageType : int8_t {
+    Terra_WaterStorageType_Tank = 0,            ///< General-purpose water tank
     Terra_WaterStorageType_Cistern,             ///< Rainwater or bulk-water cistern
-    Terra_WaterStorageType_Reservoir            ///< Managed reservoir or header storage
+    Terra_WaterStorageType_Reservoir,            ///< Managed reservoir or header storage
+    Terra_WaterStorageType_Count,               ///< Number of concrete storage types
+    Terra_WaterStorageType_Undefined = -1       ///< Generic or unspecified storage
 };
 
 // Sensor categories.
-enum Terra_SensorType : uint8_t {
-    Terra_SensorType_Undefined = 0,             ///< Undefined sensor
-    Terra_SensorType_Binary,                    ///< Generic binary state
+enum Terra_SensorType : int8_t {
+    Terra_SensorType_Binary = 0,                ///< Generic binary state
     Terra_SensorType_Analog,                    ///< Generic analog reading
     Terra_SensorType_Temperature,               ///< Temperature
     Terra_SensorType_Humidity,                  ///< Relative humidity
@@ -76,20 +78,23 @@ enum Terra_SensorType : uint8_t {
     Terra_SensorType_Voltage,                   ///< Electrical voltage
     Terra_SensorType_Current,                   ///< Electrical current
     Terra_SensorType_Leak,                      ///< Leak/flood state
-    Terra_SensorType_Remote                     ///< Transport-neutral remote reading
+    Terra_SensorType_Remote,                    ///< Transport-neutral remote reading
+    Terra_SensorType_Count,                     ///< Number of concrete sensor types
+    Terra_SensorType_Undefined = -1             ///< Undefined sensor
 };
 
 // Actuator categories.
-enum Terra_ActuatorType : uint8_t {
-    Terra_ActuatorType_Undefined = 0,           ///< Undefined actuator
-    Terra_ActuatorType_Digital,                 ///< Generic digital output
+enum Terra_ActuatorType : int8_t {
+    Terra_ActuatorType_Digital = 0,             ///< Generic digital output
     Terra_ActuatorType_Variable,                ///< Generic normalized variable output
     Terra_ActuatorType_Pump,                    ///< Water pump
     Terra_ActuatorType_Valve,                   ///< On/off valve
     Terra_ActuatorType_Diverter,                ///< Two-way or proportional diverter
     Terra_ActuatorType_Heater,                  ///< Heater output
     Terra_ActuatorType_Circulator,              ///< Thermal circulation pump
-    Terra_ActuatorType_SumpPump                 ///< Level-controlled sump pump
+    Terra_ActuatorType_SumpPump,                ///< Level-controlled sump pump
+    Terra_ActuatorType_Count,                   ///< Number of concrete actuator types
+    Terra_ActuatorType_Undefined = -1           ///< Undefined actuator
 };
 
 // Preferred reporting system.
@@ -99,6 +104,14 @@ enum Terra_MeasurementMode : int8_t {
     Terra_MeasurementMode_Scientific,           ///< SI/scientific presentation units
     Terra_MeasurementMode_Count,                ///< Number of concrete modes
     Terra_MeasurementMode_Undefined = -1        ///< Unspecified mode
+};
+
+// Drive direction.
+enum Terra_DirectionMode : int8_t {
+    Terra_DirectionMode_Reverse = -1,            ///< Reverse/negative drive direction
+    Terra_DirectionMode_Stop = 0,                ///< Stop/no drive
+    Terra_DirectionMode_Forward = 1,             ///< Forward/positive drive direction
+    Terra_DirectionMode_Undefined = -2           ///< Undefined direction
 };
 
 // How concurrent actuator requests are combined.
@@ -126,9 +139,8 @@ enum Terra_PinMode : int8_t {
 };
 
 // Measurement units.
-enum Terra_Unit : uint8_t {
-    Terra_Unit_Undefined = 0,                   ///< Undefined unit
-    Terra_Unit_Raw,                             ///< Raw/dimensionless value
+enum Terra_Unit : int8_t {
+    Terra_Unit_Raw = 0,                         ///< Raw/dimensionless value
     Terra_Unit_Percent,                         ///< Percent
     Terra_Unit_Celsius,                         ///< Degrees Celsius
     Terra_Unit_Fahrenheit,                      ///< Degrees Fahrenheit
@@ -152,7 +164,9 @@ enum Terra_Unit : uint8_t {
     Terra_Unit_MilesPerHour,                    ///< Miles per hour
     Terra_Unit_Degrees,                         ///< Degrees
     Terra_Unit_Volts,                           ///< Volts
-    Terra_Unit_Amps                             ///< Amperes
+    Terra_Unit_Amps,                            ///< Amperes
+    Terra_Unit_Count,                           ///< Number of concrete units
+    Terra_Unit_Undefined = -1                   ///< Undefined unit
 };
 
 // Measurement unit families.
@@ -187,29 +201,23 @@ enum Terra_RailType : int8_t {
     Terra_RailType_Undefined = -1               ///< Unspecified rail
 };
 
-// Trigger comparison operations.
-enum Terra_Comparison : uint8_t {
-    Terra_Comparison_LessThan = 0,              ///< Less than
-    Terra_Comparison_LessOrEqual,               ///< Less than or equal
-    Terra_Comparison_GreaterThan,               ///< Greater than
-    Terra_Comparison_GreaterOrEqual,            ///< Greater than or equal
-    Terra_Comparison_Equal,                     ///< Approximately equal
-    Terra_Comparison_NotEqual                   ///< Not approximately equal
-};
-
 // Trigger output state.
-enum Terra_TriggerState : uint8_t {
-    Terra_TriggerState_Inactive = 0,            ///< Trigger inactive
-    Terra_TriggerState_Active,                  ///< Trigger active
-    Terra_TriggerState_Fault                    ///< Trigger input invalid/faulted
+enum Terra_TriggerState : int8_t {
+    Terra_TriggerState_Disabled = 0,            ///< Trigger disabled / no valid measurement yet
+    Terra_TriggerState_NotTriggered,            ///< Trigger inactive
+    Terra_TriggerState_Triggered,               ///< Trigger active
+    Terra_TriggerState_Count,                   ///< Number of concrete states
+    Terra_TriggerState_Undefined = -1           ///< Undefined trigger state
 };
 
 // Logging severity.
-enum Terra_LogLevel : uint8_t {
+enum Terra_LogLevel : int8_t {
     Terra_LogLevel_Debug = 0,                   ///< Debug detail
     Terra_LogLevel_Info,                        ///< Informational event
     Terra_LogLevel_Warning,                     ///< Warning
-    Terra_LogLevel_Error                        ///< Error
+    Terra_LogLevel_Error,                       ///< Error
+    Terra_LogLevel_Count,                       ///< Number of concrete levels
+    Terra_LogLevel_Undefined = -1               ///< Undefined log level
 };
 
 // Real-time clock device type. Values mirror the supported RTClib device names.
@@ -221,55 +229,22 @@ enum Terra_RTCType : int8_t {
     Terra_RTCType_None = -1                     ///< No configured RTC
 };
 
-// Optional module categories.
-enum Terra_ModuleType : uint8_t {
-    Terra_ModuleType_Undefined = 0,             ///< Undefined module
-    Terra_ModuleType_RTC,                       ///< Real-time clock
-    Terra_ModuleType_Storage,                   ///< EEPROM/flash/SD storage
-    Terra_ModuleType_Display,                   ///< Local display/UI
-    Terra_ModuleType_Network,                   ///< WiFi/Ethernet network interface
-    Terra_ModuleType_Radio,                     ///< LoRa/other radio link
-    Terra_ModuleType_IOExpander                 ///< GPIO/ADC expander
-};
-
 // Controller operating mode.
-enum Terra_ControlMode : uint8_t {
+enum Terra_ControlMode : int8_t {
     Terra_ControlMode_Manual = 0,               ///< Application/user code drives outputs
     Terra_ControlMode_Automatic,                ///< Local automation active
-    Terra_ControlMode_Disabled                  ///< Controller updates suspended
+    Terra_ControlMode_Disabled,                 ///< Controller updates suspended
+    Terra_ControlMode_Count,                    ///< Number of concrete modes
+    Terra_ControlMode_Undefined = -1            ///< Undefined mode
 };
 
 // Water route state.
-enum Terra_RouteState : uint8_t {
+enum Terra_RouteState : int8_t {
     Terra_RouteState_Idle = 0,                  ///< Route idle
     Terra_RouteState_Requested,                 ///< Route requested to start
     Terra_RouteState_Active,                    ///< Route actively transferring
     Terra_RouteState_Complete,                  ///< Destination target reached
     Terra_RouteState_Fault                      ///< Route faulted
-};
-
-// Common relationships between homestead objects.
-enum Terra_AttachmentRole : uint8_t {
-    Terra_AttachmentRole_Undefined = 0,         ///< Undefined relationship
-    Terra_AttachmentRole_PrimarySensor,         ///< Primary sensor
-    Terra_AttachmentRole_SecondarySensor,       ///< Secondary/redundant sensor
-    Terra_AttachmentRole_LevelSensor,           ///< Level sensor
-    Terra_AttachmentRole_FlowSensor,            ///< Flow sensor
-    Terra_AttachmentRole_TemperatureSensor,     ///< Temperature sensor
-    Terra_AttachmentRole_HumiditySensor,        ///< Humidity sensor
-    Terra_AttachmentRole_PressureSensor,        ///< Pressure sensor
-    Terra_AttachmentRole_RainfallSensor,        ///< Accumulated rainfall sensor
-    Terra_AttachmentRole_RainRateSensor,        ///< Rainfall rate sensor
-    Terra_AttachmentRole_WindSpeedSensor,       ///< Wind speed sensor
-    Terra_AttachmentRole_WindDirectionSensor,   ///< Wind direction sensor
-    Terra_AttachmentRole_SolarRadiationSensor,  ///< Solar irradiance sensor
-    Terra_AttachmentRole_LeakSensor,            ///< Leak/flood sensor
-    Terra_AttachmentRole_Storage,               ///< Storage object
-    Terra_AttachmentRole_Pump,                  ///< Pump actuator
-    Terra_AttachmentRole_Valve,                 ///< Valve actuator
-    Terra_AttachmentRole_Diverter,              ///< Diverter actuator
-    Terra_AttachmentRole_Heater,                ///< Heater actuator
-    Terra_AttachmentRole_Circulator             ///< Circulation pump
 };
 
 #endif // /ifndef TerraTypes_H

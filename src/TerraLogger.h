@@ -6,34 +6,46 @@
 #ifndef TerraLogger_H
 #define TerraLogger_H
 
-#include "TerraDefines.h"
+#include "TerraData.h"
 #include "TerraLoggerSubData.h"
-#include "TerraInterfaces.h"
+
+
+struct TerraLogEvent {
+    Terra_LogLevel level;                                   // Logging level
+    uint32_t timestamp;                                     // Event timestamp
+    char category[TERRA_PREFIX_MAXSIZE];                    // Event category
+    char message[TERRA_LOG_MESSAGE_MAXSIZE];                // Event message
+};
 
 class TerraLogger {
 public:
     TerraLogger();
 
-    void setSink(TerraTextSink *sink) { _sink = sink; }
-    void setMinimumLevel(Terra_LogLevel level) { _minimumLevel = level; }
-    Terra_LogLevel getMinimumLevel() const { return _minimumLevel; }
-    void log(Terra_LogLevel level, const TerraString &category, const TerraString &message, uint32_t timestamp = terraMillis());
-    void debug(const TerraString &category, const TerraString &message, uint32_t timestamp = terraMillis()) { log(Terra_LogLevel_Debug, category, message, timestamp); }
-    void info(const TerraString &category, const TerraString &message, uint32_t timestamp = terraMillis()) { log(Terra_LogLevel_Info, category, message, timestamp); }
-    void warning(const TerraString &category, const TerraString &message, uint32_t timestamp = terraMillis()) { log(Terra_LogLevel_Warning, category, message, timestamp); }
-    void error(const TerraString &category, const TerraString &message, uint32_t timestamp = terraMillis()) { log(Terra_LogLevel_Error, category, message, timestamp); }
+    void setSubData(TerraLoggerSubData *data);
+    void setLogLevel(Terra_LogLevel logLevel);
+    Terra_LogLevel getLogLevel() const;
+    inline bool isLoggingEnabled() const { return getLogLevel() != Terra_LogLevel_Undefined; }
 
-    uint8_t count() const { return _count; }
-    const TerraLogRecord *at(uint8_t index) const;
-    void clear();
+    void logMessage(uint32_t timestamp, const char *category, const char *message);
+    void logWarning(uint32_t timestamp, const char *category, const char *message);
+    void logError(uint32_t timestamp, const char *category, const char *message);
+
+    inline void info(const TerraString &category, const TerraString &message, uint32_t timestamp = millis())
+        { logMessage(timestamp, category.c_str(), message.c_str()); }
+    inline void warning(const TerraString &category, const TerraString &message, uint32_t timestamp = millis())
+        { logWarning(timestamp, category.c_str(), message.c_str()); }
+    inline void error(const TerraString &category, const TerraString &message, uint32_t timestamp = millis())
+        { logError(timestamp, category.c_str(), message.c_str()); }
+
+    Signal<const TerraLogEvent, TERRA_DEFAULT_MAXSIZE> &getLogSignal();
 
 protected:
-    TerraString format(const TerraLogRecord &record) const;
-    TerraLogRecord _records[TERRA_MAX_LOG_RECORDS];         // Records
-    uint8_t _head;                                          // Oldest log record index
-    uint8_t _count;                                         // Active entry count
-    Terra_LogLevel _minimumLevel;                           // Minimum accepted log level
-    TerraTextSink *_sink;
+    Terra_LogLevel _logLevel;                               // Active log level
+    TerraLoggerSubData *_data;                              // Serialized logger settings, not owned
+    Signal<const TerraLogEvent, TERRA_DEFAULT_MAXSIZE> _logSignal; // Logging signal
+
+    void log(Terra_LogLevel level, uint32_t timestamp, const char *category, const char *message);
 };
 
-#endif
+
+#endif // /ifndef TerraLogger_H

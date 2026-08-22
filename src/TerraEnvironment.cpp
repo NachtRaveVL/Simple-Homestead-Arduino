@@ -4,20 +4,37 @@
 */
 
 #include "Terraduino.h"
+#include <string.h>
 #include "TerraUtils.h"
 
-TerraEnvironment::TerraEnvironment(uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_Environment, key, name),
+TerraEnvironment::TerraEnvironment(tposi_t environmentIndex, const TerraString &name)
+    : TerraObject(TerraIdentity(Terra_ObjectType_Environment, environmentIndex), name),
       _airTemperature(this), _humidity(this), _pressure(this), _rainfall(this), _rainRate(this),
       _windSpeed(this), _windDirection(this), _solarRadiation(this)
 { ; }
 
+TerraEnvironment::TerraEnvironment(const TerraEnvironmentData *dataIn)
+    : TerraObject(dataIn), _airTemperature(this), _humidity(this), _pressure(this),
+      _rainfall(this), _rainRate(this), _windSpeed(this), _windDirection(this), _solarRadiation(this)
+{
+    if (dataIn) {
+        if (dataIn->airTemperatureSensor[0]) { _airTemperature.initObject(dataIn->airTemperatureSensor); }
+        if (dataIn->humiditySensor[0]) { _humidity.initObject(dataIn->humiditySensor); }
+        if (dataIn->pressureSensor[0]) { _pressure.initObject(dataIn->pressureSensor); }
+        if (dataIn->rainfallSensor[0]) { _rainfall.initObject(dataIn->rainfallSensor); }
+        if (dataIn->rainRateSensor[0]) { _rainRate.initObject(dataIn->rainRateSensor); }
+        if (dataIn->windSpeedSensor[0]) { _windSpeed.initObject(dataIn->windSpeedSensor); }
+        if (dataIn->windDirectionSensor[0]) { _windDirection.initObject(dataIn->windDirectionSensor); }
+        if (dataIn->solarRadiationSensor[0]) { _solarRadiation.initObject(dataIn->solarRadiationSensor); }
+    }
+}
+
 static float terraEnvironmentValue(const TerraSensorAttachment &attachment, Terra_Unit units)
 {
-    TerraMeasurement measurement = attachment.getCachedMeasurement();
-    if (!measurement.valid) { return NAN; }
-    if (measurement.unit != units) { measurement = terraConvertMeasurement(measurement, units); }
-    return measurement.valid ? measurement.value : NAN;
+    TerraSingleMeasurement measurement = attachment.getCachedMeasurement();
+    if (!measurement.isSet()) { return NAN; }
+    if (measurement.units != units) { measurement.toUnits(units); }
+    return measurement.units == units ? measurement.value : NAN;
 }
 
 float TerraEnvironment::getAirTemperature() const
@@ -83,6 +100,7 @@ float TerraEnvironment::dewPointC() const
 
 void TerraEnvironment::update(uint32_t now)
 {
+    TerraObject::update(now);
     if (_airTemperature.isSet()) { _airTemperature.getMeasurement(now, true); }
     if (_humidity.isSet()) { _humidity.getMeasurement(now, true); }
     if (_pressure.isSet()) { _pressure.getMeasurement(now, true); }
@@ -106,17 +124,27 @@ void TerraEnvironment::unresolveAny(TerraObject *object)
     TerraObject::unresolveAny(object);
 }
 
-void TerraEnvironment::initAttachmentKey(Terra_AttachmentRole role, uint32_t key)
+TerraData *TerraEnvironment::allocateData() const
 {
-    switch (role) {
-        case Terra_AttachmentRole_TemperatureSensor: _airTemperature.initObject(key); break;
-        case Terra_AttachmentRole_HumiditySensor: _humidity.initObject(key); break;
-        case Terra_AttachmentRole_PressureSensor: _pressure.initObject(key); break;
-        case Terra_AttachmentRole_RainfallSensor: _rainfall.initObject(key); break;
-        case Terra_AttachmentRole_RainRateSensor: _rainRate.initObject(key); break;
-        case Terra_AttachmentRole_WindSpeedSensor: _windSpeed.initObject(key); break;
-        case Terra_AttachmentRole_WindDirectionSensor: _windDirection.initObject(key); break;
-        case Terra_AttachmentRole_SolarRadiationSensor: _solarRadiation.initObject(key); break;
-        default: break;
-    }
+    return new TerraEnvironmentData();
+}
+
+void TerraEnvironment::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    auto data = static_cast<TerraEnvironmentData *>(dataOut);
+    auto copyAttachment = [](char *destination, const TerraAttachment &attachment) {
+        if (attachment.isSet()) {
+            strncpy(destination, attachment.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+            destination[TERRA_NAME_MAXSIZE - 1] = '\0';
+        }
+    };
+    copyAttachment(data->airTemperatureSensor, _airTemperature);
+    copyAttachment(data->humiditySensor, _humidity);
+    copyAttachment(data->pressureSensor, _pressure);
+    copyAttachment(data->rainfallSensor, _rainfall);
+    copyAttachment(data->rainRateSensor, _rainRate);
+    copyAttachment(data->windSpeedSensor, _windSpeed);
+    copyAttachment(data->windDirectionSensor, _windDirection);
+    copyAttachment(data->solarRadiationSensor, _solarRadiation);
 }

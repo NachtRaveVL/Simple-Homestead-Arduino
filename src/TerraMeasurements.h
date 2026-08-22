@@ -1,142 +1,109 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
-    Copyright (C) 2023 NachtRaveVL          <nachtravevl@gmail.com>
+    Copyright (C) 2026 NachtRaveVL
     Terraduino Sensor Measurements
 */
 
 #ifndef TerraMeasurements_H
 #define TerraMeasurements_H
 
-struct TerraMeasurement;
-struct TerraSingleMeasurement;
-struct TerraBinaryMeasurement;
-struct TerraDoubleMeasurement;
-struct TerraTripleMeasurement;
-
-struct TerraMeasurementData;
-
-#include "Terraduino.h"
 #include "TerraData.h"
 
-// Creates measurement object from passed trigger sub data (return ownership transfer - user code *must* delete returned object)
-extern TerraMeasurement *newMeasurementObjectFromSubData(const TerraMeasurementData *dataIn);
+struct TerraSingleMeasurement;
 
-// Gets the value of a measurement at a specified row (with optional binary true scaling value).
-extern float getMeasurementValue(const TerraMeasurement *measurement, uint8_t measurementRow = 0, float binScale = 1.0f);
-// Gets the units of a measurement at a specified row (with optional binary units).
-extern Terra_UnitsType getMeasurementUnits(const TerraMeasurement *measurement, uint8_t measurementRow = 0, Terra_UnitsType binUnits = Terra_UnitsType_Raw_1);
-// Gets the number of rows of data that a measurement holds.
-extern uint8_t getMeasurementRowCount(const TerraMeasurement *measurement);
-// Gets the single measurement of a measurement (with optional binary true scaling value / units).
-extern TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measurement, uint8_t measurementRow = 0, float binScale = 1.0f, Terra_UnitsType binUnits = Terra_UnitsType_Raw_1);
-
-// Sensor Data Measurement Base
+// Sensor Measurement Base
 struct TerraMeasurement {
-    enum : signed char { Binary, Single, Double, Triple, Unknown = -1 } type; // Measurement type (custom RTTI)
+    enum : signed char { Binary, Single, Double, Triple, Unknown = -1 } type; // Measurement class type
+
+    uint32_t timestamp;                                     // Measurement timestamp
+    tframe_t frame;                                         // Polling frame number
+
+    TerraMeasurement(int classType = Unknown,
+                     uint32_t timestampIn = 0,
+                     tframe_t frameIn = tframe_none)
+        : type((decltype(type))classType), timestamp(timestampIn), frame(frameIn) { ; }
+
     inline bool isBinaryType() const { return type == Binary; }
     inline bool isSingleType() const { return type == Single; }
     inline bool isDoubleType() const { return type == Double; }
     inline bool isTripleType() const { return type == Triple; }
     inline bool isUnknownType() const { return type <= Unknown; }
-
-    time_t timestamp;                                       // Time event recorded (UTC)
-    tframe_t frame;                                         // Polling frame # measurement taken on, or 0 if not-set else 1 if user-set
-
-    inline TerraMeasurement() : type(Unknown), timestamp(unixNow()), frame(0) { ; }
-    inline TerraMeasurement(int classType, time_t timestampIn, tframe_t frameIn) : type((typeof(type))classType), timestamp(timestampIn), frame(frameIn) { ; }
-    TerraMeasurement(int classType, time_t timestamp = 0);
-    TerraMeasurement(const TerraMeasurementData *dataIn);
-
-    void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
-
-    inline void updateTimestamp() { timestamp = unixNow(); }
-    void updateFrame(tframe_t minFrame = 0);
-    inline void setMinFrame(tframe_t minFrame = 0) { frame = max(minFrame, frame); }
     inline bool isSet() const { return frame != tframe_none; }
+
+    inline void updateFrame(tframe_t minFrame = 1) { frame = frame < minFrame ? minFrame : frame; }
 };
 
-// Single Value Sensor Data Measurement
-struct TerraSingleMeasurement : public TerraMeasurement {
-    float value;                                            // Polled value
-    Terra_UnitsType units;                                  // Units of value
-
-    TerraSingleMeasurement();
-    TerraSingleMeasurement(float value, Terra_UnitsType units, time_t timestamp = unixNow());
-    TerraSingleMeasurement(float value, Terra_UnitsType units, time_t timestamp, tframe_t frame);
-    TerraSingleMeasurement(const TerraMeasurementData *dataIn);
-
-    void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
-
-    // Modifiers (in utils)
-
-    inline TerraSingleMeasurement &toUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF);
-
-    // Copiers (in utils)
-
-    inline TerraSingleMeasurement asUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF) const;
-};
-
-// Binary Value Sensor Data Measurement
+// Binary Measurement
 struct TerraBinaryMeasurement : public TerraMeasurement {
-    bool state;                                             // Polled state
+    bool state;                                             // Binary state
 
-    TerraBinaryMeasurement();
-    TerraBinaryMeasurement(bool state, time_t timestamp = unixNow());
-    TerraBinaryMeasurement(bool state, time_t timestamp, tframe_t frame);
-    TerraBinaryMeasurement(const TerraMeasurementData *dataIn);
+    TerraBinaryMeasurement(bool stateIn = false,
+                           uint32_t timestampIn = 0,
+                           tframe_t frameIn = tframe_none)
+        : TerraMeasurement(Binary, timestampIn, frameIn), state(stateIn) { ; }
 
-    void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
-
-    inline TerraSingleMeasurement getAsSingleMeasurement(float binScale = 1.0f, Terra_UnitsType binUnits = Terra_UnitsType_Raw_1) { return TerraSingleMeasurement(state ? binScale : 0.0f, binUnits, timestamp, frame); }
+    TerraSingleMeasurement getAsSingleMeasurement(float trueScale = 1.0f,
+                                                   Terra_Unit unitsIn = Terra_Unit_Raw) const;
 };
 
-// Double Value Sensor Data Measurement
+// Single Value Measurement
+struct TerraSingleMeasurement : public TerraMeasurement {
+    float value;                                            // Measured value
+    Terra_Unit units;                                       // Measurement units
+
+    TerraSingleMeasurement(float valueIn = 0.0f,
+                           Terra_Unit unitsIn = Terra_Unit_Undefined,
+                           uint32_t timestampIn = 0,
+                           tframe_t frameIn = tframe_none)
+        : TerraMeasurement(Single, timestampIn, frameIn), value(valueIn), units(unitsIn) { ; }
+
+    TerraSingleMeasurement &toUnits(Terra_Unit outUnits);
+    TerraSingleMeasurement asUnits(Terra_Unit outUnits) const;
+};
+
+// Double Value Measurement
 struct TerraDoubleMeasurement : public TerraMeasurement {
-    float value[2];                                         // Polled values
-    Terra_UnitsType units[2];                               // Units of values
+    float value[2];                                         // Measured values
+    Terra_Unit units[2];                                    // Measurement units
 
-    TerraDoubleMeasurement();
-    TerraDoubleMeasurement(float value1, Terra_UnitsType units1, 
-                           float value2, Terra_UnitsType units2, 
-                           time_t timestamp = unixNow());
-    TerraDoubleMeasurement(float value1, Terra_UnitsType units1, 
-                           float value2, Terra_UnitsType units2, 
-                           time_t timestamp, tframe_t frame);
-    TerraDoubleMeasurement(const TerraMeasurementData *dataIn);
+    TerraDoubleMeasurement(float value1 = 0.0f, Terra_Unit units1 = Terra_Unit_Undefined,
+                           float value2 = 0.0f, Terra_Unit units2 = Terra_Unit_Undefined,
+                           uint32_t timestampIn = 0, tframe_t frameIn = tframe_none);
 
-    void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
-
-    inline TerraSingleMeasurement getAsSingleMeasurement(uint8_t measurementRow) { return TerraSingleMeasurement(value[measurementRow], units[measurementRow], timestamp, frame); }
+    TerraSingleMeasurement getAsSingleMeasurement(uint8_t row) const;
 };
 
-// Triple Value Sensor Data Measurement
+// Triple Value Measurement
 struct TerraTripleMeasurement : public TerraMeasurement {
-    float value[3];                                         // Polled values
-    Terra_UnitsType units[3];                               // Units of values
+    float value[3];                                         // Measured values
+    Terra_Unit units[3];                                    // Measurement units
 
-    TerraTripleMeasurement();
-    TerraTripleMeasurement(float value1, Terra_UnitsType units1, 
-                           float value2, Terra_UnitsType units2, 
-                           float value3, Terra_UnitsType units3,
-                           time_t timestamp = unixNow());
-    TerraTripleMeasurement(float value1, Terra_UnitsType units1, 
-                           float value2, Terra_UnitsType units2, 
-                           float value3, Terra_UnitsType units3,
-                           time_t timestamp, tframe_t frame);
-    TerraTripleMeasurement(const TerraMeasurementData *dataIn);
+    TerraTripleMeasurement(float value1 = 0.0f, Terra_Unit units1 = Terra_Unit_Undefined,
+                           float value2 = 0.0f, Terra_Unit units2 = Terra_Unit_Undefined,
+                           float value3 = 0.0f, Terra_Unit units3 = Terra_Unit_Undefined,
+                           uint32_t timestampIn = 0, tframe_t frameIn = tframe_none);
 
-    void saveToData(TerraMeasurementData *dataOut, uint8_t measurementRow = 0, unsigned int additionalDecPlaces = 0) const;
-
-    inline TerraSingleMeasurement getAsSingleMeasurement(uint8_t measurementRow) { return TerraSingleMeasurement(value[measurementRow], units[measurementRow], timestamp, frame); }
-    inline TerraDoubleMeasurement getAsDoubleMeasurement(uint8_t measurementRow1, uint8_t measurementRow2) { return TerraDoubleMeasurement(value[measurementRow1], units[measurementRow1], value[measurementRow2], units[measurementRow2], timestamp, frame); }
+    TerraSingleMeasurement getAsSingleMeasurement(uint8_t row) const;
+    TerraDoubleMeasurement getAsDoubleMeasurement(uint8_t row1, uint8_t row2) const;
 };
 
+extern float getMeasurementValue(const TerraMeasurement *measurement, uint8_t row = 0, float trueScale = 1.0f);
+extern Terra_Unit getMeasurementUnits(const TerraMeasurement *measurement, uint8_t row = 0,
+                                      Terra_Unit binaryUnits = Terra_Unit_Raw);
+extern uint8_t getMeasurementRowCount(const TerraMeasurement *measurement);
+extern TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measurement, uint8_t row = 0,
+                                                      float trueScale = 1.0f,
+                                                      Terra_Unit binaryUnits = Terra_Unit_Raw);
+extern bool canConvertUnits(Terra_Unit fromUnits, Terra_Unit toUnits);
+extern float convertUnits(float value, Terra_Unit fromUnits, Terra_Unit toUnits);
+inline TerraSingleMeasurement terraConvertMeasurement(TerraSingleMeasurement measurement, Terra_Unit units)
+    { return measurement.asUnits(units); }
 
-// Combined Measurement Serialization Sub Data
+// Measurement Serialization Data
 struct TerraMeasurementData : public TerraSubData {
-    uint8_t measurementRow;                                 // Source measurement row index that data is from
-    float value;                                            // Value
-    Terra_UnitsType units;                                  // Units of value
-    time_t timestamp;                                       // Timestamp
+    uint8_t measurementRow;                                // Measurement row
+    float value;                                            // Measured value
+    Terra_Unit units;                                       // Measurement units
+    uint32_t timestamp;                                     // Measurement timestamp
 
     TerraMeasurementData();
     void toJSONObject(JsonObject &objectOut) const;

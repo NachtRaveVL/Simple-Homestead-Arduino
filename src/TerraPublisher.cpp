@@ -3,53 +3,91 @@
     Terraduino Publisher
 */
 
-#include "TerraPublisher.h"
-#include "TerraMeasurements.h"
-#include "TerraUtils.h"
-
-static bool terraStringEqualExact(const TerraString &a, const TerraString &b) {
-#if defined(ARDUINO)
-    return a == b;
-#else
-    return a.compare(b) == 0;
-#endif
-}
+#include "Terraduino.h"
+#include <stdio.h>
+#include <string.h>
 
 TerraPublisher::TerraPublisher()
-    : _count(0), _callback(nullptr), _context(nullptr), _intervalMs(TERRA_DEFAULT_PUBLISH_INTERVAL), _lastPublishAt(0) { }
+    : _columns(), _columnCount(0), _publishedFrame(tframe_none), _data(nullptr), _publishSignal()
+{ ; }
 
-bool TerraPublisher::addChannel(const TerraString &name, const TerraMeasurementProvider *provider, Terra_Unit outputUnit) {
-    if (!provider || _count >= TERRA_MAX_PUBLISH_CHANNELS) return false;
-    for (uint8_t i = 0; i < _count; ++i) if (terraStringEqualExact(_channels[i].name, name)) return false;
-    _channels[_count].name = name;
-    _channels[_count].provider = provider;
-    _channels[_count].outputUnit = outputUnit;
-    ++_count;
+bool TerraPublisher::addColumn(tkey_t sensorKey)
+{
+    if (!sensorKey || _columnCount >= TERRA_MAX_PUBLISH_CHANNELS) { return false; }
+    if (getColumnIndexStart(sensorKey) >= 0) { return true; }
+    _columns[_columnCount++] = TerraDataColumn(sensorKey);
     return true;
 }
 
-bool TerraPublisher::removeChannel(const TerraString &name) {
-    for (uint8_t i = 0; i < _count; ++i) {
-        if (terraStringEqualExact(_channels[i].name, name)) {
-            for (uint8_t j = i + 1; j < _count; ++j) _channels[j - 1] = _channels[j];
-            --_count;
-            return true;
-        }
-    }
-    return false;
+bool TerraPublisher::publishData(tkey_t sensorKey, const TerraSingleMeasurement &measurement)
+{
+    tposi_t index = getColumnIndexStart(sensorKey);
+    if (index < 0) { return false; }
+    _columns[index].measurement = measurement;
+    publishIfReady(measurement.frame, measurement.timestamp);
+    return true;
 }
 
-void TerraPublisher::publish(uint32_t now) {
-    if (!_callback) return;
-    for (uint8_t i = 0; i < _count; ++i) {
-        TerraMeasurement measurement = _channels[i].provider->getMeasurement();
-        if (_channels[i].outputUnit != Terra_Unit_Undefined && measurement.unit != _channels[i].outputUnit)
-            measurement = terraConvertMeasurement(measurement, _channels[i].outputUnit);
-        _callback(_context, _channels[i].name.c_str(), measurement);
-    }
-    _lastPublishAt = now;
+bool TerraPublisher::publishData(tkey_t sensorKey, float value, Terra_Unit units,
+                                 tframe_t frame, uint32_t timestamp)
+{
+    return publishData(sensorKey, TerraSingleMeasurement(value, units, timestamp, frame));
 }
 
-void TerraPublisher::update(uint32_t now) {
-    if (!_lastPublishAt || terraElapsed(now, _lastPublishAt, _intervalMs)) publish(now);
+void TerraPublisher::advancePollingFrame(tframe_t frame, uint32_t timestamp)
+{
+    publishIfReady(frame, timestamp);
+}
+
+tposi_t TerraPublisher::getColumnIndexStart(tkey_t sensorKey) const
+{
+    for (uint8_t index = 0; index < _columnCount; ++index) {
+        if (_columns[index].sensorKey == sensorKey) { return (tposi_t)index; }
+    }
+    return tposi_none;
+}
+
+void TerraPublisher::publishIfReady(tframe_t frame, uint32_t timestamp)
+{
+    (void)timestamp;
+    if (!_columnCount || frame == tframe_none || frame == _publishedFrame) { return; }
+    for (uint8_t index = 0; index < _columnCount; ++index) {
+        if (_columns[index].measurement.frame != frame) { return; }
+    }
+    _publishedFrame = frame;
+    _publishSignal.fire(Pair<uint8_t, const TerraDataColumn *>(_columnCount, _columns));
+}
+
+Signal<Pair<uint8_t, const TerraDataColumn *>, TERRA_DEFAULT_MAXSIZE> &TerraPublisher::getPublishSignal()
+{
+    return _publishSignal;
+}
+
+TerraPublisherSubData::TerraPublisherSubData()
+    : TerraSubData(0), dataFilePrefix{0}, pubToSDCard(false),
+      pubToWiFiStorage(false), pubToMQTT(false)
+{
+    snprintf(dataFilePrefix, sizeof(dataFilePrefix), "data/terra");
+}
+
+void TerraPublisherSubData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraSubData::toJSONObject(objectOut);
+    objectOut["dataFilePrefix"] = dataFilePrefix;
+    objectOut["pubToSDCard"] = pubToSDCard;
+    objectOut["pubToWiFiStorage"] = pubToWiFiStorage;
+    objectOut["pubToMQTT"] = pubToMQTT;
+}
+
+void TerraPublisherSubData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraSubData::fromJSONObject(objectIn);
+    const char *prefix = objectIn["dataFilePrefix"] | nullptr;
+    if (prefix) {
+        strncpy(dataFilePrefix, prefix, TERRA_PREFIX_MAXSIZE - 1);
+        dataFilePrefix[TERRA_PREFIX_MAXSIZE - 1] = '\0';
+    }
+    pubToSDCard = objectIn["pubToSDCard"] | pubToSDCard;
+    pubToWiFiStorage = objectIn["pubToWiFiStorage"] | pubToWiFiStorage;
+    pubToMQTT = objectIn["pubToMQTT"] | pubToMQTT;
 }

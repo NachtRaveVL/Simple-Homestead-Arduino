@@ -6,7 +6,11 @@
 #ifndef TerraActivation_H
 #define TerraActivation_H
 
+struct TerraActivation;
+struct TerraActivationHandle;
 class TerraActuator;
+
+#include "TerraTypes.h"
 
 // Activation Flags
 enum Terra_ActivationFlags : uint8_t {
@@ -17,44 +21,50 @@ enum Terra_ActivationFlags : uint8_t {
 // Activation Setup
 // Stores one normalized actuator-output request and optional duration.
 struct TerraActivation {
+    Terra_DirectionMode direction;                          // Normalized driving direction
     float intensity;                                        // Normalized driving intensity [0.0,1.0]
-    millis_t duration;                                      // Duration remaining, milliseconds, -1 for unlimited, 0 for finished
+    millis_t duration;                                      // Duration remaining, -1 unlimited, 0 finished
     Terra_ActivationFlags flags;                            // Activation flags
 
-    TerraActivation(float intensityIn = 0.0f,
-                    millis_t durationIn = 0,
-                    Terra_ActivationFlags flagsIn = Terra_ActivationFlags_None)
-        : intensity(constrain(intensityIn, 0.0f, 1.0f)), duration(durationIn), flags(flagsIn) { }
+    TerraActivation(Terra_DirectionMode directionIn, float intensityIn,
+                    millis_t durationIn, Terra_ActivationFlags flagsIn)
+        : direction(directionIn), intensity(constrain(intensityIn, 0.0f, 1.0f)),
+          duration(durationIn), flags(flagsIn) { ; }
+    TerraActivation()
+        : TerraActivation(Terra_DirectionMode_Undefined, 0.0f, 0, Terra_ActivationFlags_None) { ; }
 
-    inline bool isValid() const { return intensity > FLT_EPSILON; }
+    inline bool isValid() const { return direction != Terra_DirectionMode_Undefined; }
     inline bool isDone() const { return duration == millis_none; }
     inline bool isUntimed() const { return duration == (millis_t)-1; }
     inline bool isForced() const { return flags & Terra_ActivationFlags_Forced; }
-    inline float getDriveIntensity() const { return intensity; }
+    inline float getDriveIntensity() const { return direction == Terra_DirectionMode_Forward ? intensity :
+                                                    direction == Terra_DirectionMode_Reverse ? -intensity : 0.0f; }
 };
 
 // Activation Handle
-// Resident actuator request used by attachment points. The handle must stay memory
-// resident while active so the actuator can aggregate it with other requests.
 struct TerraActivationHandle {
-    TerraActuator *actuator;                                // Actuator owner; attachment retains shared object
+    SharedPtr<TerraActuator> actuator;                      // Actuator owner
     TerraActivation activation;                             // Activation data
-    millis_t checkTime;                                     // Last active check timestamp, else 0 for not started
+    millis_t checkTime;                                     // Last active check timestamp
     millis_t elapsed;                                       // Elapsed active time accumulator
 
-    TerraActivationHandle(TerraActuator *actuatorIn = nullptr,
-                          float intensity = 0.0f,
-                          millis_t duration = 0,
+    TerraActivationHandle(SharedPtr<TerraActuator> actuatorIn,
+                          Terra_DirectionMode direction,
+                          float intensity = 1.0f,
+                          millis_t duration = (millis_t)-1,
                           bool force = false);
-    TerraActivationHandle(const TerraActivationHandle &other);
+    inline TerraActivationHandle()
+        : TerraActivationHandle(nullptr, Terra_DirectionMode_Undefined, 0.0f, 0, false) { ; }
+    TerraActivationHandle(const TerraActivationHandle &handle);
     ~TerraActivationHandle();
 
-    void setActuator(TerraActuator *actuatorIn);
-    void setup(float intensity, millis_t duration = (millis_t)-1, bool force = false);
-    void enable();
+    TerraActivationHandle &operator=(SharedPtr<TerraActuator> actuatorIn);
+    inline TerraActivationHandle &operator=(const TerraActivation &activationIn) { activation = activationIn; return *this; }
+    inline TerraActivationHandle &operator=(const TerraActivationHandle &handle) { activation = handle.activation; return operator=(handle.actuator); }
+
     void unset();
     void elapseBy(millis_t delta);
-    inline void elapseTo(millis_t time = millis()) { elapseBy(time - checkTime); }
+    inline void elapseTo(millis_t time = millis()) { if (checkTime) { elapseBy(time - checkTime); } }
 
     inline bool isActive() const { return actuator && checkTime; }
     inline bool isValid() const { return activation.isValid(); }
@@ -66,4 +76,4 @@ struct TerraActivationHandle {
     inline float getDriveIntensity() const { return activation.getDriveIntensity(); }
 };
 
-#endif
+#endif // /ifndef TerraActivation_H

@@ -5,304 +5,374 @@
 
 #include "Terraduino.h"
 #include "TerraSensors.h"
-#include "TerraUtils.h"
+#include <string.h>
 
-TerraActuator::TerraActuator(Terra_ActuatorType actuatorType, uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_Actuator, key, name),
-      _actuatorType(actuatorType), _driver(), _enableMode(Terra_EnableMode_Highest),
-      _handles(), _directActivation(this), _output(0.0f), _needsUpdate(false)
+TerraActuator::TerraActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex, int classTypeIn)
+    : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(Relay)>(classTypeIn)),
+      _enabled(false), _needsUpdate(false), _enableMode(Terra_EnableMode_Highest),
+      _handles(), _directActivation()
+{ ; }
+
+TerraActuator::TerraActuator(const TerraActuatorData *dataIn)
+    : TerraObject((const TerraObjectData *)dataIn),
+      classType(static_cast<decltype(Relay)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
+      _enabled(false), _needsUpdate(false),
+      _enableMode(dataIn ? dataIn->enableMode : Terra_EnableMode_Highest),
+      _handles(), _directActivation()
 { ; }
 
 TerraActuator::~TerraActuator()
 {
     _directActivation.unset();
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS; ++index) {
-        if (_handles[index]) _handles[index]->actuator = nullptr;
+    while (_handles.size()) {
+        TerraActivationHandle *handle = _handles.front();
+        if (handle) { handle->unset(); }
+        else { _handles.erase(_handles.begin()); }
     }
-    applyOutput(0.0f);
 }
 
-void TerraActuator::setDriver(const SharedPtr<TerraOutputDriver> &driver)
+void TerraActuator::setEnableMode(Terra_EnableMode mode)
 {
-    _driver = driver;
-    if (_driver) { _driver->begin(); }
-    applyOutput(_output);
-}
-
-void TerraActuator::setEnabled(bool enabled)
-{
-    _enabled = enabled;
-    setNeedsUpdate();
-    resolveActivations();
-}
-
-bool TerraActuator::addActivationHandle(TerraActivationHandle *handle)
-{
-    if (!handle) return false;
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS; ++index) {
-        if (_handles[index] == handle) return true;
-        if (!_handles[index]) {
-            _handles[index] = handle;
-            setNeedsUpdate();
-            return true;
-        }
-    }
-    return false;
-}
-
-bool TerraActuator::removeActivationHandle(TerraActivationHandle *handle)
-{
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS; ++index) {
-        if (_handles[index] != handle) continue;
-        for (uint8_t subIndex = index; subIndex + 1 < TERRA_MAX_ATTACHMENTS; ++subIndex) {
-            _handles[subIndex] = _handles[subIndex + 1];
-        }
-        _handles[TERRA_MAX_ATTACHMENTS - 1] = nullptr;
+    if (_enableMode != mode) {
+        _enableMode = mode;
         setNeedsUpdate();
-        return true;
+        bumpRevisionIfNeeded();
     }
-    return false;
 }
 
-void TerraActuator::applyOutput(float intensity)
-{
-    intensity = constrain(intensity, 0.0f, 1.0f);
-    if (isFPEqual(intensity, _output)) { return; }
-    _output = intensity;
-    if (_driver) { _driver->write(_output); }
-}
-
-void TerraActuator::resolveActivations(uint32_t now)
+void TerraActuator::update(uint32_t now)
 {
     bool forced = false;
-    uint8_t activeCount = 0;
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-        if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-            forced = forced || _handles[index]->isForced();
-            ++activeCount;
+    if (_handles.size()) {
+        for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+            if (_enabled && (*handleIter)->isActive()) {
+                (*handleIter)->elapseTo(now);
+            }
+            if ((*handleIter)->actuator.get() != this || !(*handleIter)->isValid() || (*handleIter)->isDone()) {
+                if ((*handleIter)->actuator.get() == this) { (*handleIter)->actuator = nullptr; }
+                handleIter = _handles.erase(handleIter) - 1;
+                setNeedsUpdate();
+                continue;
+            }
+            forced = forced || (*handleIter)->isForced();
         }
     }
 
-    bool canEnable = activeCount && (forced || getCanEnable());
-    if (!canEnable) {
-        for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-            if (_handles[index]->checkTime) { _handles[index]->checkTime = 0; }
-        }
-        applyOutput(0.0f);
-        _needsUpdate = false;
-        return;
-    }
+    bool canEnable = _handles.size() && (forced || getCanEnable());
 
-    float drivingIntensity = 0.0f;
-    uint8_t handleCount = 0;
+    if (!canEnable && (_enabled || _needsUpdate)) {
+        _disableActuator();
+    } else if (canEnable && (!_enabled || _needsUpdate)) {
+        float drivingIntensity = 0.0f;
 
-    switch (_enableMode) {
-        case Terra_EnableMode_Highest: {
-            drivingIntensity = -__FLT_MAX__;
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-                    float handleIntensity = _handles[index]->getDriveIntensity();
-                    if (handleIntensity > drivingIntensity) { drivingIntensity = handleIntensity; }
-                    ++handleCount;
-                }
-            }
-        } break;
-
-        case Terra_EnableMode_Lowest: {
-            drivingIntensity = __FLT_MAX__;
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-                    float handleIntensity = _handles[index]->getDriveIntensity();
-                    if (handleIntensity < drivingIntensity) { drivingIntensity = handleIntensity; }
-                    ++handleCount;
-                }
-            }
-        } break;
-
-        case Terra_EnableMode_Average: {
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-                    drivingIntensity += _handles[index]->getDriveIntensity();
-                    ++handleCount;
-                }
-            }
-            if (handleCount) { drivingIntensity /= handleCount; }
-        } break;
-
-        case Terra_EnableMode_Multiply: {
-            bool started = false;
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-                    if (!started) {
-                        drivingIntensity = _handles[index]->getDriveIntensity();
-                        started = true;
-                    } else {
-                        drivingIntensity *= _handles[index]->getDriveIntensity();
+        switch (_enableMode) {
+            case Terra_EnableMode_Highest: {
+                drivingIntensity = -__FLT_MAX__;
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        auto handleIntensity = (*handleIter)->getDriveIntensity();
+                        if (handleIntensity > drivingIntensity) { drivingIntensity = handleIntensity; }
                     }
-                    ++handleCount;
                 }
-            }
-        } break;
+            } break;
 
-        case Terra_EnableMode_InOrder: {
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                if (_handles[index]->isValid() && !_handles[index]->isDone()) {
-                    drivingIntensity = _handles[index]->getDriveIntensity();
-                    handleCount = 1;
-                    break;
+            case Terra_EnableMode_Lowest: {
+                drivingIntensity = __FLT_MAX__;
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        auto handleIntensity = (*handleIter)->getDriveIntensity();
+                        if (handleIntensity < drivingIntensity) { drivingIntensity = handleIntensity; }
+                    }
                 }
-            }
-        } break;
+            } break;
 
-        case Terra_EnableMode_RevOrder: {
-            uint8_t count = 0;
-            while (count < TERRA_MAX_ATTACHMENTS && _handles[count]) { ++count; }
-            while (count) {
-                TerraActivationHandle *handle = _handles[--count];
-                if (handle->isValid() && !handle->isDone()) {
-                    drivingIntensity = handle->getDriveIntensity();
-                    handleCount = 1;
-                    break;
+            case Terra_EnableMode_Average: {
+                int handleCount = 0;
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        drivingIntensity += (*handleIter)->getDriveIntensity();
+                        ++handleCount;
+                    }
                 }
-            }
-        } break;
+                if (handleCount) { drivingIntensity /= handleCount; }
+            } break;
 
-        case Terra_EnableMode_Undefined:
-        case Terra_EnableMode_Count:
-        default:
-            break;
+            case Terra_EnableMode_Multiply: {
+                drivingIntensity = (*_handles.begin())->getDriveIntensity();
+                for (auto handleIter = _handles.begin() + 1; handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        drivingIntensity *= (*handleIter)->getDriveIntensity();
+                    }
+                }
+            } break;
+
+            case Terra_EnableMode_InOrder: {
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        drivingIntensity += (*handleIter)->getDriveIntensity();
+                        break;
+                    }
+                }
+            } break;
+
+            case Terra_EnableMode_RevOrder: {
+                for (auto handleIter = _handles.end() - 1; handleIter != _handles.begin() - 1; --handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
+                        drivingIntensity += (*handleIter)->getDriveIntensity();
+                        break;
+                    }
+                }
+            } break;
+
+            default:
+                break;
+        }
+
+        switch (_enableMode) {
+            case Terra_EnableMode_InOrder: {
+                bool selected = false;
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
+                        selected = true; (*handleIter)->checkTime = now;
+                    } else if ((*handleIter)->checkTime != 0) {
+                        (*handleIter)->checkTime = 0;
+                    }
+                }
+            } break;
+
+            case Terra_EnableMode_RevOrder: {
+                bool selected = false;
+                for (auto handleIter = _handles.end() - 1; handleIter != _handles.begin() - 1; --handleIter) {
+                    if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
+                        selected = true; (*handleIter)->checkTime = now;
+                    } else if ((*handleIter)->checkTime != 0) {
+                        (*handleIter)->checkTime = 0;
+                    }
+                }
+            } break;
+
+            default: {
+                for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+                    if ((*handleIter)->isValid() && !(*handleIter)->isDone() && (*handleIter)->checkTime == 0) {
+                        (*handleIter)->checkTime = now;
+                    }
+                }
+            } break;
+        }
+
+        _enableActuator(drivingIntensity);
     }
-
-    switch (_enableMode) {
-        case Terra_EnableMode_InOrder: {
-            bool selected = false;
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                TerraActivationHandle *handle = _handles[index];
-                if (!selected && handle->isValid() && !handle->isDone() &&
-                    isFPEqual(handle->getDriveIntensity(), drivingIntensity)) {
-                    selected = true;
-                    if (!handle->checkTime) { handle->checkTime = now; }
-                } else if (handle->checkTime) {
-                    handle->checkTime = 0;
-                }
-            }
-        } break;
-
-        case Terra_EnableMode_RevOrder: {
-            uint8_t count = 0;
-            while (count < TERRA_MAX_ATTACHMENTS && _handles[count]) { ++count; }
-            bool selected = false;
-            while (count) {
-                TerraActivationHandle *handle = _handles[--count];
-                if (!selected && handle->isValid() && !handle->isDone() &&
-                    isFPEqual(handle->getDriveIntensity(), drivingIntensity)) {
-                    selected = true;
-                    if (!handle->checkTime) { handle->checkTime = now; }
-                } else if (handle->checkTime) {
-                    handle->checkTime = 0;
-                }
-            }
-        } break;
-
-        default: {
-            for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index]; ++index) {
-                TerraActivationHandle *handle = _handles[index];
-                if (handle->isValid() && !handle->isDone() && !handle->checkTime) {
-                    handle->checkTime = now;
-                }
-            }
-        } break;
-    }
-
-    applyOutput(handleCount ? drivingIntensity : 0.0f);
     _needsUpdate = false;
+}
+
+bool TerraActuator::getCanEnable()
+{
+    return true;
+}
+
+TerraActivationHandle TerraActuator::activate(Terra_DirectionMode direction, float intensity,
+                                              millis_t duration, bool force)
+{
+    return TerraActivationHandle(static_pointer_cast<TerraActuator>(getSharedPtr()), direction, intensity, duration, force);
 }
 
 void TerraActuator::setOutput(float intensity, millis_t duration, uint32_t now)
 {
-    _directActivation.setup(intensity, duration);
-    if (intensity > FLT_EPSILON) {
-        _directActivation.enable();
-        resolveActivations(now);
+    _directActivation.activation = TerraActivation(intensity > FLT_EPSILON ? Terra_DirectionMode_Forward :
+                                                   intensity < -FLT_EPSILON ? Terra_DirectionMode_Reverse : Terra_DirectionMode_Stop,
+                                                   fabsf(intensity), duration, Terra_ActivationFlags_None);
+    if (_directActivation.activation.isValid()) {
+        _directActivation = static_pointer_cast<TerraActuator>(getSharedPtr());
     } else {
         _directActivation.unset();
-        resolveActivations(now);
     }
+    setNeedsUpdate();
+    update(now);
 }
 
 void TerraActuator::off()
 {
     _directActivation.unset();
-    resolveActivations();
+    setNeedsUpdate();
+    update();
 }
 
-void TerraActuator::update(uint32_t now)
+TerraData *TerraActuator::allocateData() const
 {
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _handles[index];) {
-        TerraActivationHandle *handle = _handles[index];
-        if (handle->isActive()) { handle->elapseTo(now); }
-        if (handle->actuator != this || !handle->isValid() || handle->isDone()) {
-            if (handle->actuator == this) { handle->actuator = nullptr; }
-            removeActivationHandle(handle);
-            continue;
-        }
-        ++index;
-    }
-    resolveActivations(now);
+    return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
-TerraPump::TerraPump(uint32_t key, const TerraString &name)
-    : TerraActuator(Terra_ActuatorType_Pump, key, name),
+void TerraActuator::saveToData(TerraData *dataOut) const
+{
+    TerraObject::saveToData(dataOut);
+    dataOut->id.object.classType = (tid_t)classType;
+    static_cast<TerraActuatorData *>(dataOut)->enableMode = _enableMode;
+}
+
+TerraRelayActuator::TerraRelayActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
+                                       TerraDigitalPin outputPin, int classTypeIn)
+    : TerraActuator(actuatorType, actuatorIndex, classTypeIn), _outputPin(outputPin)
+{
+    _outputPin.init();
+    _outputPin.deactivate();
+}
+
+TerraRelayActuator::TerraRelayActuator(const TerraActuatorData *dataIn)
+    : TerraActuator(dataIn), _outputPin(&dataIn->outputPin)
+{
+    _outputPin.init();
+    _outputPin.deactivate();
+}
+
+TerraRelayActuator::~TerraRelayActuator()
+{
+    _enabled = false;
+    _outputPin.deactivate();
+}
+
+bool TerraRelayActuator::getCanEnable()
+{
+    return _outputPin.isValid() && TerraActuator::getCanEnable();
+}
+
+void TerraRelayActuator::_enableActuator(float intensity)
+{
+    if (!_outputPin.isValid()) { return; }
+    if (intensity > FLT_EPSILON) {
+        _enabled = true;
+        _outputPin.activate();
+    } else {
+        _disableActuator();
+    }
+}
+
+void TerraRelayActuator::_disableActuator()
+{
+    _enabled = false;
+    if (_outputPin.isValid()) { _outputPin.deactivate(); }
+}
+
+void TerraRelayActuator::saveToData(TerraData *dataOut) const
+{
+    TerraActuator::saveToData(dataOut);
+    _outputPin.saveToData(&static_cast<TerraActuatorData *>(dataOut)->outputPin);
+}
+
+TerraVariableActuator::TerraVariableActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
+                                             TerraAnalogPin outputPin)
+    : TerraActuator(actuatorType, actuatorIndex, Variable), _outputPin(outputPin), _intensity(0.0f)
+{
+    _outputPin.init();
+    _outputPin.analogWrite(0.0f);
+}
+
+TerraVariableActuator::TerraVariableActuator(const TerraActuatorData *dataIn)
+    : TerraActuator(dataIn), _outputPin(&dataIn->outputPin), _intensity(0.0f)
+{
+    _outputPin.init();
+    _outputPin.analogWrite(0.0f);
+}
+
+TerraVariableActuator::~TerraVariableActuator()
+{
+    _disableActuator();
+}
+
+bool TerraVariableActuator::getCanEnable()
+{
+    return _outputPin.isValid() && TerraActuator::getCanEnable();
+}
+
+void TerraVariableActuator::_enableActuator(float intensity)
+{
+    if (!_outputPin.isValid()) { return; }
+    _intensity = constrain(intensity, 0.0f, 1.0f);
+    _enabled = _intensity > FLT_EPSILON;
+    _outputPin.analogWrite(_intensity);
+}
+
+void TerraVariableActuator::_disableActuator()
+{
+    _intensity = 0.0f;
+    _enabled = false;
+    if (_outputPin.isValid()) { _outputPin.analogWrite(0.0f); }
+}
+
+void TerraVariableActuator::saveToData(TerraData *dataOut) const
+{
+    TerraActuator::saveToData(dataOut);
+    _outputPin.saveToData(&static_cast<TerraActuatorData *>(dataOut)->outputPin);
+}
+
+TerraPump::TerraPump(tposi_t actuatorIndex, TerraDigitalPin outputPin,
+                     Terra_ActuatorType actuatorType, int classTypeIn)
+    : TerraRelayActuator(actuatorType, actuatorIndex, outputPin, classTypeIn),
       _maxContinuousMs(0), _startedAt(0)
+{ ; }
+
+TerraPump::TerraPump(const TerraActuatorData *dataIn)
+    : TerraRelayActuator(dataIn), _maxContinuousMs(dataIn->maxContinuousMs), _startedAt(0)
 { ; }
 
 void TerraPump::update(uint32_t now)
 {
     TerraActuator::update(now);
-    if (isActive() && !_startedAt) { _startedAt = now; }
-    if (!isActive()) { _startedAt = 0; }
-
-    if (isActive() && _maxContinuousMs && _startedAt && (uint32_t)(now - _startedAt) >= _maxContinuousMs) {
-        while (_handles[0]) { _handles[0]->unset(); }
+    if (isEnabled() && !_startedAt) { _startedAt = now; }
+    if (!isEnabled()) { _startedAt = 0; }
+    if (isEnabled() && _maxContinuousMs && _startedAt && (uint32_t)(now - _startedAt) >= _maxContinuousMs) {
+        while (_handles.size()) { _handles.front()->unset(); }
         setFault(TerraString("maximum continuous runtime exceeded"));
-        resolveActivations(now);
+        setNeedsUpdate();
+        TerraActuator::update(now);
     }
 }
 
-TerraSumpPump::TerraSumpPump(uint32_t key, const TerraString &name)
-    : TerraPump(key, name), _levelSensor(this), _startLevelPercent(TERRA_SUMP_START_LEVEL_PERCENT),
-      _stopLevelPercent(TERRA_SUMP_STOP_LEVEL_PERCENT), _alarmLevelPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT),
+void TerraPump::saveToData(TerraData *dataOut) const
+{
+    TerraRelayActuator::saveToData(dataOut);
+    static_cast<TerraActuatorData *>(dataOut)->maxContinuousMs = _maxContinuousMs;
+}
+
+TerraSumpPump::TerraSumpPump(tposi_t actuatorIndex, TerraDigitalPin outputPin)
+    : TerraPump(actuatorIndex, outputPin, Terra_ActuatorType_SumpPump), _levelSensor(this),
+      _startLevelPercent(TERRA_SUMP_START_LEVEL_PERCENT), _stopLevelPercent(TERRA_SUMP_STOP_LEVEL_PERCENT),
+      _alarmLevelPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT), _lastLevelPercent(0.0f),
+      _levelValid(false), _highWaterAlarm(false)
+{ ; }
+
+TerraSumpPump::TerraSumpPump(const TerraActuatorData *dataIn)
+    : TerraPump(dataIn), _levelSensor(this), _startLevelPercent(dataIn->sumpStartPercent),
+      _stopLevelPercent(dataIn->sumpStopPercent), _alarmLevelPercent(dataIn->sumpAlarmPercent),
       _lastLevelPercent(0.0f), _levelValid(false), _highWaterAlarm(false)
 {
-    _actuatorType = Terra_ActuatorType_SumpPump;
+    _levelSensor.initObject(dataIn->levelSensor);
 }
 
 bool TerraSumpPump::configureLevels(float startPercent, float stopPercent, float alarmPercent)
 {
-    if (stopPercent < 0.0f || stopPercent >= startPercent ||
-        startPercent >= alarmPercent || alarmPercent > 100.0f) return false;
+    if (stopPercent < 0.0f || stopPercent >= startPercent || startPercent >= alarmPercent || alarmPercent > 100.0f) { return false; }
     _startLevelPercent = startPercent;
     _stopLevelPercent = stopPercent;
     _alarmLevelPercent = alarmPercent;
+    bumpRevisionIfNeeded();
     return true;
 }
 
 void TerraSumpPump::update(uint32_t now)
 {
     if (_levelSensor.isSet()) {
-        TerraMeasurement level = _levelSensor.getMeasurement(now, true);
-        if (!level.valid || level.unit != Terra_Unit_Percent) {
+        TerraSingleMeasurement level = _levelSensor.getMeasurement(now, true);
+        if (!level.isSet() || level.units != Terra_Unit_Percent) {
             _levelValid = false;
             _highWaterAlarm = false;
             off();
             setFault(TerraString("sump level invalid"));
         } else {
-            if (hasFault() && getFaultMessage() == TerraString("sump level invalid")) clearFault();
+            if (hasFault() && getFaultMessage() == TerraString("sump level invalid")) { clearFault(); }
             _lastLevelPercent = constrain(level.value, 0.0f, 100.0f);
             _levelValid = true;
             _highWaterAlarm = _lastLevelPercent >= _alarmLevelPercent;
-
-            if (isActive()) {
+            if (isEnabled()) {
                 if (_lastLevelPercent <= _stopLevelPercent) { off(); }
             } else if (_lastLevelPercent >= _startLevelPercent) {
                 setOutput(1.0f, (millis_t)-1, now);
@@ -316,4 +386,17 @@ void TerraSumpPump::unresolveAny(TerraObject *object)
 {
     _levelSensor.unresolveAny(object);
     TerraPump::unresolveAny(object);
+}
+
+void TerraSumpPump::saveToData(TerraData *dataOut) const
+{
+    TerraPump::saveToData(dataOut);
+    auto actuatorData = static_cast<TerraActuatorData *>(dataOut);
+    if (_levelSensor.isSet()) {
+        strncpy(actuatorData->levelSensor, _levelSensor.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        actuatorData->levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+    actuatorData->sumpStartPercent = _startLevelPercent;
+    actuatorData->sumpStopPercent = _stopLevelPercent;
+    actuatorData->sumpAlarmPercent = _alarmLevelPercent;
 }

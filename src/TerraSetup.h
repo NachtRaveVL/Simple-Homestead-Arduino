@@ -25,7 +25,7 @@ struct TerraI2CDeviceSetup {
 #else
     TerraI2CDeviceSetup(void *i2cWire = nullptr, uint32_t i2cSpeed = 100000U, uint8_t i2cAddress = 0)
 #endif
-        : wire(i2cWire), speed(i2cSpeed), address(i2cAddress) { }
+        : wire(i2cWire), speed(i2cSpeed), address(i2cAddress) { ; }
 };
 
 // SPI Device Setup
@@ -46,7 +46,7 @@ struct TerraSPIDeviceSetup {
     TerraSPIDeviceSetup(void *spiClass = nullptr, uint32_t spiSpeed = 1000000U,
                         uint8_t spiCS = TERRA_INVALID_PIN)
 #endif
-        : spi(spiClass), speed(spiSpeed), chipSelectPin(spiCS) { }
+        : spi(spiClass), speed(spiSpeed), chipSelectPin(spiCS) { ; }
 };
 
 // UART Device Setup
@@ -64,7 +64,7 @@ struct TerraUARTDeviceSetup {
 #else
     TerraUARTDeviceSetup(void *serialClass = nullptr, uint32_t serialBaud = 9600U)
 #endif
-        : serial(serialClass), baudRate(serialBaud) { }
+        : serial(serialClass), baudRate(serialBaud) { ; }
 };
 
 // Combined Device Setup
@@ -75,10 +75,10 @@ struct TerraDeviceSetup {
     TerraSPIDeviceSetup spi;                                // SPI configuration
     TerraUARTDeviceSetup uart;                              // UART configuration
 
-    TerraDeviceSetup() : cfgType(None), i2c(), spi(), uart() { }
-    TerraDeviceSetup(const TerraI2CDeviceSetup &setup) : cfgType(I2CSetup), i2c(setup), spi(), uart() { }
-    TerraDeviceSetup(const TerraSPIDeviceSetup &setup) : cfgType(SPISetup), i2c(), spi(setup), uart() { }
-    TerraDeviceSetup(const TerraUARTDeviceSetup &setup) : cfgType(UARTSetup), i2c(), spi(), uart(setup) { }
+    TerraDeviceSetup() : cfgType(None), i2c(), spi(), uart() { ; }
+    TerraDeviceSetup(const TerraI2CDeviceSetup &setup) : cfgType(I2CSetup), i2c(setup), spi(), uart() { ; }
+    TerraDeviceSetup(const TerraSPIDeviceSetup &setup) : cfgType(SPISetup), i2c(), spi(setup), uart() { ; }
+    TerraDeviceSetup(const TerraUARTDeviceSetup &setup) : cfgType(UARTSetup), i2c(), spi(), uart(setup) { ; }
 };
 
 struct TerraNetworkSetup {
@@ -87,22 +87,7 @@ struct TerraNetworkSetup {
     TerraString host;                                       // Network host
     TerraString clientId;                                   // Network client ID
 
-    TerraNetworkSetup() : enabled(false), port(0), host(), clientId() { }
+    TerraNetworkSetup() : enabled(false), port(0), host(), clientId() { ; }
 };
 
-struct TerraSystemSetup {
-    TerraString systemName;                                 // System display name
-    int16_t timeZoneOffset;                                 // Time-zone offset from UTC, in whole hours
-    Terra_ControlMode controlMode;                          // Controller operating mode
-    Terra_MeasurementMode measurementMode;                  // Preferred measurement mode
-    uint32_t updateIntervalMs;                              // Controller update interval, milliseconds
-    Terra_LogLevel loggerMinimumLevel;                      // Minimum stored log level
-    uint32_t publisherIntervalMs;                           // Publisher interval, milliseconds
-
-    TerraSystemSetup()
-        : systemName("Terraduino"), timeZoneOffset(0),
-          controlMode(Terra_ControlMode_Automatic), measurementMode(Terra_MeasurementMode_Metric),
-          updateIntervalMs(250), loggerMinimumLevel(Terra_LogLevel_Info), publisherIntervalMs(10000) { }
-};
-
-#endif
+#endif // /ifndef TerraSetup_H

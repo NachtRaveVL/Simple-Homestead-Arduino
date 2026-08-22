@@ -6,15 +6,20 @@
 #ifndef TerraEnvironment_H
 #define TerraEnvironment_H
 
+struct TerraEnvironmentData;
+
 #include "TerraObject.h"
 #include "TerraAttachments.h"
+#include "TerraDatas.h"
 
 // Environment
 // Provides a single attachment point for each local weather measurement used by
 // homestead monitoring and control logic. Measurement state remains owned by sensors.
 class TerraEnvironment : public TerraObject {
 public:
-    TerraEnvironment(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString("Environment"));
+    TerraEnvironment(tposi_t environmentIndex = TERRA_POS_SEARCH_FROMBEG,
+                     const TerraString &name = TerraString("Environment"));
+    TerraEnvironment(const TerraEnvironmentData *dataIn);
 
     float getAirTemperature() const;
     float getRelativeHumidity() const;
@@ -68,9 +73,8 @@ protected:
     TerraSensorAttachment _windDirection;                   // Wind-direction sensor attachment point
     TerraSensorAttachment _solarRadiation;                  // Solar-radiation sensor attachment point
 
-    void initAttachmentKey(Terra_AttachmentRole role, uint32_t key);
-
-    friend class TerraFactory;
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 #endif
