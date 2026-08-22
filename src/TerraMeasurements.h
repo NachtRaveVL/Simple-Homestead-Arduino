@@ -26,7 +26,7 @@ extern float getMeasurementValue(const TerraMeasurement *measurement, uint8_t me
 extern Terra_UnitsType getMeasurementUnits(const TerraMeasurement *measurement, uint8_t measurementRow = 0, Terra_UnitsType binUnits = Terra_UnitsType_Raw_1);
 // Gets the number of rows of data that a measurement holds.
 extern uint8_t getMeasurementRowCount(const TerraMeasurement *measurement);
-// Gets the single measurement of a measurement (with optional binary true value / units).
+// Gets the single measurement of a measurement (with optional binary true scaling value / units).
 extern TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measurement, uint8_t measurementRow = 0, float binScale = 1.0f, Terra_UnitsType binUnits = Terra_UnitsType_Raw_1);
 
 // Sensor Data Measurement Base
@@ -70,27 +70,9 @@ struct TerraSingleMeasurement : public TerraMeasurement {
 
     inline TerraSingleMeasurement &toUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF);
 
-    inline TerraSingleMeasurement &wrapBy(float range);
-    inline TerraSingleMeasurement &wrapBySplit(float range);
-    inline TerraSingleMeasurement &wrapBy360() { return wrapBy(360); }
-    inline TerraSingleMeasurement &wrapBy180Neg180() { return wrapBySplit(360); }
-    inline TerraSingleMeasurement &wrapBy2Pi() { return wrapBy(TWO_PI); }
-    inline TerraSingleMeasurement &wrapByPiNegPi() { return wrapBySplit(TWO_PI); }
-    inline TerraSingleMeasurement &wrapBy24Hr() { return wrapBy(MIN_PER_DAY); }
-    inline TerraSingleMeasurement &wrapBy12HrNeg12Hr() { return wrapBySplit(MIN_PER_DAY); }
-
     // Copiers (in utils)
 
     inline TerraSingleMeasurement asUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF) const;
-
-    inline TerraSingleMeasurement wrappedBy(float range) const;
-    inline TerraSingleMeasurement wrappedBySplit(float range) const;
-    inline TerraSingleMeasurement wrappedBy360() const { return wrappedBy(360); }
-    inline TerraSingleMeasurement wrappedBy180Neg180() const { return wrappedBySplit(360); }
-    inline TerraSingleMeasurement wrappedBy2Pi() const { return wrappedBy(TWO_PI); }
-    inline TerraSingleMeasurement wrappedByPiNegPi() const { return wrappedBySplit(TWO_PI); }
-    inline TerraSingleMeasurement wrappedBy24Hr() const { return wrappedBy(MIN_PER_DAY); }
-    inline TerraSingleMeasurement wrappedBy12HrNeg12Hr() const { return wrappedBySplit(MIN_PER_DAY); }
 };
 
 // Binary Value Sensor Data Measurement

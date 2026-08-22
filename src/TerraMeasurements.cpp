@@ -12,13 +12,13 @@ TerraMeasurement *newMeasurementObjectFromSubData(const TerraMeasurementData *da
 
     if (dataIn) {
         switch (dataIn->type) {
-            case (hid_t)TerraMeasurement::Binary:
+            case (tid_t)TerraMeasurement::Binary:
                 return new TerraBinaryMeasurement(dataIn);
-            case (hid_t)TerraMeasurement::Single:
+            case (tid_t)TerraMeasurement::Single:
                 return new TerraSingleMeasurement(dataIn);
-            case (hid_t)TerraMeasurement::Double:
+            case (tid_t)TerraMeasurement::Double:
                 return new TerraDoubleMeasurement(dataIn);
-            case (hid_t)TerraMeasurement::Triple:
+            case (tid_t)TerraMeasurement::Triple:
                 return new TerraTripleMeasurement(dataIn);
             default: break;
         }
@@ -84,7 +84,7 @@ TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measuremen
         }
     }
     TerraSingleMeasurement retVal;
-    retVal.frame = hframe_none; // meant to fail frame checks
+    retVal.frame = tframe_none; // meant to fail frame checks
     return retVal;
 }
 
@@ -108,7 +108,7 @@ void TerraMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t measure
     dataOut->timestamp = timestamp;
 }
 
-void TerraMeasurement::updateFrame(hframe_t minFrame)
+void TerraMeasurement::updateFrame(tframe_t minFrame)
 {
     frame = max(minFrame, getController() ? getController()->getPollingFrame() : 0);
 }
@@ -122,7 +122,7 @@ TerraBinaryMeasurement::TerraBinaryMeasurement(bool stateIn, time_t timestamp)
     : TerraMeasurement((int)Binary, timestamp), state(stateIn)
 { ; }
 
-TerraBinaryMeasurement::TerraBinaryMeasurement(bool stateIn, time_t timestamp, hframe_t frame)
+TerraBinaryMeasurement::TerraBinaryMeasurement(bool stateIn, time_t timestamp, tframe_t frame)
     : TerraMeasurement((int)Binary, timestamp, frame), state(stateIn)
 { ; }
 
@@ -148,7 +148,7 @@ TerraSingleMeasurement::TerraSingleMeasurement(float valueIn, Terra_UnitsType un
     : TerraMeasurement((int)Single, timestamp), value(valueIn), units(unitsIn)
 { ; }
 
-TerraSingleMeasurement::TerraSingleMeasurement(float valueIn, Terra_UnitsType unitsIn, time_t timestamp, hframe_t frame)
+TerraSingleMeasurement::TerraSingleMeasurement(float valueIn, Terra_UnitsType unitsIn, time_t timestamp, tframe_t frame)
     : TerraMeasurement((int)Single, timestamp, frame), value(valueIn), units(unitsIn)
 { ; }
 
@@ -179,7 +179,7 @@ TerraDoubleMeasurement::TerraDoubleMeasurement(float value1, Terra_UnitsType uni
 
 TerraDoubleMeasurement::TerraDoubleMeasurement(float value1, Terra_UnitsType units1,
                                                float value2, Terra_UnitsType units2,
-                                               time_t timestamp, hframe_t frame)
+                                               time_t timestamp, tframe_t frame)
     : TerraMeasurement((int)Double, timestamp, frame), value{value1,value2}, units{units1,units2}
 { ; }
 
@@ -216,7 +216,7 @@ TerraTripleMeasurement::TerraTripleMeasurement(float value1, Terra_UnitsType uni
 TerraTripleMeasurement::TerraTripleMeasurement(float value1, Terra_UnitsType units1,
                                                float value2, Terra_UnitsType units2,
                                                float value3, Terra_UnitsType units3,
-                                               time_t timestamp, hframe_t frame)
+                                               time_t timestamp, tframe_t frame)
     : TerraMeasurement((int)Triple, timestamp, frame), value{value1,value2,value3}, units{units1,units2,units3}
 { ; }
 
@@ -242,8 +242,10 @@ void TerraTripleMeasurement::saveToData(TerraMeasurementData *dataOut, uint8_t m
 
 
 TerraMeasurementData::TerraMeasurementData()
-    : TerraSubData(0), measurementRow(0), value(0.0f), units(Terra_UnitsType_Undefined), timestamp(0)
-{ ; }
+    : TerraSubData(), measurementRow(0), value(0.0f), units(Terra_UnitsType_Undefined), timestamp(0)
+{
+    type = 0; // no type differentiation
+}
 
 void TerraMeasurementData::toJSONObject(JsonObject &objectOut) const
 {
