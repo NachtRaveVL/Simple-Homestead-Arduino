@@ -10,7 +10,7 @@ class TerraPublisher;
 struct TerraPublisherSubData;
 struct TerraDataColumn;
 
-#include "Astruino.h"
+#include "Terraduino.h"
 #include "TerraMeasurements.h"
 
 // Data Publisher
