@@ -41,13 +41,13 @@ TerraLogger::~TerraLogger()
 
 bool TerraLogger::beginLoggingToSDCard(String logFilePrefix)
 {
-    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(HStr_Err_NotYetInitialized));
+    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(TStr_Err_NotYetInitialized));
 
     if (hasLoggerData() && !loggerData()->logToSDCard) {
         auto sd = Terraduino::_activeInstance->getSDCard();
 
         if (sd) {
-            String logFilename = getYYMMDDFilename(logFilePrefix, SFP(HStr_txt));
+            String logFilename = getYYMMDDFilename(logFilePrefix, SFP(TStr_txt));
             createDirectoryFor(sd, logFilename);
             #if TERRA_SYS_LEAVE_FILES_OPEN
                 auto &logFile = _logFileSD ? *_logFileSD : *(_logFileSD = new File(sd->open(logFilename.c_str(), FILE_WRITE)));
@@ -82,10 +82,10 @@ bool TerraLogger::beginLoggingToSDCard(String logFilePrefix)
 
 bool TerraLogger::beginLoggingToWiFiStorage(String logFilePrefix)
 {
-    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(HStr_Err_NotYetInitialized));
+    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(TStr_Err_NotYetInitialized));
 
     if (hasLoggerData() && !loggerData()->logToWiFiStorage) {
-        String logFilename = getYYMMDDFilename(logFilePrefix, SFP(HStr_txt));
+        String logFilename = getYYMMDDFilename(logFilePrefix, SFP(TStr_txt));
         #if TERRA_SYS_LEAVE_FILES_OPEN
             auto &logFile = _logFileWS ? *_logFileWS : *(_logFileWS = new WiFiStorageFile(WiFiStorage.open(logFilename.c_str())));
         #else
@@ -115,28 +115,28 @@ void TerraLogger::logSystemUptime()
 {
     TimeSpan elapsed(getSystemUptime());
     if (elapsed.totalseconds()) {
-        logMessage(SFP(HStr_Log_SystemUptime), timeSpanToString(elapsed));
+        logMessage(SFP(TStr_Log_SystemUptime), timeSpanToString(elapsed));
     }
 }
 
 void TerraLogger::logMessage(const String &msg, const String &suffix1, const String &suffix2)
 {
     if (!hasLoggerData() || (loggerData()->logLevel != Terra_LogLevel_None && loggerData()->logLevel <= Terra_LogLevel_All)) {
-        log(TerraLogEvent(Terra_LogLevel_Info, SFP(HStr_Log_Prefix_Info), msg, suffix1, suffix2));
+        log(TerraLogEvent(Terra_LogLevel_Info, SFP(TStr_Log_Prefix_Info), msg, suffix1, suffix2));
     }
 }
 
 void TerraLogger::logWarning(const String &warn, const String &suffix1, const String &suffix2)
 {
     if (!hasLoggerData() || (loggerData()->logLevel != Terra_LogLevel_None && loggerData()->logLevel <= Terra_LogLevel_Warnings)) {
-        log(TerraLogEvent(Terra_LogLevel_Warnings, SFP(HStr_Log_Prefix_Warning), warn, suffix1, suffix2));
+        log(TerraLogEvent(Terra_LogLevel_Warnings, SFP(TStr_Log_Prefix_Warning), warn, suffix1, suffix2));
     }
 }
 
 void TerraLogger::logError(const String &err, const String &suffix1, const String &suffix2)
 {
     if (!hasLoggerData() || (loggerData()->logLevel != Terra_LogLevel_None && loggerData()->logLevel <= Terra_LogLevel_Errors)) {
-        log(TerraLogEvent(Terra_LogLevel_Errors, SFP(HStr_Log_Prefix_Error), err, suffix1, suffix2));
+        log(TerraLogEvent(Terra_LogLevel_Errors, SFP(TStr_Log_Prefix_Error), err, suffix1, suffix2));
     }
 }
 
@@ -232,7 +232,7 @@ void TerraLogger::flush()
 
 void TerraLogger::setLogLevel(Terra_LogLevel logLevel)
 {
-    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(HStr_Err_NotYetInitialized));
+    TERRA_SOFT_ASSERT(hasLoggerData(), SFP(TStr_Err_NotYetInitialized));
     if (hasLoggerData() && loggerData()->logLevel != logLevel) {
         loggerData()->logLevel = logLevel;
         Terraduino::_activeInstance->_systemData->bumpRevisionIfNeeded();
@@ -247,7 +247,7 @@ Signal<const TerraLogEvent, TERRA_LOG_SIGNAL_SLOTS> &TerraLogger::getLogSignal()
 void TerraLogger::notifyDateChanged()
 {
     if (isLoggingEnabled()) {
-        _logFilename = getYYMMDDFilename(charsToString(loggerData()->logFilePrefix, 16), SFP(HStr_txt));
+        _logFilename = getYYMMDDFilename(charsToString(loggerData()->logFilePrefix, 16), SFP(TStr_txt));
         cleanupOldestLogs();
     }
 }
@@ -266,19 +266,19 @@ void TerraLoggerSubData::toJSONObject(JsonObject &objectOut) const
 {
     //TerraSubData::toJSONObject(objectOut); // purposeful no call to base method (ignores type)
 
-    if (logLevel != Terra_LogLevel_All) { objectOut[SFP(HStr_Key_LogLevel)] = logLevel; }
-    if (logFilePrefix[0]) { objectOut[SFP(HStr_Key_LogFilePrefix)] = charsToString(logFilePrefix, 16); }
-    if (logToSDCard != false) { objectOut[SFP(HStr_Key_LogToSDCard)] = logToSDCard; }
-    if (logToWiFiStorage != false) { objectOut[SFP(HStr_Key_LogToWiFiStorage)] = logToWiFiStorage; }
+    if (logLevel != Terra_LogLevel_All) { objectOut[SFP(TStr_Key_LogLevel)] = logLevel; }
+    if (logFilePrefix[0]) { objectOut[SFP(TStr_Key_LogFilePrefix)] = charsToString(logFilePrefix, 16); }
+    if (logToSDCard != false) { objectOut[SFP(TStr_Key_LogToSDCard)] = logToSDCard; }
+    if (logToWiFiStorage != false) { objectOut[SFP(TStr_Key_LogToWiFiStorage)] = logToWiFiStorage; }
 }
 
 void TerraLoggerSubData::fromJSONObject(JsonObjectConst &objectIn)
 {
     //TerraSubData::fromJSONObject(objectIn); // purposeful no call to base method (ignores type)
 
-    logLevel = objectIn[SFP(HStr_Key_LogLevel)] | logLevel;
-    const char *logFilePrefixStr = objectIn[SFP(HStr_Key_LogFilePrefix)];
+    logLevel = objectIn[SFP(TStr_Key_LogLevel)] | logLevel;
+    const char *logFilePrefixStr = objectIn[SFP(TStr_Key_LogFilePrefix)];
     if (logFilePrefixStr && logFilePrefixStr[0]) { strncpy(logFilePrefix, logFilePrefixStr, 16); }
-    logToSDCard = objectIn[SFP(HStr_Key_LogToSDCard)] | logToSDCard;
-    logToWiFiStorage = objectIn[SFP(HStr_Key_LogToWiFiStorage)] | logToWiFiStorage;
+    logToSDCard = objectIn[SFP(TStr_Key_LogToSDCard)] | logToSDCard;
+    logToWiFiStorage = objectIn[SFP(TStr_Key_LogToWiFiStorage)] | logToWiFiStorage;
 }

@@ -65,7 +65,7 @@ public:
     inline void logStatus(const TerraObjInterface *obj, const String &statusString = String());
 
     void logSystemUptime();
-    inline void logSystemSave() { logMessage(SFP(HStr_Log_SystemDataSaved)); }
+    inline void logSystemSave() { logMessage(SFP(TStr_Log_SystemDataSaved)); }
 
     void logMessage(const String &msg, const String &suffix1 = String(), const String &suffix2 = String());
     void logWarning(const String &warn, const String &suffix1 = String(), const String &suffix2 = String());
@@ -109,7 +109,7 @@ public: // consider protected
 };
 
 // Logger Serialization Sub Data
-// A part of HSYS system data.
+// A part of TSYS system data.
 struct TerraLoggerSubData : public TerraSubData {
     Terra_LogLevel logLevel;                                // Log level filter (default: All)
     char logFilePrefix[TERRA_PREFIX_MAXSIZE];               // Base log file name prefix / folder (default: "logs/he")
