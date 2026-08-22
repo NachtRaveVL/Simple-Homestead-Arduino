@@ -41,11 +41,11 @@ TerraData *newDataFromBinaryStream(Stream *streamIn)
     size_t readBytes = deserializeDataFromBinaryStream(&baseDecode, streamIn, sizeof(void*));
     const size_t serializedSize = baseDecode._size;
     const bool baseReadValid = readBytes == basePayloadSize && serializedSize >= baseSize;
-    TERRA_SOFT_ASSERT(baseReadValid, SFP(HStr_Err_ImportFailure));
+    TERRA_SOFT_ASSERT(baseReadValid, SFP(TStr_Err_ImportFailure));
     if (!baseReadValid) { return nullptr; }
 
     TerraData *data = _allocateDataFromBaseDecode(baseDecode);
-    TERRA_SOFT_ASSERT(data, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(data, SFP(TStr_Err_AllocationFailure));
     if (!data) { return nullptr; }
 
     const auto readPlan = hydroBinaryDataReadPlan(serializedSize, data->_size, baseSize);
@@ -56,7 +56,7 @@ TerraData *newDataFromBinaryStream(Stream *streamIn)
     const size_t skippedBytes = skipBinaryStreamBytes(streamIn, readPlan.skipBytes);
     const bool payloadReadValid = readBytes == basePayloadSize + readPlan.copyBytes &&
                                   skippedBytes == readPlan.skipBytes;
-    TERRA_SOFT_ASSERT(payloadReadValid, SFP(HStr_Err_ImportFailure));
+    TERRA_SOFT_ASSERT(payloadReadValid, SFP(TStr_Err_ImportFailure));
     if (!payloadReadValid) {
         delete data;
         return nullptr;
@@ -72,7 +72,7 @@ TerraData *newDataFromJSONObject(JsonObjectConst &objectIn)
     baseDecode.fromJSONObject(objectIn);
 
     TerraData *data = _allocateDataFromBaseDecode(baseDecode);
-    TERRA_SOFT_ASSERT(data, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(data, SFP(TStr_Err_AllocationFailure));
 
     if (data) {
         data->fromJSONObject(objectIn);
@@ -93,7 +93,7 @@ TerraData::TerraData(char id0, char id1, char id2, char id3, uint8_t version, ui
     : id{.chars={id0,id1,id2,id3}}, _version(version), _revision((int8_t)revision)
 {
     _size = sizeof(*this);
-    TERRA_HARD_ASSERT(isStandardData(), SFP(HStr_Err_InvalidParameter));
+    TERRA_HARD_ASSERT(isStandardData(), SFP(TStr_Err_InvalidParameter));
 }
 
 TerraData::TerraData(tid_t idType, tid_t objType, tposi_t posIndex, tid_t classType, uint8_t version, uint8_t revision)
@@ -111,18 +111,18 @@ TerraData::TerraData(const TerraIdentity &id)
 void TerraData::toJSONObject(JsonObject &objectOut) const
 {
     if (isStandardData()) {
-        objectOut[SFP(HStr_Key_Type)] = charsToString(id.chars, sizeof(id.chars));
+        objectOut[SFP(TStr_Key_Type)] = charsToString(id.chars, sizeof(id.chars));
     } else {
         int8_t typeVals[4] = {id.object.idType, id.object.objType, id.object.posIndex, id.object.classType};
-        objectOut[SFP(HStr_Key_Type)] = commaStringFromArray(typeVals, 4);
+        objectOut[SFP(TStr_Key_Type)] = commaStringFromArray(typeVals, 4);
     }
-    if (_version > 1) { objectOut[SFP(HStr_Key_Version)] = _version; }
-    if (getRevision() > 1) { objectOut[SFP(HStr_Key_Revision)] = getRevision(); }
+    if (_version > 1) { objectOut[SFP(TStr_Key_Version)] = _version; }
+    if (getRevision() > 1) { objectOut[SFP(TStr_Key_Revision)] = getRevision(); }
 }
 
 void TerraData::fromJSONObject(JsonObjectConst &objectIn)
 {
-    JsonVariantConst idVar = objectIn[SFP(HStr_Key_Type)];
+    JsonVariantConst idVar = objectIn[SFP(TStr_Key_Type)];
     const char *idStr = idVar.as<const char *>();
     if (idStr && idStr[0] == 'H') {
         strncpy(id.chars, idStr, 4);
@@ -134,8 +134,8 @@ void TerraData::fromJSONObject(JsonObjectConst &objectIn)
         id.object.posIndex = typeVals[2];
         id.object.classType = typeVals[3];
     }
-    _version = objectIn[SFP(HStr_Key_Version)] | _version;
-    _revision = objectIn[SFP(HStr_Key_Revision)] | _revision;
+    _version = objectIn[SFP(TStr_Key_Version)] | _version;
+    _revision = objectIn[SFP(TStr_Key_Revision)] | _revision;
     _revision = abs(_revision);
 }
 
@@ -150,10 +150,10 @@ TerraSubData::TerraSubData(tid_t dataType)
 
 void TerraSubData::toJSONObject(JsonObject &objectOut) const
 {
-    if (type != tid_none) { objectOut[SFP(HStr_Key_Type)] = type; }
+    if (type != tid_none) { objectOut[SFP(TStr_Key_Type)] = type; }
 }
 
 void TerraSubData::fromJSONObject(JsonObjectConst &objectIn)
 {
-    type = objectIn[SFP(HStr_Key_Type)] | type;
+    type = objectIn[SFP(TStr_Key_Type)] | type;
 }

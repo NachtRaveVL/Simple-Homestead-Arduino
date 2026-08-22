@@ -5,89 +5,286 @@
 
 #include "Terraduino.h"
 
-TerraObject::TerraObject(Terra_ObjectType objectType, uint32_t key, const TerraString &name)
-    : _objectType(objectType), _key(key), _name(name), _enabled(true), _fault(false),
-      _faultMessage(), _linkages()
-{ }
-
-void TerraObject::setFault(const TerraString &message)
+TerraObject *newObjectFromData(const TerraData *dataIn)
 {
-    _fault = true;
-    _faultMessage = message;
+    if (dataIn && !isValidType(dataIn->id.object.idType)) return nullptr;
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData(), SFP(TStr_Err_InvalidParameter));
+
+    if (dataIn && dataIn->isObjectData()) {
+        switch (dataIn->id.object.idType) {
+            case (tid_t)TerraIdentity::Actuator:
+                return newActuatorObjectFromData((TerraActuatorData *)dataIn);
+            case (tid_t)TerraIdentity::Sensor:
+                return newSensorObjectFromData((TerraSensorData *)dataIn);
+            case (tid_t)TerraIdentity::Reservoir:
+                return newReservoirObjectFromData((TerraReservoirData *)dataIn);
+            case (tid_t)TerraIdentity::Rail:
+                return newRailObjectFromData((TerraRailData *)dataIn);
+            default: // Unable
+                return nullptr;
+        }
+    }
+
+    return nullptr;
 }
 
-void TerraObject::clearFault()
+
+tkey_t TerraIdentity::regenKey()
 {
-    _fault = false;
-    _faultMessage = TerraString();
+    switch (type) {
+        case Actuator:
+            keyString = actuatorTypeToString(objTypeAs.actuatorType, true);
+            break;
+        case Sensor:
+            keyString = sensorTypeToString(objTypeAs.sensorType, true);
+            break;
+        case Reservoir:
+            keyString = reservoirTypeToString(objTypeAs.reservoirType, true);
+            break;
+        case Rail:
+            keyString = railTypeToString(objTypeAs.railType, true);
+            break;
+        default: // Unable
+            return key;
+    }
+    keyString.concat(' ');
+    keyString.concat('#');
+    keyString.concat(positionIndexToString(posIndex, true));
+    key = stringHash(keyString);
+    return key;
 }
 
-void TerraObject::setEnabled(bool enabled)
+String TerraIdentity::getDisplayString()
 {
-    _enabled = enabled;
+    switch (type) {
+        case Actuator: return String(F("Actuator ")) + keyString;
+        case Sensor: return String(F("Sensor ")) + keyString;
+        case Reservoir: return String(F("Reservoir ")) + keyString;
+        case Rail: return String(F("Rail ")) + keyString;
+        default: return String(F("Unknown ")) + keyString;
+    }
 }
 
-bool TerraObject::addLinkage(TerraObject *object)
-{
-    if (!object) return false;
 
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS; ++index) {
-        if (_linkages[index].object == object) {
-            ++_linkages[index].count;
+TerraObject::~TerraObject()
+{
+    if (_links) { delete [] _links; _links = nullptr; }
+}
+
+void TerraObject::update()
+{ ; }
+
+void TerraObject::handleLowMemory()
+{
+    if (_links && !_links[_linksSize >> 1].first) { allocateLinkages(_linksSize >> 1); } // shrink /2 if too big
+}
+
+TerraData *TerraObject::newSaveData()
+{
+    auto data = allocateData();
+    TERRA_SOFT_ASSERT(data, SFP(TStr_Err_AllocationFailure));
+    if (data) { saveToData(data); }
+    return data;
+}
+
+void TerraObject::allocateLinkages(size_t size)
+{
+    if (_linksSize != size) {
+        Pair<TerraObject *, int8_t> *newLinks = size ? new Pair<TerraObject *, int8_t>[size] : nullptr;
+
+        if (size) {
+            TERRA_HARD_ASSERT(newLinks, SFP(TStr_Err_AllocationFailure));
+
+            hposi_t linksIndex = 0;
+            if (_links) {
+                for (; linksIndex < _linksSize && linksIndex < size; ++linksIndex) {
+                    newLinks[linksIndex] = _links[linksIndex];
+                }
+            }
+            for (; linksIndex < size; ++linksIndex) {
+                newLinks[linksIndex] = make_pair((TerraObject *)nullptr, (int8_t)0);
+            }
+        }
+
+        if (_links) { delete [] _links; }
+        _links = newLinks;
+        _linksSize = size;
+    }
+}
+
+bool TerraObject::addLinkage(TerraObject *obj)
+{
+    if (!_links) { allocateLinkages(); }
+    if (_links) {
+        hposi_t linksIndex = 0;
+        for (; linksIndex < _linksSize && _links[linksIndex].first; ++linksIndex) {
+            if (_links[linksIndex].first == obj) {
+                _links[linksIndex].second++;
+                return true;
+            }
+        }
+        if (linksIndex >= _linksSize) { allocateLinkages(_linksSize << 1); } // grow *2 if too small
+        if (linksIndex < _linksSize) {
+            _links[linksIndex] = make_pair(obj, (int8_t)1);
             return true;
         }
-        if (!_linkages[index].object) {
-            _linkages[index] = TerraObjectLink(object, 1);
-            return true;
-        }
     }
     return false;
 }
 
-bool TerraObject::removeLinkage(TerraObject *object)
+bool TerraObject::removeLinkage(TerraObject *obj)
 {
-    if (!object) return false;
-
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _linkages[index].object; ++index) {
-        if (_linkages[index].object != object) continue;
-
-        if (_linkages[index].count > 1) {
-            --_linkages[index].count;
-        } else {
-            for (uint8_t subIndex = index; subIndex + 1 < TERRA_MAX_ATTACHMENTS; ++subIndex) {
-                _linkages[subIndex] = _linkages[subIndex + 1];
-            }
-            _linkages[TERRA_MAX_ATTACHMENTS - 1] = TerraObjectLink();
-        }
-        return true;
-    }
-    return false;
-}
-
-bool TerraObject::hasLinkage(TerraObject *object) const
-{
-    if (!object) return false;
-
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _linkages[index].object; ++index) {
-        if (_linkages[index].object == object) return true;
-    }
-    return false;
-}
-
-void TerraObject::unresolveAny(TerraObject *object)
-{
-    if (this != object) return;
-
-    TerraObject *lastObject = nullptr;
-    for (uint8_t index = 0; index < TERRA_MAX_ATTACHMENTS && _linkages[index].object; ++index) {
-        TerraObject *linkedObject = _linkages[index].object;
-        if (linkedObject != object) {
-            linkedObject->unresolveAny(object);             // May clobber linkage indexing.
-            if (index && _linkages[index].object != linkedObject) {
-                while (index && _linkages[index].object != lastObject) --index;
-                linkedObject = lastObject;
+    if (_links) {
+        for (hposi_t linksIndex = 0; linksIndex < _linksSize && _links[linksIndex].first; ++linksIndex) {
+            if (_links[linksIndex].first == obj) {
+                if (--_links[linksIndex].second <= 0) {
+                    for (int linksSubIndex = linksIndex; linksSubIndex < _linksSize - 1; ++linksSubIndex) {
+                        _links[linksSubIndex] = _links[linksSubIndex + 1];
+                    }
+                    _links[_linksSize - 1] = make_pair((TerraObject *)nullptr, (int8_t)0);
+                }
+                return true;
             }
         }
-        lastObject = linkedObject;
     }
+    return false;
+}
+
+bool TerraObject::hasLinkage(TerraObject *obj) const
+{
+    if (_links) {
+        for (hposi_t linksIndex = 0; linksIndex < _linksSize && _links[linksIndex].first; ++linksIndex) {
+            if (_links[linksIndex].first == obj) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void TerraObject::unresolveAny(TerraObject *obj)
+{
+    if (this == obj && _links) {
+        TerraObject *lastObject = nullptr;
+        for (hposi_t linksIndex = 0; linksIndex < _linksSize && _links[linksIndex].first; ++linksIndex) {
+            TerraObject *object = _links[linksIndex].first;
+            if (object != obj) {
+                object->unresolveAny(obj); // may clobber indexing
+
+                if (linksIndex && _links[linksIndex].first != object) {
+                    while (linksIndex && _links[linksIndex].first != lastObject) { --linksIndex; }
+                    object = lastObject;
+                }
+            }
+            lastObject = object;
+        }
+    }
+}
+
+TerraIdentity TerraObject::getId() const
+{
+    return _id;
+}
+
+tkey_t TerraObject::getKey() const
+{
+    return _id.key;
+}
+
+String TerraObject::getKeyString() const
+{
+    return _id.keyString;
+}
+
+SharedPtr<TerraObjInterface> TerraObject::getSharedPtr() const
+{
+    return getController() ? static_pointer_cast<TerraObjInterface>(getController()->objectById(_id)) : nullptr;
+}
+
+SharedPtr<TerraObjInterface> TerraObject::getSharedPtrFor(const TerraObjInterface *obj) const
+{
+    return obj->isObject() ? obj->getSharedPtr() : nullptr;
+}
+
+bool TerraObject::isObject() const
+{
+    return true;
+}
+
+TerraData *TerraObject::allocateData() const
+{
+    TERRA_HARD_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
+    return new TerraData();
+}
+
+void TerraObject::saveToData(TerraData *dataOut)
+{
+    dataOut->id.object.idType = (tid_t)_id.type;
+    dataOut->id.object.objType = _id.objTypeAs.idType;
+    dataOut->id.object.posIndex = _id.posIndex;
+    dataOut->_revision = getRevision();
+    if (_id.keyString.length()) {
+        strncpy(((TerraObjectData *)dataOut)->name, _id.keyString.c_str(), TERRA_NAME_MAXSIZE);
+    }
+}
+
+
+void TerraSubObject::unresolveAny(TerraObject *obj)
+{ ; }
+
+TerraIdentity TerraSubObject::getId() const
+{
+    return TerraIdentity(getKey());
+}
+
+tkey_t TerraSubObject::getKey() const
+{
+    return (tkey_t)(intptr_t)this;
+}
+
+String TerraSubObject::getKeyString() const
+{
+    return addressToString((uintptr_t)this);
+}
+
+SharedPtr<TerraObjInterface> TerraSubObject::getSharedPtr() const
+{
+    return _parent ? _parent->getSharedPtrFor((const TerraObjInterface *)this) : nullptr;
+}
+
+SharedPtr<TerraObjInterface> TerraSubObject::getSharedPtrFor(const TerraObjInterface *obj) const
+{
+    return obj->isObject() ? obj->getSharedPtr() : _parent ? _parent->getSharedPtrFor(obj) : nullptr;
+}
+
+bool TerraSubObject::isObject() const
+{
+    return false;
+}
+
+void TerraSubObject::setParent(TerraObjInterface *parent)
+{
+    _parent = parent;
+}
+
+
+TerraObjectData::TerraObjectData()
+    : TerraData(), name{0}
+{
+    _size = sizeof(*this);
+}
+
+void TerraObjectData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraData::toJSONObject(objectOut);
+
+    if (name[0]) { objectOut[SFP(TStr_Key_Id)] = charsToString(name, TERRA_NAME_MAXSIZE); }
+}
+
+void TerraObjectData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraData::fromJSONObject(objectIn);
+
+    const char *nameStr = objectIn[SFP(TStr_Key_Id)];
+    if (nameStr && nameStr[0]) { strncpy(name, nameStr, TERRA_NAME_MAXSIZE); }
 }

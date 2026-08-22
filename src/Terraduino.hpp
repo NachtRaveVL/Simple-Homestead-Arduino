@@ -152,12 +152,12 @@ inline bool TerraLogger::isLoggingToWiFiStorage() const
 
 inline void TerraLogger::logActivation(const TerraActuator *actuator)
 {
-    if (actuator) { logMessage(actuator->getId().getDisplayString(), SFP(HStr_Log_HasEnabled)); }
+    if (actuator) { logMessage(actuator->getId().getDisplayString(), SFP(TStr_Log_HasEnabled)); }
 }
 
 inline void TerraLogger::logDeactivation(const TerraActuator *actuator)
 {
-    if (actuator) { logMessage(actuator->getId().getDisplayString(), SFP(HStr_Log_HasDisabled)); }
+    if (actuator) { logMessage(actuator->getId().getDisplayString(), SFP(TStr_Log_HasDisabled)); }
 }
 
 inline void TerraLogger::logProcess(const TerraObjInterface *obj, const String &processString, const String &statusString)

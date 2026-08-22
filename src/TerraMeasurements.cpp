@@ -8,7 +8,7 @@
 TerraMeasurement *newMeasurementObjectFromSubData(const TerraMeasurementData *dataIn)
 {
     if (!dataIn || !isValidType(dataIn->type)) return nullptr;
-    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(HStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(TStr_Err_InvalidParameter));
 
     if (dataIn) {
         switch (dataIn->type) {
@@ -251,20 +251,20 @@ void TerraMeasurementData::toJSONObject(JsonObject &objectOut) const
 {
     //TerraSubData::toJSONObject(objectOut); // purposeful no call to base method (ignores type)
 
-    objectOut[SFP(HStr_Key_MeasurementRow)] = measurementRow;
-    objectOut[SFP(HStr_Key_Value)] = value;
-    objectOut[SFP(HStr_Key_Units)] = unitsTypeToSymbol(units);
-    objectOut[SFP(HStr_Key_Timestamp)] = timestamp;
+    objectOut[SFP(TStr_Key_MeasurementRow)] = measurementRow;
+    objectOut[SFP(TStr_Key_Value)] = value;
+    objectOut[SFP(TStr_Key_Units)] = unitsTypeToSymbol(units);
+    objectOut[SFP(TStr_Key_Timestamp)] = timestamp;
 }
 
 void TerraMeasurementData::fromJSONObject(JsonObjectConst &objectIn)
 {
     //TerraSubData::fromJSONObject(objectIn); // purposeful no call to base method (ignores type)
 
-    measurementRow = objectIn[SFP(HStr_Key_MeasurementRow)] | measurementRow;
-    value = objectIn[SFP(HStr_Key_Value)] | value;
-    units = unitsTypeFromSymbol(objectIn[SFP(HStr_Key_Units)]);
-    timestamp = objectIn[SFP(HStr_Key_Timestamp)] | timestamp;
+    measurementRow = objectIn[SFP(TStr_Key_MeasurementRow)] | measurementRow;
+    value = objectIn[SFP(TStr_Key_Value)] | value;
+    units = unitsTypeFromSymbol(objectIn[SFP(TStr_Key_Units)]);
+    timestamp = objectIn[SFP(TStr_Key_Timestamp)] | timestamp;
 }
 
 void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
@@ -275,6 +275,6 @@ void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
     } else if (variantIn.is<float>() || variantIn.is<int>()) {
         value = variantIn.as<float>();
     } else {
-        TERRA_SOFT_ASSERT(false, SFP(HStr_Err_UnsupportedOperation));
+        TERRA_SOFT_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
     }
 }

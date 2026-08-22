@@ -9,7 +9,7 @@
 TerraPin *newPinObjectFromSubData(const TerraPinData *dataIn)
 {
     if (!dataIn || !isValidType(dataIn->type)) return nullptr;
-    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(HStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(TStr_Err_InvalidParameter));
 
     if (dataIn) {
         switch (dataIn->type) {
@@ -60,7 +60,7 @@ void TerraPin::init()
     #if !TERRA_SYS_DRY_RUN_ENABLE
         if (isValid()) {
             if (!(isExpanded() || isVirtual())) {
-                TERRA_SOFT_ASSERT(!isMuxed() || channel == pinChannelForMuxerChannel(muxerChannelForPinChannel(channel)), SFP(HStr_Err_NotConfiguredProperly));
+                TERRA_SOFT_ASSERT(!isMuxed() || channel == pinChannelForMuxerChannel(muxerChannelForPinChannel(channel)), SFP(TStr_Err_NotConfiguredProperly));
 
                 switch (mode) {
                     case Terra_PinMode_Digital_Input:
@@ -91,8 +91,8 @@ void TerraPin::init()
                 }
             } else {
                 #ifdef TERRA_USE_MULTITASKING
-                    TERRA_SOFT_ASSERT(isVirtual() && pin == pinNumberForPinChannel(channel), SFP(HStr_Err_NotConfiguredProperly));
-                    TERRA_SOFT_ASSERT(channel == pinChannelForExpanderChannel(channel), SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_SOFT_ASSERT(isVirtual() && pin == pinNumberForPinChannel(channel), SFP(TStr_Err_NotConfiguredProperly));
+                    TERRA_SOFT_ASSERT(channel == pinChannelForExpanderChannel(channel), SFP(TStr_Err_NotConfiguredProperly));
 
                     auto expander = getController() ? getController()->getPinExpander(isValidChannel(channel) ? expanderPosForPinChannel(channel) : expanderPosForPinNumber(pin)) : nullptr;
                     if (expander) {
@@ -103,7 +103,7 @@ void TerraPin::init()
                         #endif
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -123,7 +123,7 @@ void TerraPin::deinit()
                         expander->getIoAbstraction()->pinDirection(channel % 16, INPUT);
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -149,7 +149,7 @@ bool TerraPin::enablePin(int step)
                     auto expander = getController() ? getController()->getPinExpander(isValidChannel(channel) ? expanderPosForPinChannel(channel) : expanderPosForPinNumber(pin)) : nullptr;
                     return expander && expander->trySyncChannel();
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -214,7 +214,7 @@ ard_pinstatus_t TerraDigitalPin::digitalRead()
                         return (ard_pinstatus_t)(expander->getIoAbstraction()->readValue(channel % 16));
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -236,7 +236,7 @@ void TerraDigitalPin::digitalWrite(ard_pinstatus_t status)
                         expander->getIoAbstraction()->writeValue(channel % 16, (uint8_t)status);
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
             if (isValidChannel(channel)) { activatePin(); }
@@ -314,8 +314,8 @@ void TerraAnalogPin::init()
                 #endif
             } else {
                 #ifdef TERRA_USE_MULTITASKING
-                    TERRA_SOFT_ASSERT(isVirtual() && pin == pinNumberForPinChannel(channel), SFP(HStr_Err_NotConfiguredProperly));
-                    TERRA_SOFT_ASSERT(channel == pinChannelForExpanderChannel(channel), SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_SOFT_ASSERT(isVirtual() && pin == pinNumberForPinChannel(channel), SFP(TStr_Err_NotConfiguredProperly));
+                    TERRA_SOFT_ASSERT(channel == pinChannelForExpanderChannel(channel), SFP(TStr_Err_NotConfiguredProperly));
 
                     auto expander = getController() ? getController()->getPinExpander(isValidChannel(channel) ? expanderPosForPinChannel(channel) : expanderPosForPinNumber(pin)) : nullptr;
                     if (expander) {
@@ -329,7 +329,7 @@ void TerraAnalogPin::init()
                         }
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -372,7 +372,7 @@ int TerraAnalogPin::analogRead_raw()
                         analogIORef->getCurrentValue(channel % 16);
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
         }
@@ -410,7 +410,7 @@ void TerraAnalogPin::analogWrite_raw(int amount)
                         analogIORef->setCurrentValue(channel % 16, amount);
                     }
                 #else
-                    TERRA_HARD_ASSERT(false, SFP(HStr_Err_NotConfiguredProperly));
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
                 #endif
             }
             if (isValidChannel(channel)) { activatePin(); }
@@ -427,20 +427,20 @@ void TerraPinData::toJSONObject(JsonObject &objectOut) const
 {
     TerraSubData::toJSONObject(objectOut);
 
-    if (isValidPin(pin)) { objectOut[SFP(HStr_Key_Pin)] = pin; }
-    if (mode != Terra_PinMode_Undefined) { objectOut[SFP(HStr_Key_Mode)] = pinModeToString(mode); }
-    if (isValidChannel(channel)) { objectOut[SFP(HStr_Key_Channel)] = channel; }
+    if (isValidPin(pin)) { objectOut[SFP(TStr_Key_Pin)] = pin; }
+    if (mode != Terra_PinMode_Undefined) { objectOut[SFP(TStr_Key_Mode)] = pinModeToString(mode); }
+    if (isValidChannel(channel)) { objectOut[SFP(TStr_Key_Channel)] = channel; }
 
     if (mode != Terra_PinMode_Undefined) {
         if (!(mode == Terra_PinMode_Analog_Input || mode == Terra_PinMode_Analog_Output)) {
-            objectOut[SFP(HStr_Key_ActiveLow)] = dataAs.digitalPin.activeLow;
+            objectOut[SFP(TStr_Key_ActiveLow)] = dataAs.digitalPin.activeLow;
         } else {
-            objectOut[SFP(HStr_Key_BitRes)] = dataAs.analogPin.bitRes;
+            objectOut[SFP(TStr_Key_BitRes)] = dataAs.analogPin.bitRes;
             #ifdef ESP32
-                objectOut[SFP(HStr_Key_PWMChannel)] = dataAs.analogPin.pwmChannel;
+                objectOut[SFP(TStr_Key_PWMChannel)] = dataAs.analogPin.pwmChannel;
             #endif
             #ifdef ESP_PLATFORM
-                objectOut[SFP(HStr_Key_PWMFrequency)] = dataAs.analogPin.pwmFrequency;
+                objectOut[SFP(TStr_Key_PWMFrequency)] = dataAs.analogPin.pwmFrequency;
             #endif
         }
     }
@@ -450,22 +450,22 @@ void TerraPinData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraSubData::fromJSONObject(objectIn);
 
-    pin = objectIn[SFP(HStr_Key_Pin)] | pin;
-    mode = pinModeFromString(objectIn[SFP(HStr_Key_Mode)]);
-    channel = objectIn[SFP(HStr_Key_Channel)] | channel;
+    pin = objectIn[SFP(TStr_Key_Pin)] | pin;
+    mode = pinModeFromString(objectIn[SFP(TStr_Key_Mode)]);
+    channel = objectIn[SFP(TStr_Key_Channel)] | channel;
 
     if (mode != Terra_PinMode_Undefined) {
         if (!(mode == Terra_PinMode_Analog_Input || mode == Terra_PinMode_Analog_Output)) {
             type = (int8_t)TerraPin::Digital;
-            dataAs.digitalPin.activeLow = objectIn[SFP(HStr_Key_ActiveLow)] | dataAs.digitalPin.activeLow;
+            dataAs.digitalPin.activeLow = objectIn[SFP(TStr_Key_ActiveLow)] | dataAs.digitalPin.activeLow;
         } else {
             type = (int8_t)TerraPin::Analog;
-            dataAs.analogPin.bitRes = objectIn[SFP(HStr_Key_BitRes)] | dataAs.analogPin.bitRes;
+            dataAs.analogPin.bitRes = objectIn[SFP(TStr_Key_BitRes)] | dataAs.analogPin.bitRes;
             #ifdef ESP32
-                dataAs.analogPin.pwmChannel = objectIn[SFP(HStr_Key_PWMChannel)] | dataAs.analogPin.pwmChannel;
+                dataAs.analogPin.pwmChannel = objectIn[SFP(TStr_Key_PWMChannel)] | dataAs.analogPin.pwmChannel;
             #endif
             #ifdef ESP_PLATFORM
-                dataAs.analogPin.pwmFrequency = objectIn[SFP(HStr_Key_PWMFrequency)] | dataAs.analogPin.pwmFrequency;
+                dataAs.analogPin.pwmFrequency = objectIn[SFP(TStr_Key_PWMFrequency)] | dataAs.analogPin.pwmFrequency;
             #endif
         }
     } else {
