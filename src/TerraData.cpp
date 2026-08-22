@@ -48,7 +48,7 @@ TerraData *newDataFromBinaryStream(Stream *streamIn)
     TERRA_SOFT_ASSERT(data, SFP(TStr_Err_AllocationFailure));
     if (!data) { return nullptr; }
 
-    const auto readPlan = hydroBinaryDataReadPlan(serializedSize, data->_size, baseSize);
+    const auto readPlan = terraBinaryDataReadPlan(serializedSize, data->_size, baseSize);
     if (readPlan.copyBytes) {
         readBytes += streamIn->readBytes((uint8_t *)data + baseSize, readPlan.copyBytes);
     }
