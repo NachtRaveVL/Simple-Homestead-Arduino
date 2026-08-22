@@ -40,21 +40,6 @@ public:
     inline bool isSubObject() const { return !isObject(); }
 };
 
-class TerraUpdatable {
-public:
-    virtual ~TerraUpdatable() { ; }
-    virtual void update(uint32_t now = millis()) = 0;
-};
-
-
-
-// Text Sink Interface
-// Generic local text output used by logger/stream adapters.
-class TerraTextSink {
-public:
-    virtual ~TerraTextSink() { ; }
-    virtual void write(const TerraString &text) = 0;
-};
 
 // Measurement Units Interface
 class TerraMeasurementUnitsInterface {

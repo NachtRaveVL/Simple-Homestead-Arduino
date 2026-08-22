@@ -64,7 +64,7 @@ struct TerraObjectLink {
         : object(objectIn), count(countIn) { }
 };
 
-class TerraObject : public TerraObjInterface, public TerraUpdatable {
+class TerraObject : public TerraObjInterface {
 public:
     TerraObject(TerraIdentity id = TerraIdentity(),
                 const TerraString &name = TerraString());
