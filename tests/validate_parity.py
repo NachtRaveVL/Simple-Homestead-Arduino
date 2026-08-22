@@ -54,7 +54,6 @@ required = {
     "src/TerraDrivers.h": ["class TerraInputDriver", "class TerraOutputDriver", "TerraSingleMeasurement", "TerraPinData"],
     "src/TerraStreams.h": ["class TerraBufferSink", "class TerraPrintSink"],
     "src/TerraLoggerSubData.h": ["struct TerraLoggerSubData", "public TerraSubData"],
-    "src/TerraInterfaces.hpp": ["class TerraNullSink"],
     "src/TerraSmartPtr.h": ["template<typename T> using SharedPtr", "terraStaticPointerCast"],
     "src/TerraLogger.h": ["TerraLogEvent", "Signal<const TerraLogEvent", "TerraLoggerSubData"],
     "src/TerraPublisher.h": ["TerraDataColumn", "advancePollingFrame", "getPublishSignal", "TerraPublisherSubData"],

@@ -33,8 +33,7 @@ Our Keep-It-Simple controller system:
 * Supports familiar hobby electronics and Arduino-style I/O.
   * Digital and analog pins, active-low outputs, PWM, callbacks, sensors, actuators, activation requests, triggers, measurements, modules, and power rails are kept in the same general style as the sibling libraries.
 * Supports interval and daily scheduling, system event logging, and data publishing.
-  * Output sinks remain optional so local control does not require a server or broker.
-* Supports JSON configuration and a versioned checksummed binary system record.
+  * Supports JSON configuration and a versioned checksummed binary system record.
   * Controller preferences, object settings, pins, calibration, and object attachments can be persisted.
   * Enum import decoding uses a generated minimum-discriminator trie for compact and fast parsing.
 * Includes the same `full`, `min`, `shared`, display/input, screen, and tcMenu source layout as the related controller libraries.
@@ -247,7 +246,7 @@ terraController.publisher;
 terraController.modules;
 ```
 
-Logging and publishing are not tied to a network connection. Local storage, serial/application sinks, or network-backed transports can be attached according to the build.
+Logging and publishing are not tied to a network connection. Local storage, serial/application, or network-backed transports can be attached according to the build.
 
 ## Hookup Callouts
 
