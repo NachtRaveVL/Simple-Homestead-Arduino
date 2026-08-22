@@ -9,14 +9,14 @@
 struct TerraThermalStoreData;
 struct TerraThermalLoopData;
 
-#include "TerraResource.h"
+#include "TerraReservoir.h"
 #include "TerraAttachments.h"
 #include "TerraBalancers.h"
 #include "TerraDatas.h"
 
 // Thermal Store
 // Tracks stored heat temperature and normal/safety target ranges.
-class TerraThermalStore : public TerraResource {
+class TerraThermalStore : public TerraReservoir {
 public:
     TerraThermalStore(tposi_t storeIndex = TERRA_POS_SEARCH_FROMBEG,
                       const TerraString &name = TerraString());

@@ -14,7 +14,7 @@ struct TerraWaterSourceData;
 struct TerraWaterRouteData;
 struct TerraRainCatchmentData;
 
-#include "TerraResource.h"
+#include "TerraReservoir.h"
 #include "TerraUtils.h"
 #include "TerraAttachments.h"
 #include "TerraBalancers.h"
@@ -36,7 +36,7 @@ struct TerraRainCollectionResult {
 
 // Water Storage
 // Base water inventory with capacity, reserve, and attachment relationships.
-class TerraWaterStorage : public TerraResource {
+class TerraWaterStorage : public TerraReservoir {
 public:
     TerraWaterStorage(float capacityLiters = 0.0f,
                       tposi_t storageIndex = TERRA_POS_SEARCH_FROMBEG,

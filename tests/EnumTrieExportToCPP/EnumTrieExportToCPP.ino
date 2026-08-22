@@ -181,8 +181,8 @@ void setup()
     while (!Serial) { ; }
 
     buildEnumTree<Terra_ObjectType>(Terra_ObjectType_Undefined, Terra_ObjectType_PowerRail, Terra_ObjectType_Undefined, terraObjectTypeToString, "objectTypeStr", "Terra_ObjectType");
-    buildEnumTree<Terra_ResourceType>(Terra_ResourceType_Undefined, Terra_ResourceType_Thermal, Terra_ResourceType_Undefined, terraResourceTypeToString, "resourceTypeStr", "Terra_ResourceType");
-    buildEnumTree<Terra_ResourceState>(Terra_ResourceState_Unknown, Terra_ResourceState_Fault, Terra_ResourceState_Unknown, terraResourceStateToString, "resourceStateStr", "Terra_ResourceState");
+    buildEnumTree<Terra_ReservoirType>(Terra_ReservoirType_Undefined, Terra_ReservoirType_Thermal, Terra_ReservoirType_Undefined, TerraReservoirTypeToString, "ReservoirTypeStr", "Terra_ReservoirType");
+    buildEnumTree<Terra_ResourceState>(Terra_ResourceState_Unknown, Terra_ResourceState_Fault, Terra_ResourceState_Unknown, TerraReservoirStateToString, "resourceStateStr", "Terra_ResourceState");
     buildEnumTree<Terra_WaterSourceType>(Terra_WaterSourceType_Undefined, Terra_WaterSourceType_Stored, Terra_WaterSourceType_Undefined, terraWaterSourceTypeToString, "waterSourceTypeStr", "Terra_WaterSourceType");
     buildEnumTree<Terra_WaterStorageType>(Terra_WaterStorageType_Undefined, Terra_WaterStorageType_Reservoir, Terra_WaterStorageType_Undefined, terraWaterStorageTypeToString, "waterStorageTypeStr", "Terra_WaterStorageType");
     buildEnumTree<Terra_SensorType>(Terra_SensorType_Undefined, Terra_SensorType_Remote, Terra_SensorType_Undefined, terraSensorTypeToString, "sensorTypeStr", "Terra_SensorType");

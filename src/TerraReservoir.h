@@ -1,31 +1,31 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Resources
+    Terraduino Reservoirs
 */
 
-#ifndef TerraResource_H
-#define TerraResource_H
+#ifndef TerraReservoir_H
+#define TerraReservoir_H
 
-struct TerraResourceData;
+struct TerraReservoirData;
 
 #include "TerraObject.h"
 #include "TerraDatas.h"
 
 // Resource Base
 // Normalized resource level with reserve, low, high, and fault states.
-class TerraResource : public TerraObject {
+class TerraReservoir : public TerraObject {
 public:
-    TerraResource(Terra_ResourceType type = Terra_ResourceType_Undefined,
+    TerraReservoir(Terra_ReservoirType type = Terra_ReservoirType_Undefined,
                   tposi_t resourceIndex = TERRA_POS_SEARCH_FROMBEG,
                   const TerraString &name = TerraString());
-    TerraResource(const TerraResourceData *dataIn);
+    TerraReservoir(const TerraReservoirData *dataIn);
 
 protected:
-    TerraResource(TerraIdentity id, const TerraString &name = TerraString());
+    TerraReservoir(TerraIdentity id, const TerraString &name = TerraString());
 
 public:
 
-    Terra_ResourceType getType() const { return _id.objTypeAs.resourceType; }
+    Terra_ReservoirType getType() const { return _id.objTypeAs.ReservoirType; }
     Terra_ResourceState getState() const { return _state; }
     float getLevel() const { return _level; }
     float getReserveLevel() const { return _reserveLevel; }

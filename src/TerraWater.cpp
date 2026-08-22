@@ -8,12 +8,12 @@
 
 TerraWaterStorage::TerraWaterStorage(float capacityLiters, tposi_t storageIndex, const TerraString &name,
                                      Terra_WaterStorageType storageType)
-    : TerraResource(TerraIdentity(storageType, storageIndex), name),
+    : TerraReservoir(TerraIdentity(storageType, storageIndex), name),
       _capacityLiters(capacityLiters < 0.0f ? 0.0f : capacityLiters), _levelSensor(this)
 { ; }
 
 TerraWaterStorage::TerraWaterStorage(const TerraWaterStorageData *dataIn)
-    : TerraResource(dataIn), _capacityLiters(dataIn ? dataIn->capacityLiters : 0.0f), _levelSensor(this)
+    : TerraReservoir(dataIn), _capacityLiters(dataIn ? dataIn->capacityLiters : 0.0f), _levelSensor(this)
 {
     if (dataIn && dataIn->levelSensor[0]) { _levelSensor.initObject(dataIn->levelSensor); }
 }
@@ -43,7 +43,7 @@ float TerraWaterStorage::freeCapacityLiters() const
 
 void TerraWaterStorage::update(uint32_t now)
 {
-    TerraResource::update(now);
+    TerraReservoir::update(now);
     if (!_levelSensor.isSet()) { return; }
 
     TerraSingleMeasurement measurement = _levelSensor.getMeasurement(now, true);
@@ -55,7 +55,7 @@ void TerraWaterStorage::update(uint32_t now)
 void TerraWaterStorage::unresolveAny(TerraObject *object)
 {
     _levelSensor.unresolveAny(object);
-    TerraResource::unresolveAny(object);
+    TerraReservoir::unresolveAny(object);
 }
 
 TerraData *TerraWaterStorage::allocateData() const
@@ -65,7 +65,7 @@ TerraData *TerraWaterStorage::allocateData() const
 
 void TerraWaterStorage::saveToData(TerraData *dataOut) const
 {
-    TerraResource::saveToData(dataOut);
+    TerraReservoir::saveToData(dataOut);
     auto data = static_cast<TerraWaterStorageData *>(dataOut);
     data->capacityLiters = _capacityLiters;
     if (_levelSensor.isSet()) {

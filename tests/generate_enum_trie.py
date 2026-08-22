@@ -8,8 +8,8 @@ SOURCE=ROOT/'src'/'TerraStrings.cpp'
 OUTPUT=ROOT/'src'/'TerraEnumTrie.h'
 SPECS=[
     ("terraObjectTypeToString", "Terra_ObjectType", "terraDecodeObjectType", "objectTypeStr", "Terra_ObjectType_Undefined"),
-    ("terraResourceTypeToString", "Terra_ResourceType", "terraDecodeResourceType", "resourceTypeStr", "Terra_ResourceType_Undefined"),
-    ("terraResourceStateToString", "Terra_ResourceState", "terraDecodeResourceState", "resourceStateStr", "Terra_ResourceState_Unknown"),
+    ("TerraReservoirTypeToString", "Terra_ReservoirType", "terraDecodeReservoirType", "ReservoirTypeStr", "Terra_ReservoirType_Undefined"),
+    ("TerraReservoirStateToString", "Terra_ResourceState", "terraDecodeResourceState", "resourceStateStr", "Terra_ResourceState_Unknown"),
     ("terraWaterSourceTypeToString", "Terra_WaterSourceType", "terraDecodeWaterSourceType", "waterSourceTypeStr", "Terra_WaterSourceType_Undefined"),
     ("terraWaterStorageTypeToString", "Terra_WaterStorageType", "terraDecodeWaterStorageType", "waterStorageTypeStr", "Terra_WaterStorageType_Undefined"),
     ("terraSensorTypeToString", "Terra_SensorType", "terraDecodeSensorType", "sensorTypeStr", "Terra_SensorType_Undefined"),

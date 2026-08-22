@@ -7,14 +7,14 @@
 #include <string.h>
 
 TerraThermalStore::TerraThermalStore(tposi_t storeIndex, const TerraString &name)
-    : TerraResource(TerraIdentity(Terra_ObjectType_ThermalStore, storeIndex), name),
+    : TerraReservoir(TerraIdentity(Terra_ObjectType_ThermalStore, storeIndex), name),
       _temperatureC(0.0f), _minimumTargetC(0.0f),
       _maximumTargetC(80.0f), _absoluteMaximumC(95.0f),
       _temperatureSensor(this)
 { ; }
 
 TerraThermalStore::TerraThermalStore(const TerraThermalStoreData *dataIn)
-    : TerraResource(dataIn),
+    : TerraReservoir(dataIn),
       _temperatureC(dataIn ? dataIn->temperatureC : 0.0f),
       _minimumTargetC(dataIn ? dataIn->minimumTargetC : 0.0f),
       _maximumTargetC(dataIn ? dataIn->maximumTargetC : 80.0f),
@@ -45,7 +45,7 @@ bool TerraThermalStore::setAbsoluteMaximum(float maximumC)
 
 void TerraThermalStore::update(uint32_t now)
 {
-    TerraResource::update(now);
+    TerraReservoir::update(now);
     if (!_temperatureSensor.isSet()) { return; }
 
     TerraSingleMeasurement measurement = _temperatureSensor.getMeasurement(now, true);
@@ -58,7 +58,7 @@ void TerraThermalStore::update(uint32_t now)
 void TerraThermalStore::unresolveAny(TerraObject *object)
 {
     _temperatureSensor.unresolveAny(object);
-    TerraResource::unresolveAny(object);
+    TerraReservoir::unresolveAny(object);
 }
 
 TerraData *TerraThermalStore::allocateData() const
@@ -68,7 +68,7 @@ TerraData *TerraThermalStore::allocateData() const
 
 void TerraThermalStore::saveToData(TerraData *dataOut) const
 {
-    TerraResource::saveToData(dataOut);
+    TerraReservoir::saveToData(dataOut);
     auto data = static_cast<TerraThermalStoreData *>(dataOut);
     data->temperatureC = _temperatureC;
     data->minimumTargetC = _minimumTargetC;

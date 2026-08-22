@@ -35,17 +35,9 @@ TerraIdentity::TerraIdentity(Terra_ActuatorType actuatorTypeIn, tposi_t position
     : type(Terra_ObjectType_Actuator), objTypeAs(), posIndex(positionIndex), keyString(), key(tkey_none)
 { objTypeAs.actuatorType = actuatorTypeIn; regenKey(); }
 
-TerraIdentity::TerraIdentity(Terra_ResourceType resourceTypeIn, tposi_t positionIndex)
+TerraIdentity::TerraIdentity(Terra_ReservoirType reservoirTypeIn, tposi_t positionIndex)
     : type(Terra_ObjectType_Resource), objTypeAs(), posIndex(positionIndex), keyString(), key(tkey_none)
-{ objTypeAs.resourceType = resourceTypeIn; regenKey(); }
-
-TerraIdentity::TerraIdentity(Terra_WaterStorageType storageTypeIn, tposi_t positionIndex)
-    : type(Terra_ObjectType_WaterStorage), objTypeAs(), posIndex(positionIndex), keyString(), key(tkey_none)
-{ objTypeAs.waterStorageType = storageTypeIn; regenKey(); }
-
-TerraIdentity::TerraIdentity(Terra_WaterSourceType sourceTypeIn, tposi_t positionIndex)
-    : type(Terra_ObjectType_WaterSource), objTypeAs(), posIndex(positionIndex), keyString(), key(tkey_none)
-{ objTypeAs.waterSourceType = sourceTypeIn; regenKey(); }
+{ objTypeAs.reservoirType = reservoirTypeIn; regenKey(); }
 
 TerraIdentity::TerraIdentity(Terra_RailType railTypeIn, tposi_t positionIndex)
     : type(Terra_ObjectType_PowerRail), objTypeAs(), posIndex(positionIndex), keyString(), key(tkey_none)
@@ -64,14 +56,7 @@ tkey_t TerraIdentity::regenKey()
     switch (type) {
         case Terra_ObjectType_Sensor: keyString = terraSensorTypeToString(objTypeAs.sensorType); break;
         case Terra_ObjectType_Actuator: keyString = terraActuatorTypeToString(objTypeAs.actuatorType); break;
-        case Terra_ObjectType_Resource: keyString = terraResourceTypeToString(objTypeAs.resourceType); break;
-        case Terra_ObjectType_WaterStorage: keyString = terraWaterStorageTypeToString(objTypeAs.waterStorageType); break;
-        case Terra_ObjectType_WaterSource: keyString = terraWaterSourceTypeToString(objTypeAs.waterSourceType); break;
-        case Terra_ObjectType_WaterRoute: keyString = SFP(TStr_WaterRoute); break;
-        case Terra_ObjectType_RainCatchment: keyString = SFP(TStr_RainCatchment); break;
-        case Terra_ObjectType_ThermalStore: keyString = SFP(TStr_ThermalStore); break;
-        case Terra_ObjectType_ThermalLoop: keyString = SFP(TStr_ThermalLoop); break;
-        case Terra_ObjectType_Environment: keyString = SFP(TStr_Environment); break;
+        case Terra_ObjectType_Resource: keyString = TerraReservoirTypeToString(objTypeAs.ReservoirType); break;
         case Terra_ObjectType_PowerRail: keyString = terraRailTypeToString(objTypeAs.railType); break;
         default: return key;
     }

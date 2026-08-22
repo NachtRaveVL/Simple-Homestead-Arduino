@@ -24,11 +24,11 @@ enum Terra_ObjectType : int8_t {
 };
 
 // Managed resource categories.
-enum Terra_ResourceType : int8_t {
-    Terra_ResourceType_Water = 0,               ///< Stored or available water
-    Terra_ResourceType_Thermal,                 ///< Stored thermal energy
-    Terra_ResourceType_Count,                   ///< Number of concrete resource types
-    Terra_ResourceType_Undefined = -1           ///< Undefined resource
+enum Terra_ReservoirType : int8_t {
+    Terra_ReservoirType_Water = 0,               ///< Stored or available water
+    Terra_ReservoirType_Thermal,                 ///< Stored thermal energy
+    Terra_ReservoirType_Count,                   ///< Number of concrete resource types
+    Terra_ReservoirType_Undefined = -1           ///< Undefined resource
 };
 
 // Normalized resource state.

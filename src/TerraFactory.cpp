@@ -7,7 +7,7 @@
 #include "TerraUtils.h"
 #include "TerraSensors.h"
 #include "TerraActuators.h"
-#include "TerraResource.h"
+#include "TerraReservoir.h"
 #include "TerraWater.h"
 #include "TerraThermal.h"
 #include "TerraEnvironment.h"
@@ -178,11 +178,11 @@ SharedPtr<TerraHeater> TerraFactory::addHeaterRelay(uint8_t outputPin, bool acti
                                TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)), name);
 }
 
-SharedPtr<TerraResource> TerraFactory::addResource(Terra_ResourceType resourceType, const TerraString &name)
+SharedPtr<TerraReservoir> TerraFactory::addResource(Terra_ReservoirType ReservoirType, const TerraString &name)
 {
-    tposi_t positionIndex = terraFirstOpen(TerraIdentity(resourceType));
-    if (!terraValidPosition(positionIndex)) { return SharedPtr<TerraResource>(); }
-    return terraRegisterObject(new TerraResource(resourceType, positionIndex, name), TerraString());
+    tposi_t positionIndex = terraFirstOpen(TerraIdentity(ReservoirType));
+    if (!terraValidPosition(positionIndex)) { return SharedPtr<TerraReservoir>(); }
+    return terraRegisterObject(new TerraReservoir(ReservoirType, positionIndex, name), TerraString());
 }
 
 SharedPtr<TerraWaterStorage> TerraFactory::addWaterStorage(Terra_WaterStorageType storageType,
@@ -282,7 +282,7 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
             }
         }
         case Terra_ObjectType_Resource:
-            return new TerraResource(static_cast<const TerraResourceData *>(dataIn));
+            return new TerraReservoir(static_cast<const TerraReservoirData *>(dataIn));
         case Terra_ObjectType_WaterStorage:
             if ((Terra_WaterStorageType)dataIn->id.object.objType == Terra_WaterStorageType_Cistern) {
                 return new TerraCistern(static_cast<const TerraCisternData *>(dataIn));

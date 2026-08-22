@@ -26,7 +26,7 @@ class TerraSumpPump;                                        // Terra Sump Pump
 class TerraValve;                                           // Terra Valve
 class TerraHeater;                                          // Terra Heater
 class TerraCirculator;                                      // Terra Circulator
-class TerraResource;                                        // Terra Resource
+class TerraReservoir;                                        // Terra Resource
 class TerraWaterStorage;                                    // Terra Water Storage
 class TerraCistern;                                         // Terra Cistern
 class TerraWaterSource;                                     // Terra Water Source
@@ -103,7 +103,7 @@ public:
                                           const TerraString &name = TerraString());
 
     // Resource and process object builders.
-    SharedPtr<TerraResource> addResource(Terra_ResourceType resourceType,
+    SharedPtr<TerraReservoir> addResource(Terra_ReservoirType ReservoirType,
                                          const TerraString &name = TerraString());
     SharedPtr<TerraWaterStorage> addWaterStorage(Terra_WaterStorageType storageType,
                                                  float capacityLiters,

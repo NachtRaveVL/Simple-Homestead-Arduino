@@ -200,8 +200,8 @@ const char *pgmAddrForStr(Terra_String strNum);
 bool terraStringIdEqualsIgnoreCase(const TerraString &value, Terra_String stringId);
 
 TerraString terraObjectTypeToString(Terra_ObjectType value);
-TerraString terraResourceTypeToString(Terra_ResourceType value);
-TerraString terraResourceStateToString(Terra_ResourceState value);
+TerraString TerraReservoirTypeToString(Terra_ReservoirType value);
+TerraString TerraReservoirStateToString(Terra_ResourceState value);
 TerraString terraWaterSourceTypeToString(Terra_WaterSourceType value);
 TerraString terraWaterStorageTypeToString(Terra_WaterStorageType value);
 TerraString terraSensorTypeToString(Terra_SensorType value);
@@ -221,8 +221,8 @@ TerraString terraRouteStateToString(Terra_RouteState value);
 TerraString terraAttachmentRoleToString(Terra_AttachmentRole value);
 
 Terra_ObjectType terraObjectTypeFromString(const TerraString &value);
-Terra_ResourceType terraResourceTypeFromString(const TerraString &value);
-Terra_ResourceState terraResourceStateFromString(const TerraString &value);
+Terra_ReservoirType TerraReservoirTypeFromString(const TerraString &value);
+Terra_ResourceState TerraReservoirStateFromString(const TerraString &value);
 Terra_WaterSourceType terraWaterSourceTypeFromString(const TerraString &value);
 Terra_WaterStorageType terraWaterStorageTypeFromString(const TerraString &value);
 Terra_SensorType terraSensorTypeFromString(const TerraString &value);

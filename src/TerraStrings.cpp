@@ -768,17 +768,17 @@ TerraString terraObjectTypeToString(Terra_ObjectType value)
     return SFP(TStr_Undefined);
 }
 
-TerraString terraResourceTypeToString(Terra_ResourceType value)
+TerraString TerraReservoirTypeToString(Terra_ReservoirType value)
 {
     switch (value) {
-        case Terra_ResourceType_Undefined: return SFP(TStr_Undefined);
-        case Terra_ResourceType_Water: return SFP(TStr_Water);
-        case Terra_ResourceType_Thermal: return SFP(TStr_Thermal);
+        case Terra_ReservoirType_Undefined: return SFP(TStr_Undefined);
+        case Terra_ReservoirType_Water: return SFP(TStr_Water);
+        case Terra_ReservoirType_Thermal: return SFP(TStr_Thermal);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraResourceStateToString(Terra_ResourceState value)
+TerraString TerraReservoirStateToString(Terra_ResourceState value)
 {
     switch (value) {
         case Terra_ResourceState_Unknown: return SFP(TStr_Unknown);
@@ -1107,20 +1107,20 @@ Terra_ObjectType terraObjectTypeFromString(const TerraString &value)
     return Terra_ObjectType_Undefined;
 }
 
-Terra_ResourceType terraResourceTypeFromString(const TerraString &value)
+Terra_ReservoirType TerraReservoirTypeFromString(const TerraString &value)
 {
     switch (terraTrieChar(value, 0)) {
         case 't':
-            return Terra_ResourceType_Thermal;
+            return Terra_ReservoirType_Thermal;
         case 'u':
-            return Terra_ResourceType_Undefined;
+            return Terra_ReservoirType_Undefined;
         case 'w':
-            return Terra_ResourceType_Water;
+            return Terra_ReservoirType_Water;
     }
-    return Terra_ResourceType_Undefined;
+    return Terra_ReservoirType_Undefined;
 }
 
-Terra_ResourceState terraResourceStateFromString(const TerraString &value)
+Terra_ResourceState TerraReservoirStateFromString(const TerraString &value)
 {
     switch (terraTrieChar(value, 0)) {
         case 'f':

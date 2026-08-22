@@ -40,8 +40,8 @@ void setup() {
 
     bool pass = true;
     pass &= checkEnumRange<Terra_ObjectType>("ObjectType", Terra_ObjectType_Undefined, Terra_ObjectType_PowerRail, terraObjectTypeToString, terraObjectTypeFromString);
-    pass &= checkEnumRange<Terra_ResourceType>("ResourceType", Terra_ResourceType_Undefined, Terra_ResourceType_Thermal, terraResourceTypeToString, terraResourceTypeFromString);
-    pass &= checkEnumRange<Terra_ResourceState>("ResourceState", Terra_ResourceState_Unknown, Terra_ResourceState_Fault, terraResourceStateToString, terraResourceStateFromString);
+    pass &= checkEnumRange<Terra_ReservoirType>("ReservoirType", Terra_ReservoirType_Undefined, Terra_ReservoirType_Thermal, TerraReservoirTypeToString, TerraReservoirTypeFromString);
+    pass &= checkEnumRange<Terra_ResourceState>("ResourceState", Terra_ResourceState_Unknown, Terra_ResourceState_Fault, TerraReservoirStateToString, TerraReservoirStateFromString);
     pass &= checkEnumRange<Terra_WaterSourceType>("WaterSourceType", Terra_WaterSourceType_Undefined, Terra_WaterSourceType_Stored, terraWaterSourceTypeToString, terraWaterSourceTypeFromString);
     pass &= checkEnumRange<Terra_WaterStorageType>("WaterStorageType", Terra_WaterStorageType_Undefined, Terra_WaterStorageType_Reservoir, terraWaterStorageTypeToString, terraWaterStorageTypeFromString);
     pass &= checkEnumRange<Terra_SensorType>("SensorType", Terra_SensorType_Undefined, Terra_SensorType_Remote, terraSensorTypeToString, terraSensorTypeFromString);

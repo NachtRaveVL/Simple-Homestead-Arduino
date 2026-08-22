@@ -29,7 +29,7 @@ required = [
     "src/TerraMeasurements.h", "src/TerraMeasurements.cpp", "src/TerraModules.h", "src/TerraModules.cpp",
     "src/TerraObject.h", "src/TerraObject.cpp", "src/TerraPins.h", "src/TerraPins.cpp", "src/TerraPlatform.h",
     "src/TerraPublisher.h", "src/TerraPublisher.cpp", "src/TerraRails.h", "src/TerraRails.cpp",
-    "src/TerraResource.h", "src/TerraResource.cpp", "src/TerraScheduler.h", "src/TerraScheduler.cpp",
+    "src/TerraReservoir.h", "src/TerraReservoir.cpp", "src/TerraScheduler.h", "src/TerraScheduler.cpp",
     "src/TerraSensors.h", "src/TerraSensors.cpp", "src/TerraSetup.h", "src/TerraStreams.h", "src/TerraStreams.cpp",
     "src/TerraStrings.h", "src/TerraStrings.cpp", "src/TerraThermal.h", "src/TerraThermal.cpp",
     "src/TerraTriggers.h", "src/TerraTriggers.cpp", "src/TerraTypes.h", "src/TerraUtils.h", "src/TerraUtils.cpp",
@@ -121,8 +121,8 @@ for p in SRC.rglob("*.cpp"):
 
 enum_families = [
     ("ObjectType", "terraObjectTypeToString", "terraObjectTypeFromString"),
-    ("ResourceType", "terraResourceTypeToString", "terraResourceTypeFromString"),
-    ("ResourceState", "terraResourceStateToString", "terraResourceStateFromString"),
+    ("ReservoirType", "TerraReservoirTypeToString", "TerraReservoirTypeFromString"),
+    ("ResourceState", "TerraReservoirStateToString", "TerraReservoirStateFromString"),
     ("WaterSourceType", "terraWaterSourceTypeToString", "terraWaterSourceTypeFromString"),
     ("WaterStorageType", "terraWaterStorageTypeToString", "terraWaterStorageTypeFromString"),
     ("SensorType", "terraSensorTypeToString", "terraSensorTypeFromString"),
@@ -208,7 +208,7 @@ header_sequence = [
     '#include "TerraMeasurements.h"', '#include "TerraPins.h"', '#include "TerraUtils.h"',
     '#include "TerraDatas.h"', '#include "TerraStreams.h"', '#include "TerraTriggers.h"',
     '#include "TerraDrivers.h"', '#include "TerraActuators.h"', '#include "TerraSensors.h"',
-    '#include "TerraResource.h"', '#include "TerraEnvironment.h"', '#include "TerraWater.h"',
+    '#include "TerraReservoir.h"', '#include "TerraEnvironment.h"', '#include "TerraWater.h"',
     '#include "TerraThermal.h"', '#include "TerraBalancers.h"', '#include "TerraRails.h"',
     '#include "TerraModules.h"', '#include "TerraScheduler.h"', '#include "TerraLogger.h"',
     '#include "TerraPublisher.h"', '#include "TerraFactory.h"', '#include "TerraCoreLogic.h"',

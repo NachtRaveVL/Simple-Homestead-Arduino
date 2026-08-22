@@ -59,7 +59,7 @@ TerraHeater	KEYWORD1
 TerraCirculator	KEYWORD1
 
 # Resources, water, environment, and thermal
-TerraResource	KEYWORD1
+TerraReservoir	KEYWORD1
 TerraWaterStorage	KEYWORD1
 TerraCistern	KEYWORD1
 TerraWaterSource	KEYWORD1
@@ -79,7 +79,7 @@ TerraRangeTrigger	KEYWORD1
 
 # Public enum types
 Terra_ObjectType	KEYWORD1
-Terra_ResourceType	KEYWORD1
+Terra_ReservoirType	KEYWORD1
 Terra_ResourceState	KEYWORD1
 Terra_WaterSourceType	KEYWORD1
 Terra_WaterStorageType	KEYWORD1

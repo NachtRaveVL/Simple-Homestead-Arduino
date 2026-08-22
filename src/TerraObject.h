@@ -26,9 +26,7 @@ struct TerraIdentity {
     union {
         Terra_SensorType sensorType;                        // Sensor type
         Terra_ActuatorType actuatorType;                    // Actuator type
-        Terra_ResourceType resourceType;                    // Resource type
-        Terra_WaterStorageType waterStorageType;            // Water storage type
-        Terra_WaterSourceType waterSourceType;              // Water source type
+        Terra_ReservoirType reservoirType;                  // Reservoir type
         Terra_RailType railType;                            // Rail type
         int16_t idType;                                     // Generic subtype
     } objTypeAs;                                            // Object subtype union
@@ -41,9 +39,7 @@ struct TerraIdentity {
     TerraIdentity(const char *keyStringIn);
     TerraIdentity(Terra_SensorType sensorTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
     TerraIdentity(Terra_ActuatorType actuatorTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
-    TerraIdentity(Terra_ResourceType resourceTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
-    TerraIdentity(Terra_WaterStorageType storageTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
-    TerraIdentity(Terra_WaterSourceType sourceTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
+    TerraIdentity(Terra_ReservoirType reservoirTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
     TerraIdentity(Terra_RailType railTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
     TerraIdentity(Terra_ObjectType objectTypeIn, tposi_t positionIndex = TERRA_POS_SEARCH_FROMBEG);
     TerraIdentity(int objectType, int16_t subType, tposi_t positionIndex);

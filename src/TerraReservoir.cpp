@@ -1,23 +1,23 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Resources
+    Terraduino Reservoirs
 */
 
 #include "Terraduino.h"
 #include "TerraUtils.h"
 
-TerraResource::TerraResource(Terra_ResourceType type, tposi_t resourceIndex, const TerraString &name)
+TerraReservoir::TerraReservoir(Terra_ReservoirType type, tposi_t resourceIndex, const TerraString &name)
     : TerraObject(TerraIdentity(type, resourceIndex), name), _state(Terra_ResourceState_Reserve),
       _level(0.0f), _reserveLevel(10.0f), _lowLevel(25.0f), _highLevel(90.0f)
 { ; }
 
 
-TerraResource::TerraResource(TerraIdentity id, const TerraString &name)
+TerraReservoir::TerraReservoir(TerraIdentity id, const TerraString &name)
     : TerraObject(id, name), _state(Terra_ResourceState_Reserve),
       _level(0.0f), _reserveLevel(10.0f), _lowLevel(25.0f), _highLevel(90.0f)
 { ; }
 
-TerraResource::TerraResource(const TerraResourceData *dataIn)
+TerraReservoir::TerraReservoir(const TerraReservoirData *dataIn)
     : TerraObject(dataIn), _state(Terra_ResourceState_Reserve),
       _level(dataIn ? dataIn->level : 0.0f),
       _reserveLevel(dataIn ? dataIn->reserveLevel : 10.0f),
@@ -27,7 +27,7 @@ TerraResource::TerraResource(const TerraResourceData *dataIn)
     updateState();
 }
 
-bool TerraResource::setThresholds(float reserveLevel, float lowLevel, float highLevel)
+bool TerraReservoir::setThresholds(float reserveLevel, float lowLevel, float highLevel)
 {
     if (reserveLevel < 0.0f || reserveLevel > lowLevel || lowLevel >= highLevel || highLevel > 100.0f) return false;
     _reserveLevel = reserveLevel;
@@ -38,7 +38,7 @@ bool TerraResource::setThresholds(float reserveLevel, float lowLevel, float high
     return true;
 }
 
-void TerraResource::setLevel(float level)
+void TerraReservoir::setLevel(float level)
 {
     float constrainedLevel = constrain(level, 0.0f, 100.0f);
     if (!isFPEqual(_level, constrainedLevel)) {
@@ -48,19 +48,19 @@ void TerraResource::setLevel(float level)
     }
 }
 
-void TerraResource::setFault(const TerraString &message)
+void TerraReservoir::setFault(const TerraString &message)
 {
     TerraObject::setFault(message);
     updateState();
 }
 
-void TerraResource::clearFault()
+void TerraReservoir::clearFault()
 {
     TerraObject::clearFault();
     updateState();
 }
 
-void TerraResource::updateState()
+void TerraReservoir::updateState()
 {
     if (_fault) { _state = Terra_ResourceState_Fault; }
     else if (_level <= _reserveLevel) { _state = Terra_ResourceState_Reserve; }
@@ -69,15 +69,15 @@ void TerraResource::updateState()
     else { _state = Terra_ResourceState_Normal; }
 }
 
-TerraData *TerraResource::allocateData() const
+TerraData *TerraReservoir::allocateData() const
 {
-    return new TerraResourceData();
+    return new TerraReservoirData();
 }
 
-void TerraResource::saveToData(TerraData *dataOut) const
+void TerraReservoir::saveToData(TerraData *dataOut) const
 {
     TerraObject::saveToData(dataOut);
-    auto data = static_cast<TerraResourceData *>(dataOut);
+    auto data = static_cast<TerraReservoirData *>(dataOut);
     data->level = _level;
     data->reserveLevel = _reserveLevel;
     data->lowLevel = _lowLevel;
