@@ -1,6 +1,6 @@
 /*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
-    Terraduino Core Logic Helpers
+    Terraduino Core Logic
 */
 
 #ifndef TerraCoreLogic_H
