@@ -69,10 +69,10 @@ void TerraWaterBalancer::update(uint32_t now)
 
     if (_flowSensor.isSet()) {
         TerraSingleMeasurement flow = _flowSensor.getMeasurement(now, true);
-        if (flow.isSet() && flow.units != Terra_Unit_LitersPerMinute && canConvertUnits(flow.units, Terra_Unit_LitersPerMinute)) {
-            flow.toUnits(Terra_Unit_LitersPerMinute);
+        if (flow.isSet() && flow.units != Terra_UnitsType_LitersPerMinute && canConvertUnits(flow.units, Terra_UnitsType_LitersPerMinute)) {
+            flow.toUnits(Terra_UnitsType_LitersPerMinute);
         }
-        if (!flow.isSet() || flow.units != Terra_Unit_LitersPerMinute) {
+        if (!flow.isSet() || flow.units != Terra_UnitsType_LitersPerMinute) {
             run = false;
         } else if ((run && pumpWasActive && !_route->validateFlow(flow.value, true)) ||
                    (!run && !_route->validateFlow(flow.value, false))) {

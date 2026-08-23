@@ -25,8 +25,8 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Collector Temperature");
-    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Store Temperature");
+    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Collector Temperature");
+    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Store Temperature");
     heatStore = terraController.addThermalStore(0, "Hot Water Store");
     collectorLoop = terraController.addThermalLoop(0, "Collector Loop");
     circulator = terraController.addCirculator(0, "Collector Circulator");
@@ -47,8 +47,8 @@ void setup()
 void loop()
 {
     // Replace these values with installed temperature sensor drivers.
-    collectorTemperature->setMeasurement(72.0f, Terra_Unit_Celsius, terraMillis(), true);
-    storeTemperature->setMeasurement(52.0f, Terra_Unit_Celsius, terraMillis(), true);
+    collectorTemperature->setMeasurement(72.0f, Terra_UnitsType_Celsius, terraMillis(), true);
+    storeTemperature->setMeasurement(52.0f, Terra_UnitsType_Celsius, terraMillis(), true);
 
     terraController.update();
 

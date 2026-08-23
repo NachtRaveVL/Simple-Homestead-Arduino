@@ -88,7 +88,7 @@ Terra_ActuatorType	KEYWORD1
 Terra_MeasurementMode	KEYWORD1
 Terra_EnableMode	KEYWORD1
 Terra_PinMode	KEYWORD1
-Terra_Unit	KEYWORD1
+Terra_UnitsType	KEYWORD1
 Terra_UnitsCategory	KEYWORD1
 Terra_RailType	KEYWORD1
 Terra_Comparison	KEYWORD1

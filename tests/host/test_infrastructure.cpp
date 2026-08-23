@@ -32,8 +32,8 @@ int main()
     assert(first->getId().posIndex != second->getId().posIndex);
     assert(first->getKey() != second->getKey());
 
-    TerraSingleMeasurement celsius(20.0f, Terra_Unit_Celsius, 100, 1);
-    TerraSingleMeasurement fahrenheit = celsius.asUnits(Terra_Unit_Fahrenheit);
+    TerraSingleMeasurement celsius(20.0f, Terra_UnitsType_Celsius, 100, 1);
+    TerraSingleMeasurement fahrenheit = celsius.asUnits(Terra_UnitsType_Fahrenheit);
     assert(fahrenheit.isSet());
     assert(isFPEqual(fahrenheit.value, 68.0f));
 
@@ -43,7 +43,7 @@ int main()
     assert(level->takeMeasurement(true));
     const TerraMeasurement *measurement = level->getMeasurement(false);
     assert(measurement && measurement->isSingleType());
-    assert(getMeasurementUnits(measurement) == Terra_Unit_Percent);
+    assert(getMeasurementUnits(measurement) == Terra_UnitsType_Percent);
 
     FunctionSlot<const TerraLogEvent> logSlot(handleLogEvent);
     controller.getLogger().getLogSignal().attach(logSlot);
@@ -53,7 +53,7 @@ int main()
     FunctionSlot<Pair<uint8_t, const TerraDataColumn *>> publishSlot(handlePublishEvent);
     controller.getPublisher().getPublishSignal().attach(publishSlot);
     assert(controller.getPublisher().addColumn(level->getKey()));
-    level->setMeasurement(50.0f, Terra_Unit_Percent, 200, true);
+    level->setMeasurement(50.0f, Terra_UnitsType_Percent, 200, true);
     assert(publishEvents == 1);
 
     TerraObjectData *saved = first->newSaveData();

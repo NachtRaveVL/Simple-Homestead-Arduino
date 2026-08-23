@@ -147,7 +147,7 @@ class TerraFlowSensor : public TerraAnalogSensor {
 public:
     TerraFlowSensor(tposi_t sensorIndex,
                     TerraAnalogPin inputPin = TerraAnalogPin())
-        : TerraAnalogSensor(Terra_SensorType_Flow, sensorIndex, inputPin, Terra_Unit_LitersPerMinute) { ; }
+        : TerraAnalogSensor(Terra_SensorType_Flow, sensorIndex, inputPin, Terra_UnitsType_LitersPerMinute) { ; }
 };
 
 class TerraRainfallSensor : public TerraAnalogSensor {

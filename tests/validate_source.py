@@ -130,7 +130,7 @@ enum_families = [
     ("MeasurementMode", "terraMeasurementModeToString", "terraMeasurementModeFromString"),
     ("EnableMode", "terraEnableModeToString", "terraEnableModeFromString"),
     ("PinMode", "terraPinModeToString", "terraPinModeFromString"),
-    ("Unit", "terraUnitToString", "terraUnitFromString"),
+    ("Unit", "terraUnitToString", "unitsTypeFromSymbol"),
     ("UnitsCategory", "terraUnitsCategoryToString", "terraUnitsCategoryFromString"),
     ("RailType", "terraRailTypeToString", "terraRailTypeFromString"),
     ("Comparison", "terraComparisonToString", "terraComparisonFromString"),

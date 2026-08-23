@@ -22,12 +22,12 @@ void setup()
     terraController.init(Terra_ControlMode_Automatic, Terra_MeasurementMode_Metric);
     terraController.setSystemName("Homestead");
     outside = terraController.addEnvironment("Outside");
-    outsideTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, "Outside Temperature");
-    outsideHumidity = terraController.addSensor(Terra_SensorType_Humidity, Terra_Unit_Percent, "Outside Humidity");
+    outsideTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, "Outside Temperature");
+    outsideHumidity = terraController.addSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percent, "Outside Humidity");
     cistern = terraController.addCistern(2000.0f, "Main Cistern");
-    cisternLevel = terraController.addSensor(Terra_SensorType_Level, Terra_Unit_Percent, "Cistern Level");
+    cisternLevel = terraController.addSensor(Terra_SensorType_Level, Terra_UnitsType_Percent, "Cistern Level");
     thermalTank = terraController.addThermalStore("Thermal Store");
-    thermalTankTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, "Thermal Store Temperature");
+    thermalTankTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, "Thermal Store Temperature");
 
     outside->setAirTemperatureSensor(outsideTemperature);
     outside->setHumiditySensor(outsideHumidity);
@@ -45,10 +45,10 @@ void setup()
 void loop()
 {
     // Replace these sample sensor updates with installed sensor hardware.
-    outsideTemperature->setMeasurement(12.0f, Terra_Unit_Celsius, millis(), true);
-    outsideHumidity->setMeasurement(65.0f, Terra_Unit_Percent, millis(), true);
-    cisternLevel->setMeasurement(60.0f, Terra_Unit_Percent, millis(), true);
-    thermalTankTemperature->setMeasurement(54.0f, Terra_Unit_Celsius, millis(), true);
+    outsideTemperature->setMeasurement(12.0f, Terra_UnitsType_Celsius, millis(), true);
+    outsideHumidity->setMeasurement(65.0f, Terra_UnitsType_Percent, millis(), true);
+    cisternLevel->setMeasurement(60.0f, Terra_UnitsType_Percent, millis(), true);
+    thermalTankTemperature->setMeasurement(54.0f, Terra_UnitsType_Celsius, millis(), true);
 
     terraController.update();
     delay(1000);

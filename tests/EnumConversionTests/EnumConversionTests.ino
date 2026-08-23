@@ -49,7 +49,7 @@ void setup() {
     pass &= checkEnumRange<Terra_MeasurementMode>("MeasurementMode", Terra_MeasurementMode_Undefined, Terra_MeasurementMode_Count, terraMeasurementModeToString, terraMeasurementModeFromString);
     pass &= checkEnumRange<Terra_EnableMode>("EnableMode", Terra_EnableMode_Undefined, Terra_EnableMode_Count, terraEnableModeToString, terraEnableModeFromString);
     pass &= checkEnumRange<Terra_PinMode>("PinMode", Terra_PinMode_Undefined, Terra_PinMode_Count, terraPinModeToString, terraPinModeFromString);
-    pass &= checkEnumRange<Terra_Unit>("Unit", Terra_Unit_Undefined, Terra_Unit_Amps, terraUnitToString, terraUnitFromString);
+    pass &= checkEnumRange<Terra_UnitsType>("Unit", Terra_UnitsType_Undefined, Terra_UnitsType_Amps, terraUnitToString, unitsTypeFromSymbol);
     pass &= checkEnumRange<Terra_UnitsCategory>("UnitsCategory", Terra_UnitsCategory_Undefined, Terra_UnitsCategory_Count, terraUnitsCategoryToString, terraUnitsCategoryFromString);
     pass &= checkEnumRange<Terra_RailType>("RailType", Terra_RailType_Undefined, Terra_RailType_Count, terraRailTypeToString, terraRailTypeFromString);
     pass &= checkEnumRange<Terra_Comparison>("Comparison", Terra_Comparison_LessThan, Terra_Comparison_NotEqual, terraComparisonToString, terraComparisonFromString);

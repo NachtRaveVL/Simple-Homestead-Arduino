@@ -8,9 +8,9 @@ int main()
     controller.init();
 
     auto environment = controller.addEnvironment("Outside");
-    auto pressure = controller.addRemoteSensor(Terra_SensorType_Pressure, Terra_Unit_Hectopascals, "Pressure");
+    auto pressure = controller.addRemoteSensor(Terra_SensorType_Pressure, Terra_UnitsType_Hectopascals, "Pressure");
     assert(environment && pressure);
-    pressure->receiveReport(1013.25f, Terra_Unit_Hectopascals, 100, true);
+    pressure->receiveReport(1013.25f, Terra_UnitsType_Hectopascals, 100, true);
     environment->setPressureSensor(pressure);
     environment->update(100);
     assert(isFPEqual(environment->getBarometricPressure(), 1013.25f));

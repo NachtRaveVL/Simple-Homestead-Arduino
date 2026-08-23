@@ -496,12 +496,12 @@ void setup()
     cistern = terraController.addCistern(4000.0f, 0, "Cistern");
     fillRoute = terraController.addWaterRoute(0, "Cistern Fill");
     transferPump = terraStaticPointerCast<TerraPump>(terraController.addActuator(Terra_ActuatorType_Pump, 0, "Transfer Pump"));
-    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Collector Temperature");
-    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, 0, "Store Temperature");
+    collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Collector Temperature");
+    storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Store Temperature");
     thermalStore = terraController.addThermalStore(0, "Thermal Store");
     thermalLoop = terraController.addThermalLoop(0, "Thermal Loop");
     circulator = terraController.addActuator(Terra_ActuatorType_Circulator, 0, "Thermal Circulator");
-    barnTemp = terraStaticPointerCast<TerraRemoteSensor>(terraController.addSensor(Terra_SensorType_Remote, Terra_Unit_Celsius, 0, "Barn Temp"));
+    barnTemp = terraStaticPointerCast<TerraRemoteSensor>(terraController.addSensor(Terra_SensorType_Remote, Terra_UnitsType_Celsius, 0, "Barn Temp"));
 
     cistern->setThresholds(15.0f, 30.0f, 95.0f);
     cistern->configureFillBand(30.0f, 95.0f, 99.0f);
@@ -526,7 +526,7 @@ void setup()
 
     barnTemp->setStaleAfter(5UL * 60UL * 1000UL);
     terraController.publisher.setCallback(publishValue);
-    terraController.publisher.addChannel("barn-temp", barnTemp.get(), Terra_Unit_Celsius);
+    terraController.publisher.addChannel("barn-temp", barnTemp.get(), Terra_UnitsType_Celsius);
     terraController.launch();
 }
 
@@ -534,8 +534,8 @@ void loop()
 {
     weather->setAirTemperature(8.0f);
     weather->setRelativeHumidity(78.0f);
-    collectorTemperature->setMeasurement(70.0f, Terra_Unit_Celsius, terraMillis(), true);
-    storeTemperature->setMeasurement(52.0f, Terra_Unit_Celsius, terraMillis(), true);
+    collectorTemperature->setMeasurement(70.0f, Terra_UnitsType_Celsius, terraMillis(), true);
+    storeTemperature->setMeasurement(52.0f, Terra_UnitsType_Celsius, terraMillis(), true);
 
     terraController.update();
     delay(250);

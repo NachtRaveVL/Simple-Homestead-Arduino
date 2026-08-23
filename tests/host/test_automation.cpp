@@ -23,12 +23,12 @@ int main()
     route->update(100);
     assert(route->getRouteState() == Terra_RouteState_Requested || route->getRouteState() == Terra_RouteState_Active);
 
-    auto temperature = controller.addRemoteSensor(Terra_SensorType_Temperature, Terra_Unit_Celsius, "Source Temp");
+    auto temperature = controller.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, "Source Temp");
     auto store = controller.addThermalStore("Thermal Store");
     auto circulator = controller.addCirculatorRelay(6, false, "Circulator");
     auto loop = controller.addThermalLoop("Thermal Loop");
     assert(temperature && store && circulator && loop);
-    temperature->receiveReport(70.0f, Terra_Unit_Celsius, 100, true);
+    temperature->receiveReport(70.0f, Terra_UnitsType_Celsius, 100, true);
     store->setTemperature(50.0f);
     loop->setSourceTemperatureSensor(temperature);
     loop->setThermalStore(store);

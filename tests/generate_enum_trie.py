@@ -17,7 +17,7 @@ SPECS=[
     ("terraMeasurementModeToString", "Terra_MeasurementMode", "terraDecodeMeasurementMode", "measurementModeStr", "Terra_MeasurementMode_Undefined"),
     ("terraEnableModeToString", "Terra_EnableMode", "terraDecodeEnableMode", "enableModeStr", "Terra_EnableMode_Undefined"),
     ("terraPinModeToString", "Terra_PinMode", "terraDecodePinMode", "pinModeStr", "Terra_PinMode_Undefined"),
-    ("terraUnitToString", "Terra_Unit", "terraDecodeUnit", "unitStr", "Terra_Unit_Undefined"),
+    ("terraUnitToString", "Terra_UnitsType", "terraDecodeUnit", "unitStr", "Terra_UnitsType_Undefined"),
     ("terraUnitsCategoryToString", "Terra_UnitsCategory", "terraDecodeUnitsCategory", "unitsCategoryStr", "Terra_UnitsCategory_Undefined"),
     ("terraRailTypeToString", "Terra_RailType", "terraDecodeRailType", "railTypeStr", "Terra_RailType_Undefined"),
     ("terraComparisonToString", "Terra_Comparison", "terraDecodeComparison", "comparisonStr", "Terra_Comparison_GreaterOrEqual"),

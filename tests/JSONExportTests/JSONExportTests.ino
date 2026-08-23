@@ -107,7 +107,7 @@ void setup() {
     levelSensor.name = F("Analog Level");
     levelSensor.sensorType = Terra_SensorType_Analog;
     levelSensor.reportedType = Terra_SensorType_Analog;
-    levelSensor.unit = Terra_Unit_Percent;
+    levelSensor.unit = Terra_UnitsType_Percent;
     levelSensor.hasPinDriver = true;
     levelSensor.pinSetup = TerraPinSetup(7, Terra_PinMode_Analog_Input, false);
     levelSensor.driverCalibrated = true;

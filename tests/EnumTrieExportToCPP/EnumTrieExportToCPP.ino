@@ -190,7 +190,7 @@ void setup()
     buildEnumTree<Terra_MeasurementMode>(Terra_MeasurementMode_Undefined, Terra_MeasurementMode_Count, Terra_MeasurementMode_Undefined, terraMeasurementModeToString, "measurementModeStr", "Terra_MeasurementMode");
     buildEnumTree<Terra_EnableMode>(Terra_EnableMode_Undefined, Terra_EnableMode_Count, Terra_EnableMode_Undefined, terraEnableModeToString, "enableModeStr", "Terra_EnableMode");
     buildEnumTree<Terra_PinMode>(Terra_PinMode_Undefined, Terra_PinMode_Count, Terra_PinMode_Undefined, terraPinModeToString, "pinModeStr", "Terra_PinMode");
-    buildEnumTree<Terra_Unit>(Terra_Unit_Undefined, Terra_Unit_Amps, Terra_Unit_Undefined, terraUnitToString, "unitStr", "Terra_Unit");
+    buildEnumTree<Terra_UnitsType>(Terra_UnitsType_Undefined, Terra_UnitsType_Amps, Terra_UnitsType_Undefined, terraUnitToString, "unitStr", "Terra_UnitsType");
     buildEnumTree<Terra_UnitsCategory>(Terra_UnitsCategory_Undefined, Terra_UnitsCategory_Count, Terra_UnitsCategory_Undefined, terraUnitsCategoryToString, "unitsCategoryStr", "Terra_UnitsCategory");
     buildEnumTree<Terra_RailType>(Terra_RailType_Undefined, Terra_RailType_Count, Terra_RailType_Undefined, terraRailTypeToString, "railTypeStr", "Terra_RailType");
     buildEnumTree<Terra_Comparison>(Terra_Comparison_LessThan, Terra_Comparison_NotEqual, Terra_Comparison_GreaterOrEqual, terraComparisonToString, "comparisonStr", "Terra_Comparison");

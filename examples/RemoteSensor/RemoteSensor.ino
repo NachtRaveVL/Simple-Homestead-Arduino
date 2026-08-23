@@ -7,13 +7,13 @@
 #include <Terraduino.h>
 
 TerraRemoteSensor barnTemperature(Terra_SensorType_Temperature,
-                                  Terra_Unit_Celsius,
+                                  Terra_UnitsType_Celsius,
                                   0,
                                   "Barn Temperature");
 
 void onRemoteMessage(float temperatureC)
 {
-    barnTemperature.receiveReport(temperatureC, Terra_Unit_Celsius, millis(), true);
+    barnTemperature.receiveReport(temperatureC, Terra_UnitsType_Celsius, millis(), true);
 }
 
 void setup()
