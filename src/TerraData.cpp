@@ -124,7 +124,7 @@ void TerraData::fromJSONObject(JsonObjectConst &objectIn)
 {
     JsonVariantConst idVar = objectIn[SFP(TStr_Key_Type)];
     const char *idStr = idVar.as<const char *>();
-    if (idStr && idStr[0] == 'H') {
+    if (idStr && idStr[0] == 'T') {
         strncpy(id.chars, idStr, 4);
     } else if (idStr) {
         int8_t typeVals[4];
