@@ -8,7 +8,7 @@
 
 TerraCallbackInputDriver::TerraCallbackInputDriver(TerraReadCallback callback,
                                                    void *context,
-                                                   Terra_Unit units)
+                                                   Terra_UnitsType units)
     : _callback(callback), _context(context), _units(units)
 { ; }
 
@@ -36,7 +36,7 @@ void TerraAnalogInputDriver::begin()
 
 TerraSingleMeasurement TerraAnalogInputDriver::read(uint32_t now)
 {
-    return TerraSingleMeasurement(_pin.analogRead(), Terra_Unit_Raw, now, 1);
+    return TerraSingleMeasurement(_pin.analogRead(), Terra_UnitsType_Raw_1, now, 1);
 }
 
 bool TerraAnalogInputDriver::getPinData(TerraPinData &dataOut) const
@@ -49,7 +49,7 @@ bool TerraAnalogInputDriver::getPinData(TerraPinData &dataOut) const
 TerraDigitalInputDriver::TerraDigitalInputDriver(uint8_t pin,
                                                  bool activeLow,
                                                  Terra_PinMode pinMode,
-                                                 Terra_Unit units)
+                                                 Terra_UnitsType units)
     : _pin(pin, pinMode, activeLow), _units(units)
 { ; }
 

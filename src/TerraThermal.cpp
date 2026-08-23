@@ -7,7 +7,7 @@
 #include <string.h>
 
 TerraThermalStore::TerraThermalStore(tposi_t storeIndex, const TerraString &name)
-    : TerraReservoir(TerraIdentity(Terra_ObjectType_ThermalStore, storeIndex), name),
+    : TerraReservoir(Terra_ReservoirType_Thermal, storeIndex, name, TerraReservoir::ThermalStore),
       _temperatureC(0.0f), _minimumTargetC(0.0f),
       _maximumTargetC(80.0f), _absoluteMaximumC(95.0f),
       _temperatureSensor(this)
@@ -50,8 +50,8 @@ void TerraThermalStore::update(uint32_t now)
 
     TerraSingleMeasurement measurement = _temperatureSensor.getMeasurement(now, true);
     if (measurement.isSet()) {
-        if (measurement.units != Terra_Unit_Celsius) { measurement.toUnits(Terra_Unit_Celsius); }
-        if (measurement.units == Terra_Unit_Celsius) { setTemperature(measurement.value); }
+        if (measurement.units != Terra_UnitsType_Temperature_Celsius) { measurement.toUnits(Terra_UnitsType_Temperature_Celsius); }
+        if (measurement.units == Terra_UnitsType_Temperature_Celsius) { setTemperature(measurement.value); }
     }
 }
 
@@ -63,7 +63,7 @@ void TerraThermalStore::unresolveAny(TerraObject *object)
 
 TerraData *TerraThermalStore::allocateData() const
 {
-    return new TerraThermalStoreData();
+    return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
 void TerraThermalStore::saveToData(TerraData *dataOut) const
@@ -82,14 +82,14 @@ void TerraThermalStore::saveToData(TerraData *dataOut) const
 
 
 TerraThermalLoop::TerraThermalLoop(tposi_t loopIndex, const TerraString &name)
-    : TerraObject(TerraIdentity(Terra_ObjectType_ThermalLoop, loopIndex), name),
+    : TerraObject(TerraIdentity(Terra_ObjectType_ThermalLoop, loopIndex), name), classType(Loop),
       _onDifferentialC(8.0f), _offDifferentialC(3.0f),
       _maxStoreTempC(80.0f), _running(false),
       _balancer(this)
 { ; }
 
 TerraThermalLoop::TerraThermalLoop(const TerraThermalLoopData *dataIn)
-    : TerraObject(dataIn),
+    : TerraObject(dataIn), classType(static_cast<decltype(Loop)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
       _onDifferentialC(dataIn ? dataIn->onDifferentialC : 8.0f),
       _offDifferentialC(dataIn ? dataIn->offDifferentialC : 3.0f),
       _maxStoreTempC(dataIn ? dataIn->maxStoreTempC : 80.0f), _running(false), _balancer(this)
@@ -145,12 +145,13 @@ void TerraThermalLoop::unresolveAny(TerraObject *object)
 
 TerraData *TerraThermalLoop::allocateData() const
 {
-    return new TerraThermalLoopData();
+    return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
 void TerraThermalLoop::saveToData(TerraData *dataOut) const
 {
     TerraObject::saveToData(dataOut);
+    dataOut->id.object.classType = (tid_t)classType;
     auto data = static_cast<TerraThermalLoopData *>(dataOut);
     auto copyAttachment = [](char *destination, const TerraAttachment &attachment) {
         if (attachment.isSet()) {
@@ -164,4 +165,45 @@ void TerraThermalLoop::saveToData(TerraData *dataOut) const
     data->onDifferentialC = _onDifferentialC;
     data->offDifferentialC = _offDifferentialC;
     data->maxStoreTempC = _maxStoreTempC;
+}
+
+
+TerraThermalLoopData::TerraThermalLoopData()
+    : TerraObjectData(), sourceTemperatureSensor{0}, store{0}, circulator{0},
+      onDifferentialC(8.0f), offDifferentialC(3.0f), maxStoreTempC(80.0f)
+{
+    _size = sizeof(*this);
+    id.object.idType = (tid_t)Terra_ObjectType_ThermalLoop;
+    id.object.objType = 0;
+    id.object.posIndex = TERRA_POS_SEARCH_FROMBEG;
+    id.object.classType = (tid_t)TerraThermalLoop::Loop;
+}
+
+void TerraThermalLoopData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraObjectData::toJSONObject(objectOut);
+    if (sourceTemperatureSensor[0]) { objectOut["sourceTemperatureSensor"] = sourceTemperatureSensor; }
+    if (store[0]) { objectOut["store"] = store; }
+    if (circulator[0]) { objectOut["circulator"] = circulator; }
+    objectOut["onDifferentialC"] = onDifferentialC;
+    objectOut["offDifferentialC"] = offDifferentialC;
+    objectOut["maxStoreTempC"] = maxStoreTempC;
+}
+
+void TerraThermalLoopData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraObjectData::fromJSONObject(objectIn);
+    auto copyString = [](char *destinationOut, JsonVariantConst sourceIn) {
+        const char *value = sourceIn | nullptr;
+        if (value) {
+            strncpy(destinationOut, value, TERRA_NAME_MAXSIZE - 1);
+            destinationOut[TERRA_NAME_MAXSIZE - 1] = '\0';
+        }
+    };
+    copyString(sourceTemperatureSensor, objectIn["sourceTemperatureSensor"]);
+    copyString(store, objectIn["store"]);
+    copyString(circulator, objectIn["circulator"]);
+    onDifferentialC = objectIn["onDifferentialC"] | onDifferentialC;
+    offDifferentialC = objectIn["offDifferentialC"] | offDifferentialC;
+    maxStoreTempC = objectIn["maxStoreTempC"] | maxStoreTempC;
 }

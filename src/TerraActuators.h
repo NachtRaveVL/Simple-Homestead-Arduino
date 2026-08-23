@@ -21,6 +21,9 @@ struct TerraActuatorData;
 #include "TerraDatas.h"
 #include <math.h>
 
+// Creates actuator object from passed actuator data (return ownership transfer - user code *must* delete returned object)
+extern TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn);
+
 // Actuator Base
 // Base controlled output using a shared output driver and resident activation requests.
 class TerraActuator : public TerraObject {
@@ -180,6 +183,7 @@ class TerraValve : public TerraRelayActuator {
 public:
     TerraValve(tposi_t actuatorIndex, TerraDigitalPin outputPin)
         : TerraRelayActuator(Terra_ActuatorType_Valve, actuatorIndex, outputPin) { ; }
+    TerraValve(const TerraActuatorData *dataIn) : TerraRelayActuator(dataIn) { ; }
     inline void open(millis_t duration = (millis_t)-1) { setOutput(1.0f, duration); }
     inline void close() { off(); }
 };
@@ -188,6 +192,7 @@ class TerraDiverter : public TerraRelayActuator {
 public:
     TerraDiverter(tposi_t actuatorIndex, TerraDigitalPin outputPin)
         : TerraRelayActuator(Terra_ActuatorType_Diverter, actuatorIndex, outputPin) { ; }
+    TerraDiverter(const TerraActuatorData *dataIn) : TerraRelayActuator(dataIn) { ; }
     inline void routePrimary() { off(); }
     inline void routeSecondary() { setOutput(1.0f); }
 };
@@ -196,12 +201,29 @@ class TerraHeater : public TerraRelayActuator {
 public:
     TerraHeater(tposi_t actuatorIndex, TerraDigitalPin outputPin)
         : TerraRelayActuator(Terra_ActuatorType_Heater, actuatorIndex, outputPin) { ; }
+    TerraHeater(const TerraActuatorData *dataIn) : TerraRelayActuator(dataIn) { ; }
 };
 
 class TerraCirculator : public TerraPump {
 public:
     TerraCirculator(tposi_t actuatorIndex, TerraDigitalPin outputPin)
         : TerraPump(actuatorIndex, outputPin, Terra_ActuatorType_Circulator) { ; }
+    TerraCirculator(const TerraActuatorData *dataIn) : TerraPump(dataIn) { ; }
+};
+
+// Actuator Serialization Data
+struct TerraActuatorData : public TerraObjectData {
+    Terra_EnableMode enableMode;                            // Activation enablement mode
+    TerraPinData outputPin;                                 // Output pin
+    uint32_t maxContinuousMs;                               // Maximum continuous runtime
+    char levelSensor[TERRA_NAME_MAXSIZE];                   // Sump level sensor attachment
+    float sumpStartPercent;                                 // Sump pump start level
+    float sumpStopPercent;                                  // Sump pump stop level
+    float sumpAlarmPercent;                                 // Sump high-water alarm level
+
+    TerraActuatorData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
 #endif // /ifndef TerraActuators_H

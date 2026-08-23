@@ -38,7 +38,7 @@ void TerraWaterBalancer::update(uint32_t now)
 
     bool run = false;
     bool pumpWasActive = _pump.isActive();
-    const TerraCistern *cistern = destination->getStorageType() == Terra_WaterStorageType_Cistern
+    const TerraCistern *cistern = destination->classType == TerraReservoir::Cistern
                                 ? static_cast<const TerraCistern *>(destination.get())
                                 : nullptr;
 
@@ -170,10 +170,10 @@ void TerraThermalBalancer::update(uint32_t now)
     }
 
     TerraSingleMeasurement source = _sourceTemperature.getMeasurement(now, true);
-    if (source.isSet() && source.units != Terra_Unit_Celsius && canConvertUnits(source.units, Terra_Unit_Celsius)) {
-        source.toUnits(Terra_Unit_Celsius);
+    if (source.isSet() && source.units != Terra_UnitsType_Temperature_Celsius && canConvertUnits(source.units, Terra_UnitsType_Temperature_Celsius)) {
+        source.toUnits(Terra_UnitsType_Temperature_Celsius);
     }
-    if (!source.isSet() || source.units != Terra_Unit_Celsius) {
+    if (!source.isSet() || source.units != Terra_UnitsType_Temperature_Celsius) {
         _circulator.off();
         _loop->setRunning(false);
         return;

@@ -362,7 +362,7 @@ void TerraSumpPump::update(uint32_t now)
 {
     if (_levelSensor.isSet()) {
         TerraSingleMeasurement level = _levelSensor.getMeasurement(now, true);
-        if (!level.isSet() || level.units != Terra_Unit_Percent) {
+        if (!level.isSet() || level.units != Terra_UnitsType_Percentile_100) {
             _levelValid = false;
             _highWaterAlarm = false;
             off();
@@ -399,4 +399,76 @@ void TerraSumpPump::saveToData(TerraData *dataOut) const
     actuatorData->sumpStartPercent = _startLevelPercent;
     actuatorData->sumpStopPercent = _stopLevelPercent;
     actuatorData->sumpAlarmPercent = _alarmLevelPercent;
+}
+
+TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
+{
+    if (!dataIn) { return nullptr; }
+
+    switch (dataIn->id.object.classType) {
+        case (tid_t)TerraActuator::Relay:
+            switch ((Terra_ActuatorType)dataIn->id.object.objType) {
+                case Terra_ActuatorType_Valve:
+                    return new TerraValve(dataIn);
+                case Terra_ActuatorType_Diverter:
+                    return new TerraDiverter(dataIn);
+                case Terra_ActuatorType_Heater:
+                    return new TerraHeater(dataIn);
+                default:
+                    return new TerraRelayActuator(dataIn);
+            }
+        case (tid_t)TerraActuator::RelayPump:
+            switch ((Terra_ActuatorType)dataIn->id.object.objType) {
+                case Terra_ActuatorType_SumpPump:
+                    return new TerraSumpPump(dataIn);
+                case Terra_ActuatorType_Circulator:
+                    return new TerraCirculator(dataIn);
+                default:
+                    return new TerraPump(dataIn);
+            }
+        case (tid_t)TerraActuator::Variable:
+            return new TerraVariableActuator(dataIn);
+        default:
+            return nullptr;
+    }
+}
+
+TerraActuatorData::TerraActuatorData()
+    : TerraObjectData(), enableMode(Terra_EnableMode_Highest), outputPin(), maxContinuousMs(0),
+      levelSensor{0}, sumpStartPercent(TERRA_SUMP_START_LEVEL_PERCENT),
+      sumpStopPercent(TERRA_SUMP_STOP_LEVEL_PERCENT), sumpAlarmPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT)
+{
+    _size = sizeof(*this);
+}
+
+void TerraActuatorData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraObjectData::toJSONObject(objectOut);
+    objectOut["enableMode"] = (int)enableMode;
+    if (outputPin.isSet()) {
+        JsonObject pinObj = objectOut.createNestedObject("outputPin");
+        outputPin.toJSONObject(pinObj);
+    }
+    if (maxContinuousMs) { objectOut["maxContinuousMs"] = maxContinuousMs; }
+    if (levelSensor[0]) { objectOut["levelSensor"] = levelSensor; }
+    objectOut["sumpStartPercent"] = sumpStartPercent;
+    objectOut["sumpStopPercent"] = sumpStopPercent;
+    objectOut["sumpAlarmPercent"] = sumpAlarmPercent;
+}
+
+void TerraActuatorData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraObjectData::fromJSONObject(objectIn);
+    enableMode = (Terra_EnableMode)(objectIn["enableMode"] | (int)enableMode);
+    JsonObjectConst pinObj = objectIn["outputPin"].as<JsonObjectConst>();
+    if (!pinObj.isNull()) { outputPin.fromJSONObject(pinObj); }
+    maxContinuousMs = objectIn["maxContinuousMs"] | maxContinuousMs;
+    const char *levelSensorIn = objectIn["levelSensor"] | nullptr;
+    if (levelSensorIn) {
+        strncpy(levelSensor, levelSensorIn, TERRA_NAME_MAXSIZE - 1);
+        levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+    sumpStartPercent = objectIn["sumpStartPercent"] | sumpStartPercent;
+    sumpStopPercent = objectIn["sumpStopPercent"] | sumpStopPercent;
+    sumpAlarmPercent = objectIn["sumpAlarmPercent"] | sumpAlarmPercent;
 }

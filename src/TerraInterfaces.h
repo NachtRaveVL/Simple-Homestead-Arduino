@@ -9,6 +9,9 @@
 class TerraObject;
 class TerraSensor;
 class TerraActuator;
+class TerraAttachment;
+class TerraSensorAttachment;
+class TerraTriggerAttachment;
 class TerraRTCInterface;
 
 struct TerraIdentity;
@@ -22,6 +25,7 @@ struct TerraJSONSerializableInterface {
     virtual void toJSONObject(JsonObject &objectOut) const = 0;
     virtual void fromJSONObject(JsonObjectConst &objectIn) = 0;
 };
+
 
 // Object Interface
 class TerraObjInterface {
@@ -45,17 +49,17 @@ public:
 class TerraMeasurementUnitsInterface {
 public:
     virtual ~TerraMeasurementUnitsInterface() { ; }
-    virtual void setMeasurementUnits(Terra_Unit measurementUnits, uint8_t measurementRow = 0) = 0;
-    virtual Terra_Unit getMeasurementUnits(uint8_t measurementRow = 0) const = 0;
+    virtual void setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t measurementRow = 0) = 0;
+    virtual Terra_UnitsType getMeasurementUnits(uint8_t measurementRow = 0) const = 0;
 };
 
 // Measurement Units Storage
 template <size_t N>
 class TerraMeasurementUnitsStorage {
 protected:
-    Terra_Unit _measurementUnits[N];                        // Stored measurement units by row
+    Terra_UnitsType _measurementUnits[N];                    // Stored measurement units by row
 
-    inline TerraMeasurementUnitsStorage(Terra_Unit measurementUnits = Terra_Unit_Undefined)
+    inline TerraMeasurementUnitsStorage(Terra_UnitsType measurementUnits = Terra_UnitsType_Undefined)
     {
         for (size_t index = 0; index < N; ++index) { _measurementUnits[index] = measurementUnits; }
     }
@@ -64,14 +68,62 @@ protected:
 class TerraMeasurementUnitsInterfaceStorageSingle : public TerraMeasurementUnitsInterface,
                                                     public TerraMeasurementUnitsStorage<1> {
 public:
-    virtual void setMeasurementUnits(Terra_Unit measurementUnits, uint8_t measurementRow = 0) override
+    virtual void setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t measurementRow = 0) override
         { if (!measurementRow) { _measurementUnits[0] = measurementUnits; } }
-    virtual Terra_Unit getMeasurementUnits(uint8_t measurementRow = 0) const override
-        { return !measurementRow ? _measurementUnits[0] : Terra_Unit_Undefined; }
+    virtual Terra_UnitsType getMeasurementUnits(uint8_t measurementRow = 0) const override
+        { return !measurementRow ? _measurementUnits[0] : Terra_UnitsType_Undefined; }
 
 protected:
-    inline TerraMeasurementUnitsInterfaceStorageSingle(Terra_Unit measurementUnits = Terra_Unit_Undefined)
+    inline TerraMeasurementUnitsInterfaceStorageSingle(Terra_UnitsType measurementUnits = Terra_UnitsType_Undefined)
         : TerraMeasurementUnitsStorage<1>(measurementUnits) { ; }
+};
+
+// Power Units Interface + Storage
+class TerraPowerUnitsInterfaceStorage {
+public:
+    virtual void setPowerUnits(Terra_UnitsType powerUnits) = 0;
+    inline Terra_UnitsType getPowerUnits() const { return _powerUnits; }
+
+protected:
+    Terra_UnitsType _powerUnits;                            // Stored power units
+    inline TerraPowerUnitsInterfaceStorage(Terra_UnitsType powerUnits = Terra_UnitsType_Undefined)
+        : _powerUnits(powerUnits) { ; }
+};
+
+
+// Rail Object Interface
+class TerraRailObjectInterface {
+public:
+    virtual bool canActivate(TerraActuator *actuator) = 0;
+    virtual float getCapacity(bool poll = false) = 0;
+};
+
+
+// Sensor Attachment Interface
+class TerraSensorAttachmentInterface {
+public:
+    virtual TerraSensorAttachment &getSensorAttachment() = 0;
+
+    template<class U> inline void setSensor(U sensor);
+    template<class U = TerraSensor> inline SharedPtr<U> getSensor(bool poll = false);
+};
+
+// Power Usage Sensor Attachment Interface
+class TerraPowerUsageSensorAttachmentInterface {
+public:
+    virtual TerraSensorAttachment &getPowerUsageSensorAttachment() = 0;
+
+    template<class U> inline void setPowerUsageSensor(U sensor);
+    template<class U = TerraSensor> inline SharedPtr<U> getPowerUsageSensor(bool poll = false);
+};
+
+// Limit Trigger Attachment Interface
+class TerraLimitTriggerAttachmentInterface {
+public:
+    virtual TerraTriggerAttachment &getLimitTriggerAttachment() = 0;
+
+    template<class U> inline void setLimitTrigger(U trigger);
+    template<class U = TerraTrigger> inline SharedPtr<U> getLimitTrigger(bool poll = false);
 };
 
 #ifdef ARDUINO
@@ -87,4 +139,4 @@ public:
 };
 #endif
 
-#endif
+#endif // /ifndef TerraInterfaces_H

@@ -38,14 +38,14 @@ class TerraCallbackInputDriver : public TerraInputDriver {
 public:
     TerraCallbackInputDriver(TerraReadCallback callback = nullptr,
                              void *context = nullptr,
-                             Terra_Unit units = Terra_Unit_Raw);
+                             Terra_UnitsType units = Terra_UnitsType_Raw_1);
     void setCallback(TerraReadCallback callback, void *context = nullptr);
     virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
 
 protected:
     TerraReadCallback _callback;                            // Configured callback
     void *_context;                                         // Callback context, not owned
-    Terra_Unit _units;                                      // Driver measurement units
+    Terra_UnitsType _units;                                 // Driver measurement units
 };
 
 class TerraAnalogInputDriver : public TerraInputDriver {
@@ -65,14 +65,14 @@ public:
     TerraDigitalInputDriver(uint8_t pin = TERRA_INVALID_PIN,
                             bool activeLow = false,
                             Terra_PinMode pinMode = Terra_PinMode_Digital_Input,
-                            Terra_Unit units = Terra_Unit_Raw);
+                            Terra_UnitsType units = Terra_UnitsType_Raw_1);
     virtual void begin() override;
     virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
     virtual bool getPinData(TerraPinData &dataOut) const override;
 
 protected:
     TerraDigitalPin _pin;                                   // Configured digital input pin
-    Terra_Unit _units;                                      // Driver measurement units
+    Terra_UnitsType _units;                                 // Driver measurement units
 };
 
 class TerraCallbackOutputDriver : public TerraOutputDriver {

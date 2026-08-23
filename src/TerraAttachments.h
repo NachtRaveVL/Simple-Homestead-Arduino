@@ -157,12 +157,12 @@ public:
 
     void setMeasurement(TerraSingleMeasurement measurement);
     void setMeasurementRow(uint8_t measurementRow);
-    void setMeasurementUnits(Terra_Unit units, float convertParam = 0.0f);
+    void setMeasurementUnits(Terra_UnitsType units, float convertParam = 0.0f);
 
     TerraSingleMeasurement getMeasurement(uint32_t now = millis(), bool poll = false);
     inline const TerraSingleMeasurement &getCachedMeasurement() const { return _measurement; }
     inline uint8_t getMeasurementRow() const { return _measurementRow; }
-    inline Terra_Unit getMeasurementUnits() const { return _measurement.units; }
+    inline Terra_UnitsType getMeasurementUnits() const { return _measurement.units; }
     inline float getMeasurementConvertParam() const { return _convertParam; }
     inline void setNeedsMeasurement() { _needsMeasurement = true; }
 

@@ -6,7 +6,6 @@
 #ifndef TerraThermal_H
 #define TerraThermal_H
 
-struct TerraThermalStoreData;
 struct TerraThermalLoopData;
 
 #include "TerraReservoir.h"
@@ -58,6 +57,8 @@ protected:
 // Differential circulation state for moving heat between a source and storage.
 class TerraThermalLoop : public TerraObject {
 public:
+    const enum : signed char { Loop, Unknown = -1 } classType; // Thermal loop class type
+
     TerraThermalLoop(tposi_t loopIndex = TERRA_POS_SEARCH_FROMBEG,
                      const TerraString &name = TerraString());
     TerraThermalLoop(const TerraThermalLoopData *dataIn);
@@ -98,6 +99,21 @@ protected:
     virtual void saveToData(TerraData *dataOut) const override;
 
     friend class TerraThermalBalancer;
+};
+
+
+// Thermal Loop Serialization Data
+struct TerraThermalLoopData : public TerraObjectData {
+    char sourceTemperatureSensor[TERRA_NAME_MAXSIZE];       // Source temperature sensor attachment
+    char store[TERRA_NAME_MAXSIZE];                         // Thermal store attachment
+    char circulator[TERRA_NAME_MAXSIZE];                    // Circulator attachment
+    float onDifferentialC;                                  // Circulation-on temperature differential
+    float offDifferentialC;                                 // Circulation-off temperature differential
+    float maxStoreTempC;                                    // Maximum storage temperature
+
+    TerraThermalLoopData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
 #endif // /ifndef TerraThermal_H

@@ -8,9 +8,6 @@
 
 class TerraFirstFlushController;                            // Terra First Flush Controller
 
-struct TerraWaterStorageData;
-struct TerraCisternData;
-struct TerraWaterSourceData;
 struct TerraWaterRouteData;
 struct TerraRainCatchmentData;
 
@@ -41,12 +38,11 @@ public:
     TerraWaterStorage(float capacityLiters = 0.0f,
                       tposi_t storageIndex = TERRA_POS_SEARCH_FROMBEG,
                       const TerraString &name = TerraString(),
-                      Terra_WaterStorageType storageType = Terra_WaterStorageType_Undefined);  // Water storage type
+                      int classTypeIn = TerraReservoir::WaterStorage); // Reservoir class type
     TerraWaterStorage(const TerraWaterStorageData *dataIn);
 
     void setCapacityLiters(float capacityLiters) { _capacityLiters = capacityLiters < 0.0f ? 0.0f : capacityLiters; bumpRevisionIfNeeded(); }
     float getCapacityLiters() const { return _capacityLiters; }
-    Terra_WaterStorageType getStorageType() const { return _id.objTypeAs.waterStorageType; }
     float getStoredLiters() const { return _capacityLiters * (getLevel() / 100.0f); }
     void setStoredLiters(float liters);
     float availableAboveReserveLiters() const;
@@ -115,26 +111,21 @@ protected:
 
 // Water Source
 // Describes a usable water source and its priority, reserve, availability, and flow limit.
-class TerraWaterSource : public TerraObject {
+class TerraWaterSource : public TerraReservoir {
 public:
-    TerraWaterSource(Terra_WaterSourceType type = Terra_WaterSourceType_Undefined,
-                     uint8_t priority = 0,
+    TerraWaterSource(uint8_t priority = 0,
                      tposi_t sourceIndex = TERRA_POS_SEARCH_FROMBEG,
                      const TerraString &name = TerraString());
     TerraWaterSource(const TerraWaterSourceData *dataIn);
 
-    Terra_WaterSourceType getType() const { return _id.objTypeAs.waterSourceType; }
     uint8_t getPriority() const { return _priority; }
-    bool isAvailable() const { return _available && !_fault && _enabled; }
+    bool isAvailable() const { return _available && !_fault && _enabled && getLevel() > getReserveLevel(); }
     bool isConfiguredAvailable() const { return _available; }
-    float getLevel() const { return _level; }
-    float getReserveLevel() const { return _reserveLevel; }
     float getMaximumFlowLpm() const { return _maximumFlowLpm; }
 
     void setPriority(uint8_t priority) { _priority = priority; bumpRevisionIfNeeded(); }
     void setAvailable(bool available) { _available = available; bumpRevisionIfNeeded(); }
-    void setLevel(float level) { _level = constrain(level, 0.0f, 100.0f); bumpRevisionIfNeeded(); }
-    void setReserveLevel(float reserve) { _reserveLevel = constrain(reserve, 0.0f, 100.0f); bumpRevisionIfNeeded(); }
+    void setReserveLevel(float reserve);
     void setMaximumFlowLpm(float flow) { _maximumFlowLpm = flow < 0.0f ? 0.0f : flow; bumpRevisionIfNeeded(); }
 
     // Level Sensor Attachment Point
@@ -148,8 +139,6 @@ public:
 protected:
     uint8_t _priority;                                      // Source priority
     bool _available;                                        // Configured availability
-    float _level;                                           // Normalized level, percent
-    float _reserveLevel;                                    // Protected reserve level, percent
     float _maximumFlowLpm;                                  // Maximum allowed flow
     TerraSensorAttachment _levelSensor;                     // Level sensor attachment point
 
@@ -161,6 +150,8 @@ protected:
 // Defines one controlled transfer path between a source and destination storage object.
 class TerraWaterRoute : public TerraObject {
 public:
+    const enum : signed char { Route, Unknown = -1 } classType; // Water route class type
+
     TerraWaterRoute(tposi_t routeIndex = TERRA_POS_SEARCH_FROMBEG, const TerraString &name = TerraString());
     TerraWaterRoute(const TerraWaterRouteData *dataIn);
 
@@ -209,6 +200,8 @@ protected:
 // Converts rainfall over a catchment area into water delivered to a cistern.
 class TerraRainCatchment : public TerraObject {
 public:
+    const enum : signed char { Catchment, Unknown = -1 } classType; // Rain catchment class type
+
     TerraRainCatchment(float areaSquareMeters = 0.0f,
                        float collectionEfficiency = 0.85f,
                        tposi_t catchmentIndex = TERRA_POS_SEARCH_FROMBEG,
@@ -252,4 +245,31 @@ protected:
     float _discardedLiters;                                 // Current event discarded volume
 };
 
-#endif
+
+// Water Route Serialization Data
+struct TerraWaterRouteData : public TerraObjectData {
+    char source[TERRA_NAME_MAXSIZE];                        // Source attachment
+    char destination[TERRA_NAME_MAXSIZE];                   // Destination attachment
+    char pump[TERRA_NAME_MAXSIZE];                          // Pump attachment
+    char flowSensor[TERRA_NAME_MAXSIZE];                    // Flow sensor attachment
+    float destinationStartPercent;                          // Destination fill-start threshold
+    float destinationStopPercent;                           // Destination fill-stop threshold
+    float minimumFlowLpm;                                   // Minimum expected flow
+    float maximumFlowLpm;                                   // Maximum allowed flow
+
+    TerraWaterRouteData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
+};
+
+// Rain Catchment Serialization Data
+struct TerraRainCatchmentData : public TerraObjectData {
+    float areaSquareMeters;                                 // Effective collection area, square meters
+    float collectionEfficiency;                             // Fraction of rainfall reaching storage
+
+    TerraRainCatchmentData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
+};
+
+#endif // /ifndef TerraWater_H

@@ -17,6 +17,8 @@ struct TerraEnvironmentData;
 // homestead monitoring and control logic. Measurement state remains owned by sensors.
 class TerraEnvironment : public TerraObject {
 public:
+    const enum : signed char { Standard, Unknown = -1 } classType; // Environment class type
+
     TerraEnvironment(tposi_t environmentIndex = TERRA_POS_SEARCH_FROMBEG,
                      const TerraString &name = TerraString("Environment"));
     TerraEnvironment(const TerraEnvironmentData *dataIn);
@@ -77,4 +79,21 @@ protected:
     virtual void saveToData(TerraData *dataOut) const override;
 };
 
-#endif
+
+// Environment Serialization Data
+struct TerraEnvironmentData : public TerraObjectData {
+    char airTemperatureSensor[TERRA_NAME_MAXSIZE];          // Air temperature sensor attachment
+    char humiditySensor[TERRA_NAME_MAXSIZE];                // Humidity sensor attachment
+    char pressureSensor[TERRA_NAME_MAXSIZE];                // Pressure sensor attachment
+    char rainfallSensor[TERRA_NAME_MAXSIZE];                // Rainfall sensor attachment
+    char rainRateSensor[TERRA_NAME_MAXSIZE];                // Rain-rate sensor attachment
+    char windSpeedSensor[TERRA_NAME_MAXSIZE];               // Wind-speed sensor attachment
+    char windDirectionSensor[TERRA_NAME_MAXSIZE];           // Wind-direction sensor attachment
+    char solarRadiationSensor[TERRA_NAME_MAXSIZE];          // Solar-radiation sensor attachment
+
+    TerraEnvironmentData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
+};
+
+#endif // /ifndef TerraEnvironment_H

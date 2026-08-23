@@ -8,13 +8,14 @@
 #include "TerraUtils.h"
 
 TerraEnvironment::TerraEnvironment(tposi_t environmentIndex, const TerraString &name)
-    : TerraObject(TerraIdentity(Terra_ObjectType_Environment, environmentIndex), name),
+    : TerraObject(TerraIdentity(Terra_ObjectType_Environment, environmentIndex), name), classType(Standard),
       _airTemperature(this), _humidity(this), _pressure(this), _rainfall(this), _rainRate(this),
       _windSpeed(this), _windDirection(this), _solarRadiation(this)
 { ; }
 
 TerraEnvironment::TerraEnvironment(const TerraEnvironmentData *dataIn)
-    : TerraObject(dataIn), _airTemperature(this), _humidity(this), _pressure(this),
+    : TerraObject(dataIn), classType(static_cast<decltype(Standard)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
+      _airTemperature(this), _humidity(this), _pressure(this),
       _rainfall(this), _rainRate(this), _windSpeed(this), _windDirection(this), _solarRadiation(this)
 {
     if (dataIn) {
@@ -29,7 +30,7 @@ TerraEnvironment::TerraEnvironment(const TerraEnvironmentData *dataIn)
     }
 }
 
-static float terraEnvironmentValue(const TerraSensorAttachment &attachment, Terra_Unit units)
+static float terraEnvironmentValue(const TerraSensorAttachment &attachment, Terra_UnitsType units)
 {
     TerraSingleMeasurement measurement = attachment.getCachedMeasurement();
     if (!measurement.isSet()) { return NAN; }
@@ -39,37 +40,37 @@ static float terraEnvironmentValue(const TerraSensorAttachment &attachment, Terr
 
 float TerraEnvironment::getAirTemperature() const
 {
-    return terraEnvironmentValue(_airTemperature, Terra_Unit_Celsius);
+    return terraEnvironmentValue(_airTemperature, Terra_UnitsType_Temperature_Celsius);
 }
 
 float TerraEnvironment::getRelativeHumidity() const
 {
-    return terraEnvironmentValue(_humidity, Terra_Unit_Percent);
+    return terraEnvironmentValue(_humidity, Terra_UnitsType_Percentile_100);
 }
 
 float TerraEnvironment::getRainfall() const
 {
-    return terraEnvironmentValue(_rainfall, Terra_Unit_Millimeters);
+    return terraEnvironmentValue(_rainfall, Terra_UnitsType_Distance_Millimeters);
 }
 
 float TerraEnvironment::getRainfallRate() const
 {
-    return terraEnvironmentValue(_rainRate, Terra_Unit_MillimetersPerHour);
+    return terraEnvironmentValue(_rainRate, Terra_UnitsType_RainRate_MillimetersPerHour);
 }
 
 float TerraEnvironment::getBarometricPressure() const
 {
-    return terraEnvironmentValue(_pressure, Terra_Unit_Hectopascals);
+    return terraEnvironmentValue(_pressure, Terra_UnitsType_Pressure_Hectopascals);
 }
 
 float TerraEnvironment::getWindSpeed() const
 {
-    return terraEnvironmentValue(_windSpeed, Terra_Unit_MetersPerSecond);
+    return terraEnvironmentValue(_windSpeed, Terra_UnitsType_Speed_MetersPerSecond);
 }
 
 float TerraEnvironment::getWindDirection() const
 {
-    float direction = terraEnvironmentValue(_windDirection, Terra_Unit_Degrees);
+    float direction = terraEnvironmentValue(_windDirection, Terra_UnitsType_Angle_Degrees_360);
     if (isnan(direction)) { return direction; }
     direction = fmodf(direction, 360.0f);
     return direction < 0.0f ? direction + 360.0f : direction;
@@ -77,7 +78,7 @@ float TerraEnvironment::getWindDirection() const
 
 float TerraEnvironment::getSolarRadiation() const
 {
-    return terraEnvironmentValue(_solarRadiation, Terra_Unit_WattsPerSquareMeter);
+    return terraEnvironmentValue(_solarRadiation, Terra_UnitsType_Irradiance_WattsPerSquareMeter);
 }
 
 bool TerraEnvironment::isFreezing(float thresholdC) const
@@ -126,12 +127,13 @@ void TerraEnvironment::unresolveAny(TerraObject *object)
 
 TerraData *TerraEnvironment::allocateData() const
 {
-    return new TerraEnvironmentData();
+    return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
 void TerraEnvironment::saveToData(TerraData *dataOut) const
 {
     TerraObject::saveToData(dataOut);
+    dataOut->id.object.classType = (tid_t)classType;
     auto data = static_cast<TerraEnvironmentData *>(dataOut);
     auto copyAttachment = [](char *destination, const TerraAttachment &attachment) {
         if (attachment.isSet()) {
@@ -147,4 +149,49 @@ void TerraEnvironment::saveToData(TerraData *dataOut) const
     copyAttachment(data->windSpeedSensor, _windSpeed);
     copyAttachment(data->windDirectionSensor, _windDirection);
     copyAttachment(data->solarRadiationSensor, _solarRadiation);
+}
+
+
+TerraEnvironmentData::TerraEnvironmentData()
+    : TerraObjectData(), airTemperatureSensor{0}, humiditySensor{0}, pressureSensor{0}, rainfallSensor{0},
+      rainRateSensor{0}, windSpeedSensor{0}, windDirectionSensor{0}, solarRadiationSensor{0}
+{
+    _size = sizeof(*this);
+    id.object.idType = (tid_t)Terra_ObjectType_Environment;
+    id.object.objType = 0;
+    id.object.posIndex = TERRA_POS_SEARCH_FROMBEG;
+    id.object.classType = (tid_t)TerraEnvironment::Standard;
+}
+
+void TerraEnvironmentData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraObjectData::toJSONObject(objectOut);
+    if (airTemperatureSensor[0]) { objectOut["airTemperatureSensor"] = airTemperatureSensor; }
+    if (humiditySensor[0]) { objectOut["humiditySensor"] = humiditySensor; }
+    if (pressureSensor[0]) { objectOut["pressureSensor"] = pressureSensor; }
+    if (rainfallSensor[0]) { objectOut["rainfallSensor"] = rainfallSensor; }
+    if (rainRateSensor[0]) { objectOut["rainRateSensor"] = rainRateSensor; }
+    if (windSpeedSensor[0]) { objectOut["windSpeedSensor"] = windSpeedSensor; }
+    if (windDirectionSensor[0]) { objectOut["windDirectionSensor"] = windDirectionSensor; }
+    if (solarRadiationSensor[0]) { objectOut["solarRadiationSensor"] = solarRadiationSensor; }
+}
+
+void TerraEnvironmentData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraObjectData::fromJSONObject(objectIn);
+    auto copyString = [](char *destinationOut, JsonVariantConst sourceIn) {
+        const char *value = sourceIn | nullptr;
+        if (value) {
+            strncpy(destinationOut, value, TERRA_NAME_MAXSIZE - 1);
+            destinationOut[TERRA_NAME_MAXSIZE - 1] = '\0';
+        }
+    };
+    copyString(airTemperatureSensor, objectIn["airTemperatureSensor"]);
+    copyString(humiditySensor, objectIn["humiditySensor"]);
+    copyString(pressureSensor, objectIn["pressureSensor"]);
+    copyString(rainfallSensor, objectIn["rainfallSensor"]);
+    copyString(rainRateSensor, objectIn["rainRateSensor"]);
+    copyString(windSpeedSensor, objectIn["windSpeedSensor"]);
+    copyString(windDirectionSensor, objectIn["windDirectionSensor"]);
+    copyString(solarRadiationSensor, objectIn["solarRadiationSensor"]);
 }

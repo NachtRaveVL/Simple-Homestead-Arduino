@@ -34,46 +34,81 @@ TerraData *_allocateDataFromBaseDecode(const TerraData &baseDecode)
 TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
 {
     switch (idType) {
-        case (tid_t)TerraIdentity::Actuator:
+        case (tid_t)Terra_ObjectType_Actuator:
             switch (classType) {
                 case (tid_t)TerraActuator::Relay:
                     return new TerraActuatorData();
-                case (tid_t)TerraActuator::RelayMotor:
-                    return new TerraMotorActuatorData();
+                case (tid_t)TerraActuator::RelayPump:
+                    return new TerraActuatorData();
                 case (tid_t)TerraActuator::Variable:
                     return new TerraActuatorData();
-                case (tid_t)TerraActuator::VariableMotor:
-                    return new TerraMotorActuatorData();
                 default: break;
             }
             break;
 
-        case (tid_t)TerraIdentity::Sensor:
+        case (tid_t)Terra_ObjectType_Sensor:
             switch (classType) {
+                case (tid_t)TerraSensor::Value:
+                    return new TerraSensorData();
                 case (tid_t)TerraSensor::Binary:
-                    return new TerraBinarySensorData();
+                    return new TerraSensorData();
                 case (tid_t)TerraSensor::Analog:
-                    return new TerraAnalogSensorData();
-                //case 2: // Digital (not instance-able)
-                case (tid_t)TerraSensor::DHT1W:
-                    return new TerraDHTTempHumiditySensorData();
+                    return new TerraSensorData();
+                case (tid_t)TerraSensor::Remote:
+                    return new TerraSensorData();
                 default: break;
             }
             break;
 
-        case (tid_t)TerraIdentity::Panel:
+        case (tid_t)Terra_ObjectType_Reservoir:
             switch (classType) {
-                case (tid_t)TerraPanel::Balancing:
-                    return new TerraBalancingPanelData();
-                case (tid_t)TerraPanel::Tracking:
-                    return new TerraTrackingPanelData();
-                case (tid_t)TerraPanel::Reflecting:
-                    return new TerraReflectingPanelData();
+                case (tid_t)TerraReservoir::Base:
+                    return new TerraReservoirData();
+                case (tid_t)TerraReservoir::WaterStorage:
+                    return new TerraWaterStorageData();
+                case (tid_t)TerraReservoir::Cistern:
+                    return new TerraCisternData();
+                case (tid_t)TerraReservoir::WaterSource:
+                    return new TerraWaterSourceData();
+                case (tid_t)TerraReservoir::ThermalStore:
+                    return new TerraThermalStoreData();
                 default: break;
             }
             break;
 
-        case (tid_t)TerraIdentity::Rail:
+        case (tid_t)Terra_ObjectType_WaterRoute:
+            switch (classType) {
+                case (tid_t)TerraWaterRoute::Route:
+                    return new TerraWaterRouteData();
+                default: break;
+            }
+            break;
+
+        case (tid_t)Terra_ObjectType_RainCatchment:
+            switch (classType) {
+                case (tid_t)TerraRainCatchment::Catchment:
+                    return new TerraRainCatchmentData();
+                default: break;
+            }
+            break;
+
+        case (tid_t)Terra_ObjectType_ThermalLoop:
+            switch (classType) {
+                case (tid_t)TerraThermalLoop::Loop:
+                    return new TerraThermalLoopData();
+                default: break;
+            }
+            break;
+
+        case (tid_t)Terra_ObjectType_Environment:
+            switch (classType) {
+                case (tid_t)TerraEnvironment::Standard:
+                    return new TerraEnvironmentData();
+                default: break;
+            }
+            break;
+
+        case (tid_t)Terra_ObjectType_Rail:
             switch (classType) {
                 case (tid_t)TerraRail::Simple:
                     return new TerraSimpleRailData();

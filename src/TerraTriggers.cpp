@@ -19,7 +19,7 @@ TerraTrigger *newTriggerObjectFromSubData(const TerraTriggerSubData *dataIn)
 
 TerraTrigger::TerraTrigger(TerraIdentity sensorId, uint8_t measurementRow,
                            float detriggerTol, millis_t detriggerDelay, int typeIn)
-    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(Terra_Unit_Undefined),
+    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(Terra_UnitsType_Undefined),
       type(static_cast<decltype(MeasureValue)>(typeIn)), _sensor(this, measurementRow),
       _detriggerTol(detriggerTol), _detriggerDelay(detriggerDelay),
       _lastTrigger(millis_none), _triggerState(Terra_TriggerState_Disabled)
@@ -29,7 +29,7 @@ TerraTrigger::TerraTrigger(TerraIdentity sensorId, uint8_t measurementRow,
 
 TerraTrigger::TerraTrigger(SharedPtr<TerraSensor> sensor, uint8_t measurementRow,
                            float detriggerTol, millis_t detriggerDelay, int typeIn)
-    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(Terra_Unit_Undefined),
+    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(Terra_UnitsType_Undefined),
       type(static_cast<decltype(MeasureValue)>(typeIn)), _sensor(this, measurementRow),
       _detriggerTol(detriggerTol), _detriggerDelay(detriggerDelay),
       _lastTrigger(millis_none), _triggerState(Terra_TriggerState_Disabled)
@@ -38,7 +38,7 @@ TerraTrigger::TerraTrigger(SharedPtr<TerraSensor> sensor, uint8_t measurementRow
 }
 
 TerraTrigger::TerraTrigger(const TerraTriggerSubData *dataIn)
-    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(dataIn ? dataIn->measurementUnits : Terra_Unit_Undefined),
+    : TerraSubObject(), TerraMeasurementUnitsInterfaceStorageSingle(dataIn ? dataIn->measurementUnits : Terra_UnitsType_Undefined),
       type(static_cast<decltype(MeasureValue)>(dataIn ? (int)dataIn->type : (int)Unknown)), _sensor(this, dataIn ? dataIn->measurementRow : 0),
       _detriggerTol(dataIn ? dataIn->detriggerTol : 0.0f),
       _detriggerDelay(dataIn ? dataIn->detriggerDelay : 0),
@@ -73,7 +73,7 @@ Terra_TriggerState TerraTrigger::getTriggerState(bool poll)
     return _triggerState;
 }
 
-void TerraTrigger::setMeasurementUnits(Terra_Unit measurementUnits, uint8_t measurementRow)
+void TerraTrigger::setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t measurementRow)
 {
     if (measurementRow) { return; }
     if (_measurementUnits[0] != measurementUnits) {
@@ -83,10 +83,10 @@ void TerraTrigger::setMeasurementUnits(Terra_Unit measurementUnits, uint8_t meas
     }
 }
 
-Terra_Unit TerraTrigger::getMeasurementUnits(uint8_t measurementRow) const
+Terra_UnitsType TerraTrigger::getMeasurementUnits(uint8_t measurementRow) const
 {
-    if (measurementRow) { return Terra_Unit_Undefined; }
-    return _measurementUnits[0] != Terra_Unit_Undefined ? _measurementUnits[0] : _sensor.getMeasurementUnits();
+    if (measurementRow) { return Terra_UnitsType_Undefined; }
+    return _measurementUnits[0] != Terra_UnitsType_Undefined ? _measurementUnits[0] : _sensor.getMeasurementUnits();
 }
 
 Signal<Terra_TriggerState, TERRA_TRIGGER_SIGNAL_SLOTS> &TerraTrigger::getTriggerSignal()
@@ -142,7 +142,7 @@ void TerraMeasurementValueTrigger::handleMeasurement(const TerraMeasurement *mea
 
     bool wasState = _triggerState == Terra_TriggerState_Triggered;
     TerraSingleMeasurement measure = getAsSingleMeasurement(measurement, getMeasurementRow());
-    if (getMeasurementUnits() != Terra_Unit_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
+    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
         measure.toUnits(getMeasurementUnits());
     }
     _sensor.setMeasurement(measure);
@@ -216,7 +216,7 @@ void TerraMeasurementRangeTrigger::handleMeasurement(const TerraMeasurement *mea
 
     bool wasState = _triggerState == Terra_TriggerState_Triggered;
     TerraSingleMeasurement measure = getAsSingleMeasurement(measurement, getMeasurementRow());
-    if (getMeasurementUnits() != Terra_Unit_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
+    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
         measure.toUnits(getMeasurementUnits());
     }
     _sensor.setMeasurement(measure);
@@ -244,7 +244,7 @@ void TerraMeasurementRangeTrigger::handleMeasurement(const TerraMeasurement *mea
 
 TerraTriggerSubData::TerraTriggerSubData()
     : TerraSubData(TerraTrigger::Unknown), sensorName{0}, measurementRow(0), dataAs(),
-      detriggerTol(0.0f), detriggerDelay(0), measurementUnits(Terra_Unit_Undefined)
+      detriggerTol(0.0f), detriggerDelay(0), measurementUnits(Terra_UnitsType_Undefined)
 { ; }
 
 void TerraTriggerSubData::toJSONObject(JsonObject &objectOut) const
@@ -276,7 +276,7 @@ void TerraTriggerSubData::fromJSONObject(JsonObjectConst &objectIn)
     measurementRow = objectIn["measurementRow"] | measurementRow;
     detriggerTol = objectIn["detriggerTol"] | detriggerTol;
     detriggerDelay = objectIn["detriggerDelay"] | detriggerDelay;
-    measurementUnits = (Terra_Unit)(objectIn["measurementUnits"] | (int)measurementUnits);
+    measurementUnits = (Terra_UnitsType)(objectIn["measurementUnits"] | (int)measurementUnits);
     if (type == TerraTrigger::MeasureValue) {
         dataAs.measureValue.tolerance = objectIn["tolerance"] | dataAs.measureValue.tolerance;
         dataAs.measureValue.triggerBelow = objectIn["triggerBelow"] | dataAs.measureValue.triggerBelow;

@@ -40,8 +40,8 @@ public:
     virtual void update();
 
     virtual Terra_TriggerState getTriggerState(bool poll = false);
-    virtual void setMeasurementUnits(Terra_Unit measurementUnits, uint8_t measurementRow = 0) override;
-    virtual Terra_Unit getMeasurementUnits(uint8_t measurementRow = 0) const override;
+    virtual void setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t measurementRow = 0) override;
+    virtual Terra_UnitsType getMeasurementUnits(uint8_t measurementRow = 0) const override;
 
     inline uint8_t getMeasurementRow() const { return _sensor.getMeasurementRow(); }
     inline float getMeasurementConvertParam() const { return _sensor.getMeasurementConvertParam(); }
@@ -144,7 +144,7 @@ struct TerraTriggerSubData : public TerraSubData {
     } dataAs;
     float detriggerTol;                                     // De-trigger tolerance
     millis_t detriggerDelay;                                // De-trigger delay milliseconds
-    Terra_Unit measurementUnits;                            // Measurement units
+    Terra_UnitsType measurementUnits;                       // Measurement units
 
     TerraTriggerSubData();
     void toJSONObject(JsonObject &objectOut) const;

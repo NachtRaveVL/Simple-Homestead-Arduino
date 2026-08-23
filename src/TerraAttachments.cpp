@@ -154,7 +154,7 @@ void TerraSensorAttachment::updateIfNeeded(bool poll)
 
 void TerraSensorAttachment::setMeasurement(TerraSingleMeasurement measurement)
 {
-    if (_measurement.units != Terra_Unit_Undefined && measurement.units != _measurement.units &&
+    if (_measurement.units != Terra_UnitsType_Undefined && measurement.units != _measurement.units &&
         canConvertUnits(measurement.units, _measurement.units)) {
         measurement.toUnits(_measurement.units);
     }
@@ -171,7 +171,7 @@ void TerraSensorAttachment::setMeasurementRow(uint8_t measurementRow)
     }
 }
 
-void TerraSensorAttachment::setMeasurementUnits(Terra_Unit units, float convertParam)
+void TerraSensorAttachment::setMeasurementUnits(Terra_UnitsType units, float convertParam)
 {
     if (_measurement.units != units || !isFPEqual(_convertParam, convertParam)) {
         _measurement.units = units;
