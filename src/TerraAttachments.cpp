@@ -4,69 +4,62 @@
 */
 
 #include "Terraduino.h"
+#include "TerraCoreLogic.h"
 
 TerraDLinkObject::TerraDLinkObject()
-    : _key(tkey_none), _obj(nullptr), _keyString()
+    : _key(tkey_none), _obj(nullptr), _keyStr(nullptr)
 { ; }
 
-TerraDLinkObject::TerraDLinkObject(const TerraDLinkObject &object)
-    : _key(object._key), _obj(object._obj), _keyString(object._keyString)
-{ ; }
-
-TerraDLinkObject &TerraDLinkObject::operator=(const TerraDLinkObject &rhs)
+TerraDLinkObject::TerraDLinkObject(const TerraDLinkObject &obj)
+    : _key(obj._key), _obj(obj._obj), _keyStr(nullptr)
 {
-    if (this != &rhs) {
-        _key = rhs._key;
-        _obj = rhs._obj;
-        _keyString = rhs._keyString;
+    if (obj._keyStr) {
+        auto len = strnlen(obj._keyStr, TERRA_NAME_MAXSIZE);
+        if (len) {
+            _keyStr = (const char *)malloc(len + 1);
+            strncpy((char *)_keyStr, obj._keyStr, len + 1);
+        }
     }
-    return *this;
+}
+
+TerraDLinkObject::~TerraDLinkObject()
+{
+    if (_keyStr) { free((void *)_keyStr); }
 }
 
 void TerraDLinkObject::unresolve()
 {
-#ifdef ARDUINO
-    if (_obj && !_keyString.length()) { _keyString = _obj->getKeyString(); }
-#else
-    if (_obj && _keyString.empty()) { _keyString = _obj->getKeyString(); }
-#endif
+    if (_obj && !_keyStr) {
+        auto id = _obj->getId();
+        auto len = id.keyString.length();
+        if (len) {
+            _keyStr = (const char *)malloc(len + 1);
+            strncpy((char *)_keyStr, id.keyString.c_str(), len + 1);
+        }
+    }
+    TERRA_HARD_ASSERT(!_obj || _key == _obj->getKey(), SFP(TStr_Err_OperationFailure));
     _obj = nullptr;
 }
 
 SharedPtr<TerraObjInterface> TerraDLinkObject::resolveObject()
 {
     if (_obj || !isSet()) { return _obj; }
-    if (getController()) {
-        _obj = static_pointer_cast<TerraObjInterface>(getController()->objectById(getId()));
+    if (Terraduino::_activeInstance) {
+        _obj = static_pointer_cast<TerraObjInterface>(Terraduino::_activeInstance->_objects[_key]);
     }
-    if (_obj) { _keyString = TerraString(); }
+    if (_obj && _keyStr) {
+        free((void *)_keyStr); _keyStr = nullptr;
+    }
     return _obj;
 }
 
-TerraIdentity TerraDLinkObject::getId() const
-{
-#ifdef ARDUINO
-    return _obj ? _obj->getId() : (_keyString.length() ? TerraIdentity(_keyString.c_str()) : TerraIdentity(_key));
-#else
-    return _obj ? _obj->getId() : (!_keyString.empty() ? TerraIdentity(_keyString.c_str()) : TerraIdentity(_key));
-#endif
-}
 
-TerraString TerraDLinkObject::getKeyString() const
-{
-#ifdef ARDUINO
-    return _keyString.length() ? _keyString : (_obj ? _obj->getKeyString() : TerraString());
-#else
-    return !_keyString.empty() ? _keyString : (_obj ? _obj->getKeyString() : TerraString());
-#endif
-}
-
-TerraAttachment::TerraAttachment(TerraObjInterface *parent)
-    : TerraSubObject(parent), _obj()
+TerraAttachment::TerraAttachment(TerraObjInterface *parent, tposi_t subIndex)
+    : TerraSubObject(parent), _obj(), _subIndex(subIndex)
 { ; }
 
 TerraAttachment::TerraAttachment(const TerraAttachment &attachment)
-    : TerraSubObject(attachment._parent), _obj()
+    : TerraSubObject(attachment._parent), _obj(), _subIndex(attachment._subIndex)
 {
     initObject(attachment._obj);
 }
@@ -74,72 +67,169 @@ TerraAttachment::TerraAttachment(const TerraAttachment &attachment)
 TerraAttachment::~TerraAttachment()
 {
     if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) {
-        _obj.get<TerraObject>()->removeLinkage(static_cast<TerraObject *>(_parent));
+        _obj.get<TerraObject>()->removeLinkage((TerraObject *)_parent);
     }
 }
 
 void TerraAttachment::attachObject()
 {
-    if (resolve() && _obj->isObject() && _parent && _parent->isObject()) {
-        _obj.get<TerraObject>()->addLinkage(static_cast<TerraObject *>(_parent));
+    if (resolve() && _obj->isObject() && _parent && _parent->isObject()) { // purposeful resolve in front
+        _obj.get<TerraObject>()->addLinkage((TerraObject *)_parent);
     }
 }
 
 void TerraAttachment::detachObject()
 {
     if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) {
-        _obj.get<TerraObject>()->removeLinkage(static_cast<TerraObject *>(_parent));
+        _obj.get<TerraObject>()->removeLinkage((TerraObject *)_parent);
     }
+    // note: used to set _obj to nullptr here, but found that it's best not to -> avoids additional operator= calls during typical detach scenarios
 }
 
 void TerraAttachment::updateIfNeeded(bool poll)
 {
-    (void)poll;
-}
-
-void TerraAttachment::unresolve()
-{
-    detachObject();
-    _obj.unresolve();
+    // intended to be overridden by derived classes, but not an error if left not implemented
 }
 
 void TerraAttachment::setParent(TerraObjInterface *parent)
 {
     if (_parent != parent) {
-        detachObject();
+        if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) { _obj.get<TerraObject>()->removeLinkage((TerraObject *)_parent); }
+
         _parent = parent;
-        if (isResolved()) { attachObject(); }
+
+        if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) { _obj.get<TerraObject>()->addLinkage((TerraObject *)_parent); }
     }
 }
 
-SharedPtr<TerraObjInterface> TerraAttachment::getSharedPtrFor(const TerraObjInterface *object) const
+SharedPtr<TerraObjInterface> TerraAttachment::getSharedPtrFor(const TerraObjInterface *obj) const
 {
-    return object && object->getKey() == getKey() ? _obj._obj : TerraSubObject::getSharedPtrFor(object);
+    return obj->getKey() == getKey() ? _obj._obj : TerraSubObject::getSharedPtrFor(obj);
 }
 
-TerraSensorAttachment::TerraSensorAttachment(TerraObjInterface *parent, uint8_t measurementRow)
-    : SignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>(parent, &TerraSensor::getMeasurementSignal),
-      _measurement(), _measurementRow(measurementRow), _convertParam(0.0f), _needsMeasurement(true)
+
+TerraActuatorAttachment::TerraActuatorAttachment(TerraObjInterface *parent, tposi_t subIndex)
+    : TerraSignalAttachment<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS>(parent, subIndex, &TerraActuator::getActivationSignal),
+       _actHandle(), _actSetup(), _updateSlot(nullptr), _rateMultiplier(1.0f), _calledLastUpdate(false)
+{ ; }
+
+TerraActuatorAttachment::TerraActuatorAttachment(const TerraActuatorAttachment &attachment)
+    : TerraSignalAttachment<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS>(attachment),
+      _actHandle(attachment._actHandle), _actSetup(attachment._actSetup),
+      _updateSlot(attachment._updateSlot ? attachment._updateSlot->clone() : nullptr),
+      _rateMultiplier(attachment._rateMultiplier), _calledLastUpdate(false)
+{ ; }
+
+TerraActuatorAttachment::~TerraActuatorAttachment()
+{
+    if (_updateSlot) { delete _updateSlot; _updateSlot = nullptr; }
+}
+
+void TerraActuatorAttachment::updateIfNeeded(bool poll)
+{
+    if (_actHandle.isValid()) {
+        if (isActivated()) {
+            _actHandle.elapseTo();
+            if (_updateSlot) { (*_updateSlot)(this); }
+            _calledLastUpdate = _actHandle.isDone();
+        } else if (_actHandle.isDone() && !_calledLastUpdate) {
+            if (_updateSlot) { (*_updateSlot)(this); }
+            _calledLastUpdate = true;
+        }
+    }
+}
+
+void TerraActuatorAttachment::setupActivation(float value, millis_t duration, bool force)
+{
+    if (resolve()) {
+        value = get()->calibrationInvTransform(value);
+
+        if (get()->isMotorType()) {
+            // Keep direction selection tolerant of floating-point noise around a stopped command.
+            int direction = helioDirectionForOffset(value, FLT_EPSILON);
+            setupActivation(TerraActivation(direction > 0 ? Terra_DirectionMode_Forward : direction < 0 ? Terra_DirectionMode_Reverse : Terra_DirectionMode_Stop,
+                                            fabsf(value), duration, (force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None)));
+            return;
+        }
+    }
+
+    setupActivation(TerraActivation(Terra_DirectionMode_Forward, value, duration, (force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None)));
+}
+
+void TerraActuatorAttachment::enableActivation()
+{
+    if (!_actHandle.actuator && _actSetup.isValid() && resolve()) {
+        if (_actHandle.isDone()) { applySetup(); } // repeats existing setup
+        _calledLastUpdate = false;
+        _actHandle = getObject();
+    }
+}
+
+void TerraActuatorAttachment::setUpdateSlot(const Slot<TerraActuatorAttachment *> &updateSlot)
+{
+    if (!_updateSlot || !_updateSlot->operator==(&updateSlot)) {
+        if (_updateSlot) { delete _updateSlot; _updateSlot = nullptr; }
+        _updateSlot = updateSlot.clone();
+    }
+}
+
+void TerraActuatorAttachment::applySetup()
+{
+    if (_actSetup.isValid()) {
+        if (isFPEqual(_rateMultiplier, 1.0f)) {
+            _actHandle.activation = _actSetup;
+        } else {
+            _actHandle.activation.direction = _actSetup.direction;
+            _actHandle.activation.flags = _actSetup.flags;
+
+            if (resolve() && get()->isAnyBinaryClass()) { // Duration based change for rate multiplier
+                _actHandle.activation.intensity = _actSetup.intensity;
+                if (!_actHandle.isUntimed()) {
+                    _actHandle.activation.duration = _actSetup.duration * _rateMultiplier;
+                } else { // cannot directly use rate multiplier
+                    _actHandle.activation.duration = _actSetup.duration;
+                }
+            } else { // Intensity based change for rate multiplier
+                _actHandle.activation.intensity = _actSetup.intensity * _rateMultiplier;
+                _actHandle.activation.duration = _actSetup.duration;
+            }
+        }
+
+        if (isActivated() && resolve()) { get()->setNeedsUpdate(); }
+    }
+}
+
+
+TerraSensorAttachment::TerraSensorAttachment(TerraObjInterface *parent, tposi_t subIndex, uint8_t measurementRow)
+    : TerraSignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>(parent, subIndex, &TerraSensor::getMeasurementSignal),
+      _measurementRow(measurementRow), _convertParam(FLT_UNDEF), _needsMeasurement(true)
 {
     setHandleMethod(&TerraSensorAttachment::handleMeasurement, this);
 }
 
 TerraSensorAttachment::TerraSensorAttachment(const TerraSensorAttachment &attachment)
-    : SignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>(attachment), _measurement(attachment._measurement),
-      _measurementRow(attachment._measurementRow), _convertParam(attachment._convertParam),
-      _needsMeasurement(attachment._needsMeasurement)
+    : TerraSignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>(attachment),
+      _measurement(attachment._measurement), _measurementRow(attachment._measurementRow),
+      _convertParam(attachment._convertParam), _needsMeasurement(attachment._needsMeasurement)
+{
+    setHandleSlot(*attachment._handleSlot);
+}
+
+TerraSensorAttachment::~TerraSensorAttachment()
 { ; }
 
 void TerraSensorAttachment::attachObject()
 {
-    SignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>::attachObject();
+    TerraSignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>::attachObject();
+
     if (_handleSlot) { (*_handleSlot)(get()->getMeasurement()); }
     else { handleMeasurement(get()->getMeasurement()); }
 }
 
 void TerraSensorAttachment::detachObject()
 {
-    SignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>::detachObject();
+    TerraSignalAttachment<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS>::detachObject();
+
     setNeedsMeasurement();
 }
 
@@ -148,17 +238,18 @@ void TerraSensorAttachment::updateIfNeeded(bool poll)
     if ((poll || _needsMeasurement) && resolve()) {
         if (_handleSlot) { (*_handleSlot)(get()->getMeasurement()); }
         else { handleMeasurement(get()->getMeasurement()); }
-        get()->takeMeasurement(poll || _needsMeasurement);
+
+        get()->takeMeasurement((poll || _needsMeasurement)); // purposeful recheck
     }
 }
 
 void TerraSensorAttachment::setMeasurement(TerraSingleMeasurement measurement)
 {
-    if (_measurement.units != Terra_UnitsType_Undefined && measurement.units != _measurement.units &&
-        canConvertUnits(measurement.units, _measurement.units)) {
-        measurement.toUnits(_measurement.units);
-    }
+    auto outUnits = definedUnitsElse(getMeasurementUnits(), measurement.units);
     _measurement = measurement;
+    _measurement.setMinFrame(1);
+
+    convertUnits(&_measurement, outUnits, _convertParam);
     _needsMeasurement = false;
 }
 
@@ -166,64 +257,58 @@ void TerraSensorAttachment::setMeasurementRow(uint8_t measurementRow)
 {
     if (_measurementRow != measurementRow) {
         _measurementRow = measurementRow;
+
         setNeedsMeasurement();
-        bumpRevisionIfNeeded();
     }
 }
 
 void TerraSensorAttachment::setMeasurementUnits(Terra_UnitsType units, float convertParam)
 {
     if (_measurement.units != units || !isFPEqual(_convertParam, convertParam)) {
-        _measurement.units = units;
         _convertParam = convertParam;
-        setNeedsMeasurement();
-        bumpRevisionIfNeeded();
-    }
-}
+        convertUnits(&_measurement, units, _convertParam);
 
-TerraSingleMeasurement TerraSensorAttachment::getMeasurement(uint32_t now, bool poll)
-{
-    (void)now;
-    updateIfNeeded(poll);
-    return _measurement;
+        setNeedsMeasurement();
+    }
 }
 
 void TerraSensorAttachment::handleMeasurement(const TerraMeasurement *measurement)
 {
-    if (measurement && measurement->isSet()) { setMeasurement(getAsSingleMeasurement(measurement, _measurementRow)); }
-}
-
-TerraActuatorAttachment::TerraActuatorAttachment(TerraObjInterface *parent)
-    : TerraAttachment(parent), _activation()
-{ ; }
-
-TerraActuatorAttachment::TerraActuatorAttachment(const TerraActuatorAttachment &attachment)
-    : TerraAttachment(attachment), _activation()
-{ ; }
-
-void TerraActuatorAttachment::updateIfNeeded(bool poll)
-{
-    (void)poll;
-    if (_activation.isActive()) { _activation.elapseTo(); }
-}
-
-void TerraActuatorAttachment::setOutput(float intensity, millis_t duration, uint32_t now)
-{
-    SharedPtr<TerraActuator> actuator = getObject();
-    if (!actuator || intensity <= FLT_EPSILON) {
-        off();
-        return;
+    if (measurement && measurement->frame) {
+        setMeasurement(getAsSingleMeasurement(measurement, _measurementRow));
     }
-
-    _activation.activation = TerraActivation(Terra_DirectionMode_Forward, intensity, duration, Terra_ActivationFlags_None);
-    _activation = actuator;
-    actuator->setNeedsUpdate();
-    actuator->update(now);
 }
 
-void TerraActuatorAttachment::off()
+
+TerraTriggerAttachment::TerraTriggerAttachment(TerraObjInterface *parent, tposi_t subIndex)
+    : TerraSignalAttachment<Terra_TriggerState, TERRA_TRIGGER_SIGNAL_SLOTS>(parent, subIndex, &TerraTrigger::getTriggerSignal)
+{ ; }
+
+TerraTriggerAttachment::TerraTriggerAttachment(const TerraTriggerAttachment &attachment)
+    : TerraSignalAttachment<Terra_TriggerState, TERRA_TRIGGER_SIGNAL_SLOTS>(attachment)
+{ ; }
+
+TerraTriggerAttachment::~TerraTriggerAttachment()
+{ ; }
+
+void TerraTriggerAttachment::updateIfNeeded(bool poll)
 {
-    SharedPtr<TerraActuator> actuator = _activation.actuator;
-    _activation.unset();
-    if (actuator) { actuator->setNeedsUpdate(); actuator->update(); }
+    if (poll && resolve()) { get()->update(); }
+}
+
+
+TerraDriverAttachment::TerraDriverAttachment(TerraObjInterface *parent, tposi_t subIndex)
+    : TerraSignalAttachment<Terra_DrivingState, TERRA_DRIVER_SIGNAL_SLOTS>(parent, subIndex, &TerraDriver::getDrivingSignal)
+{ ; }
+
+TerraDriverAttachment::TerraDriverAttachment(const TerraDriverAttachment &attachment)
+    : TerraSignalAttachment<Terra_DrivingState, TERRA_DRIVER_SIGNAL_SLOTS>(attachment)
+{ ; }
+
+TerraDriverAttachment::~TerraDriverAttachment()
+{ ; }
+
+void TerraDriverAttachment::updateIfNeeded(bool poll)
+{
+    if (poll && resolve()) { get()->update(); }
 }
