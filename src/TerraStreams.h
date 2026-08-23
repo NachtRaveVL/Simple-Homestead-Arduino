@@ -9,7 +9,7 @@
 class TerraEEPROMStream;
 class TerraPROGMEMStream;
 
-#include "Astruino.h"
+#include "Terraduino.h"
 
 #ifdef ARDUINO_ARCH_SAM // Stream doesn't have availableForWrite
 #define TERRA_STREAM_AVAIL4WRT_OVERRIDE

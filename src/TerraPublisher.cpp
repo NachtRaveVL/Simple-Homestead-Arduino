@@ -487,7 +487,7 @@ void TerraPublisher::resetDataFile()
 
 void TerraPublisher::cleanupOldestData(bool force)
 {
-    // TODO: Old data cleanup. #17 in Hydruino.
+    // TODO: Old data cleanup. #17 in Terraduino.
 }
 
 

@@ -517,7 +517,7 @@ enum Terra_UnitsType : signed char {
 #define PER_HR_TO_PER_MIN(t)        ((t) / (SECS_PER_MIN))  // Per hour to per minutes
 
 // Common forward decls
-class Hydruino;
+class Terraduino;
 class TerraScheduler;
 class TerraLogger;
 class TerraPublisher;
