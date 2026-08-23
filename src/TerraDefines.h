@@ -178,14 +178,13 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_BALANCER_STALE_FRAMES     3                   // Maximum sensor frames balancers will act on without a fresh reading
 #define TERRA_LOG_SIGNAL_SLOTS          2                   // Maximum number of slots for system log signal
 #define TERRA_PUBLISH_SIGNAL_SLOTS      2                   // Maximum number of slots for data publish signal
-#define TERRA_RESERVOIR_SIGNAL_SLOTS    2                   // Maximum number of slots for filled/empty signal
+#define TERRA_RESERVOIR_SIGNAL_SLOTS    2                   // Maximum number of slots for reservoir state signal
 #define TERRA_RAIL_SIGNAL_SLOTS         8                   // Maximum number of slots for rail capacity signal
 #define TERRA_SYS_OBJECTS_MAXSIZE       16                  // Maximum array size for system objects (max # of objects in system)
 #define TERRA_CAL_CALIBS_MAXSIZE        8                   // Maximum array size for calibration store objects (max # of different custom calibrations)
 #define TERRA_OBJ_LINKS_MAXSIZE         8                   // Maximum array size for object linkage list, per obj (max # of linked objects)
 #define TERRA_BAL_ACTUATORS_MAXSIZE     8                   // Maximum array size for balancer actuators list (max # of actuators used)
 #define TERRA_SCH_REQACTS_MAXSIZE       4                   // Maximum array size for scheduler required actuators list (max # of actuators active per process stage)
-#define TERRA_SCH_PROCS_MAXSIZE         2                   // Maximum array size for scheduler feeding/lighting process lists (max # of feed reservoirs)
 #define TERRA_SYS_ONEWIRES_MAXSIZE      2                   // Maximum array size for pin OneWire list (max # of OneWire comm pins)
 #define TERRA_SYS_PINLOCKS_MAXSIZE      2                   // Maximum array size for pin locks list (max # of locks)
 #define TERRA_SYS_PINMUXERS_MAXSIZE     2                   // Maximum array size for pin muxers list (max # of muxers)
@@ -198,10 +197,14 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_ACT_PUMPCALC_UPDATEMS     250                 // Minimum time millis needing to pass before a pump reports/writes changed volume to reservoir (reduces error accumulation)
 #define TERRA_ACT_PUMPCALC_MINFLOWRATE  0.05f               // What percentage of continuous flow rate an instantaneous flow rate sensor must achieve before it is used in pump/volume calculations (reduces near-zero error jitters)
 
+#define TERRA_SUMP_STOP_LEVEL_PERCENT   20.0f               // Default sump pump stop level
+#define TERRA_SUMP_START_LEVEL_PERCENT  70.0f               // Default sump pump start level
+#define TERRA_SUMP_ALARM_LEVEL_PERCENT  90.0f               // Default sump high-water alarm level
+
 #define TERRA_MUXERS_SHARED_ADDR_BUS    false               // Pin muxer channel selects should disable all pin muxers due to using same address bus (true), or not (false)
 
-#define TERRA_NIGHT_START_HR            20                  // Hour of the day night starts (for night feeding multiplier, used if not able to calculate from location & time)
-#define TERRA_NIGHT_FINISH_HR           6                   // Hour of the day night finishes (for night feeding multiplier, used if not able to calculate from location & time)
+#define TERRA_NIGHT_START_HR            20                  // Hour of the day night starts (used if not able to calculate from location & time)
+#define TERRA_NIGHT_FINISH_HR           6                   // Hour of the day night finishes (used if not able to calculate from location & time)
 
 #define TERRA_POS_SEARCH_FROMBEG        -1                  // Search from beginning to end, 0 up to MAXSIZE-1
 #define TERRA_POS_SEARCH_FROMEND        TERRA_POS_MAXSIZE   // Search from end to beginning, MAXSIZE-1 down to 0
@@ -211,7 +214,6 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_RAILS_FRACTION_SATURATED  0.8f                // What fraction of maximum power is allowed to be used in canActivate() checks (aka maximum saturation point), used in addition to regulated rail's limitTrigger
 
 #define TERRA_SCH_BALANCE_MINTIME       30                  // Minimum time, in seconds, that all balancers must register as balanced for until balancing is marked as completed
-#define TERRA_SCH_AERATORS_FEEDRUN      true                // If aerators should be continued to be ran during feeding, after pre-feeding aeration is finished
 
 #define TERRA_SENSOR_BINARY_STABLE_MILLIS 100               // Minimum time a binary sensor input must remain changed before the new state is accepted, in milliseconds
 #define TERRA_SENSOR_ANALOGREAD_SAMPLES 5                   // Number of samples to take for any analogRead call inside of a sensor's takeMeasurement call, or 0 to disable sampling (note: bitRes.maxValue * # of samples must fit inside a uint32_t)
@@ -337,6 +339,33 @@ enum Terra_DHTType : signed char {
 };
 
 
+// Object Type
+// Runtime object categories used for Terraduino object identity.
+enum Terra_ObjectType : signed char {
+    Terra_ObjectType_Actuator,                              // Controlled output
+    Terra_ObjectType_Sensor,                                // Sensor input
+    Terra_ObjectType_Reservoir,                             // Managed water/thermal reservoir
+    Terra_ObjectType_WaterRoute,                            // Water transfer route
+    Terra_ObjectType_RainCatchment,                         // Rainfall catchment
+    Terra_ObjectType_ThermalLoop,                           // Thermal circulation loop
+    Terra_ObjectType_Environment,                           // Local weather/environment observations
+    Terra_ObjectType_Rail,                                  // Equipment power rail
+
+    Terra_ObjectType_Count,                                 // Placeholder
+    Terra_ObjectType_Undefined = -1                         // Placeholder
+};
+
+// Controller Operating Mode
+// Specifies whether local automation is active or under manual control.
+enum Terra_ControlMode : signed char {
+    Terra_ControlMode_Manual,                               // Application/user code drives outputs
+    Terra_ControlMode_Automatic,                            // Local automation active
+    Terra_ControlMode_Disabled,                             // Controller updates suspended
+
+    Terra_ControlMode_Count,                                // Placeholder
+    Terra_ControlMode_Undefined = -1                        // Placeholder
+};
+
 // Measurement Units Mode
 // Specifies the standard of measurement style that units will use.
 enum Terra_MeasurementMode : signed char {
@@ -363,7 +392,7 @@ enum Terra_DisplayOutputMode : signed char {
     Terra_DisplayOutputMode_SSD1305_x64Ada,                 // Adafruit SSD1305 128x64 OLED, using U8g2 (i2c or SPI)
     Terra_DisplayOutputMode_SSD1306,                        // SSD1306 128x64 OLED, using U8g2 (i2c or SPI)
     Terra_DisplayOutputMode_SH1106,                         // SH1106 128x64 OLED, using U8g2 (i2c or SPI)
-    Terra_DisplayOutputMode_CustomOLED,                     // Custom OLED, using U8g2 (i2c or SPI, note: custom device/size defined statically by HYDRO_UI_CUSTOM_OLED_I2C / HYDRO_UI_CUSTOM_OLED_SPI)
+    Terra_DisplayOutputMode_CustomOLED,                     // Custom OLED, using U8g2 (i2c or SPI, note: custom device/size defined statically by TERRA_UI_CUSTOM_OLED_I2C / TERRA_UI_CUSTOM_OLED_SPI)
     Terra_DisplayOutputMode_SSD1607,                        // SSD1607 200x200 OLED, using U8g2 (SPI only)
     Terra_DisplayOutputMode_IL3820,                         // IL3820 296x128 OLED, using U8g2 (SPI only)
     Terra_DisplayOutputMode_IL3820_V2,                      // IL3820 V2 296x128 OLED, using U8g2 (SPI only)
@@ -389,17 +418,61 @@ enum Terra_ControlInputMode : signed char {
     Terra_ControlInputMode_UpDownESP32TouchOkLR,            // ESP32-Touch Up, Down, Ok, Back(L), and Next(R) keys, pins: {Up,Dw,Ok,Bk,Nx}
     Terra_ControlInputMode_AnalogJoystickOk,                // Analog joystick /w momentary Ok button, pins: {aX,aY,Ok} (aX can be unused/-1, else used for back/next)
     Terra_ControlInputMode_Matrix2x2UpDownButtonsOkL,       // 2x2 matrix keypad as momentary Up, Down, Ok, and Back(L) buttons, pins: {r0,r1,c0,c1}
-    Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOk,   // 3x4 numeric matrix keyboard, & optional rotary encoder /w momentary Ok button, pins: {r0,r1,r2,r3,c0,c1,c2,eA,eB,Ok} (eA can be unused/-1)
-    Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOkLR, // 3x4 numeric matrix keyboard, & optional rotary encoder /w momentary Ok, Back(L), and Next(R) buttons, pins: {r0,r1,r2,r3,c0,c1,c2,eA,eB,Ok,Bk,Nx} (eA can be unused/-1)
-    Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOk,   // 4x4 alpha-numeric matrix keyboard, & optional rotary encoder /w momentary Ok button, pins: {r0,r1,r2,r3,c0,c1,c2,c3,eA,eB,Ok} (eA can be unused/-1)
-    Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOkLR, // 4x4 alpha-numeric matrix keyboard, & optional rotary encoder /w momentary Ok, Back(L), and Next(R) buttons, pins: {r0,r1,r2,r3,c0,c1,c2,c3,eA,eB,Ok,Bk,Nx} (eA can be unused/-1)
-    Terra_ControlInputMode_ResistiveTouch,                  // Resistive touchscreen, pins: {X+,X-,Y+,Y-} (X-/Y- analog, X+/Y+ digital)
-    Terra_ControlInputMode_TouchScreen,                     // Full touchscreen (FT6206, or XPT2046 /w setup define), pins: FT6206: {}, XPT2046: {tCS,tIRQ} (tIRQ can be unused/-1, FT6206 hard-coded to use Wire for i2c)
-    Terra_ControlInputMode_TFTTouch,                        // TFT Touch (XPT2046), using TFT_eSPI (Note: usage requires TFT display mode & editing TFT_eSPI/User_Setup.h & properly defining TOUCH_CS), pins: {tCS,tIRQ} (tIRQ can be unused/-1)
+    Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOk,   // 3x4 numeric matrix keyboard, & optional rotary encoder /w momentary Ok button, pins: {r0,r1,r2,r3,c0,c1,c2,eA,eB,Ok}
+    Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOkLR, // 3x4 numeric matrix keyboard, & optional rotary encoder /w momentary Ok, Back(L), and Next(R) buttons, pins: {r0,r1,r2,r3,c0,c1,c2,eA,eB,Ok,Bk,Nx}
+    Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOk,   // 4x4 alpha-numeric matrix keyboard, & optional rotary encoder /w momentary Ok button, pins: {r0,r1,r2,r3,c0,c1,c2,c3,eA,eB,Ok}
+    Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOkLR, // 4x4 alpha-numeric matrix keyboard, & optional rotary encoder /w momentary Ok, Back(L), and Next(R) buttons, pins: {r0,r1,r2,r3,c0,c1,c2,c3,eA,eB,Ok,Bk,Nx}
+    Terra_ControlInputMode_ResistiveTouch,                  // Resistive touchscreen, pins: {X+,X-,Y+,Y-}
+    Terra_ControlInputMode_TouchScreen,                     // Full touchscreen (FT6206, or XPT2046 /w setup define), pins: FT6206: {}, XPT2046: {tCS,tIRQ}
+    Terra_ControlInputMode_TFTTouch,                        // TFT Touch (XPT2046), using TFT_eSPI, pins: {tCS,tIRQ}
     Terra_ControlInputMode_RemoteControl,                   // Remote controlled (no input /w possibly disabled display), pins: {}
 
     Terra_ControlInputMode_Count,                           // Placeholder
     Terra_ControlInputMode_Undefined = -1                   // Placeholder
+};
+
+// Actuator Type
+// Control actuator type. Specifies the various controllable equipment and their usage.
+enum Terra_ActuatorType : signed char {
+    Terra_ActuatorType_Pump,                                // Water transfer pump
+    Terra_ActuatorType_Valve,                               // On/off valve
+    Terra_ActuatorType_Diverter,                            // Two-way or proportional diverter
+    Terra_ActuatorType_Heater,                              // Heater output
+    Terra_ActuatorType_Circulator,                          // Thermal circulation pump
+    Terra_ActuatorType_SumpPump,                            // Level-controlled sump pump
+
+    Terra_ActuatorType_Count,                               // Placeholder
+    Terra_ActuatorType_Undefined = -1                       // Placeholder
+};
+
+// Sensor Type
+// Sensor device type. Specifies the various sensors and the kinds of things they measure.
+enum Terra_SensorType : signed char {
+    Terra_SensorType_Temperature,                           // Temperature sensor
+    Terra_SensorType_Humidity,                              // Relative humidity sensor
+    Terra_SensorType_Pressure,                              // Fluid or barometric pressure sensor
+    Terra_SensorType_Rainfall,                              // Rainfall amount/rate sensor
+    Terra_SensorType_Flow,                                  // Water flow rate sensor
+    Terra_SensorType_Level,                                 // Reservoir/resource level sensor
+    Terra_SensorType_WindSpeed,                             // Wind speed sensor
+    Terra_SensorType_WindDirection,                         // Wind direction sensor
+    Terra_SensorType_SolarRadiation,                        // Solar irradiance sensor
+    Terra_SensorType_Voltage,                               // Electrical voltage sensor
+    Terra_SensorType_Current,                               // Electrical current sensor
+    Terra_SensorType_Leak,                                  // Leak/flood state sensor
+
+    Terra_SensorType_Count,                                 // Placeholder
+    Terra_SensorType_Undefined = -1                         // Placeholder
+};
+
+// Reservoir Type
+// Common managed homestead resource reservoirs.
+enum Terra_ReservoirType : signed char {
+    Terra_ReservoirType_Water,                              // Stored or available water
+    Terra_ReservoirType_Thermal,                            // Stored thermal energy
+
+    Terra_ReservoirType_Count,                              // Placeholder
+    Terra_ReservoirType_Undefined = -1                      // Placeholder
 };
 
 // Power Rail
@@ -421,18 +494,18 @@ enum Terra_RailType : signed char {
 // Pin Mode
 // Pin mode setting. Specifies what kind of pin and how it's used.
 enum Terra_PinMode : signed char {
-    Terra_PinMode_Digital_Input_Floating,                   // Digital input pin as floating/no-pull (pull-up/pull-down disabled, used during mux channel select, type alias for INPUT/GPIO_PuPd_NOPULL)
-    Terra_PinMode_Digital_Input_PullUp,                     // Digital input pin with pull-up resistor (default pairing for active-low trigger, type alias for INPUT_PULLUP/GPIO_PuPd_UP)
-    Terra_PinMode_Digital_Input_PullDown,                   // Digital input pin with pull-down resistor (or pull-up disabled if not avail, default pairing for active-high trigger, type alias for INPUT_PULLDOWN/GPIO_PuPd_DOWN)
-    Terra_PinMode_Digital_Output_OpenDrain,                 // Digital output pin with open-drain NPN-based sink (default pairing for active-low trigger, type alias for OUTPUT/GPIO_OType_OD)
-    Terra_PinMode_Digital_Output_PushPull,                  // Digital output pin with push-pull NPN+PNP-based sink+src (default pairing for active-high trigger, type alias for GPIO_OType_PP)
-    Terra_PinMode_Analog_Input,                             // Analog input pin (type alias for INPUT)
-    Terra_PinMode_Analog_Output,                            // Analog output pin (type alias for OUTPUT)
+    Terra_PinMode_Digital_Input_Floating,                   // Digital input pin as floating/no-pull
+    Terra_PinMode_Digital_Input_PullUp,                     // Digital input pin with pull-up resistor
+    Terra_PinMode_Digital_Input_PullDown,                   // Digital input pin with pull-down resistor
+    Terra_PinMode_Digital_Output_OpenDrain,                 // Digital output pin with open-drain sink
+    Terra_PinMode_Digital_Output_PushPull,                  // Digital output pin with push-pull sink+src
+    Terra_PinMode_Analog_Input,                             // Analog input pin
+    Terra_PinMode_Analog_Output,                            // Analog output pin
 
     Terra_PinMode_Count,                                    // Placeholder
     Terra_PinMode_Undefined = -1,                           // Placeholder
-    Terra_PinMode_Digital_Input = Terra_PinMode_Digital_Input_Floating, // Default digital input (alias for Floating, type for INPUT)
-    Terra_PinMode_Digital_Output = Terra_PinMode_Digital_Output_OpenDrain // Default digital output (alias for OpenDrain, type for OUTPUT)
+    Terra_PinMode_Digital_Input = Terra_PinMode_Digital_Input_Floating, // Default digital input
+    Terra_PinMode_Digital_Output = Terra_PinMode_Digital_Output_OpenDrain // Default digital output
 };
 
 // Enable Mode
@@ -458,7 +531,7 @@ enum Terra_EnableMode : signed char {
 enum Terra_DirectionMode : signed char {
     Terra_DirectionMode_Forward,                            // Standard/forward direction mode
     Terra_DirectionMode_Reverse,                            // Opposite/reverse direction mode
-    Terra_DirectionMode_Stop,                               // Stationary/braking direction mode  (intensity undef)
+    Terra_DirectionMode_Stop,                               // Stationary/braking direction mode
 
     Terra_DirectionMode_Count,                              // Placeholder
     Terra_DirectionMode_Undefined = -1                      // Placeholder
@@ -475,36 +548,86 @@ enum Terra_TriggerState : signed char {
     Terra_TriggerState_Undefined = -1                       // Placeholder
 };
 
+// Resource State
+// Common reservoir/resource states.
+enum Terra_ResourceState : signed char {
+    Terra_ResourceState_Normal,                             // Within normal operating band
+    Terra_ResourceState_Low,                                // Below low threshold
+    Terra_ResourceState_Reserve,                            // At or below protected reserve
+    Terra_ResourceState_High,                               // At or above high threshold
+    Terra_ResourceState_Fault,                              // Resource or measurement fault
+
+    Terra_ResourceState_Count,                              // Placeholder
+    Terra_ResourceState_Unknown = -1                        // Placeholder
+};
+
+// Water Route State
+// Common water-transfer route states.
+enum Terra_RouteState : signed char {
+    Terra_RouteState_Idle,                                  // Route idle
+    Terra_RouteState_Requested,                             // Route requested to start
+    Terra_RouteState_Active,                                // Route actively transferring
+    Terra_RouteState_Complete,                              // Destination target reached
+    Terra_RouteState_Fault,                                 // Route faulted
+
+    Terra_RouteState_Count,                                 // Placeholder
+    Terra_RouteState_Undefined = -1                         // Placeholder
+};
+
+// Units Category
+// Unit of measurement category. Specifies the kind of unit.
+enum Terra_UnitsCategory : signed char {
+    Terra_UnitsCategory_Raw,                                // Raw/dimensionless unit
+    Terra_UnitsCategory_Percentile,                         // Percentile based unit
+    Terra_UnitsCategory_Temperature,                        // Temperature based unit
+    Terra_UnitsCategory_LiqVolume,                          // Liquid volume based unit
+    Terra_UnitsCategory_LiqFlowRate,                        // Liquid flow rate based unit
+    Terra_UnitsCategory_Pressure,                           // Pressure based unit
+    Terra_UnitsCategory_Distance,                           // Distance/rainfall depth based unit
+    Terra_UnitsCategory_RainRate,                           // Rainfall rate based unit
+    Terra_UnitsCategory_Power,                              // Power based unit
+    Terra_UnitsCategory_Irradiance,                         // Solar irradiance based unit
+    Terra_UnitsCategory_Energy,                             // Energy based unit
+    Terra_UnitsCategory_Speed,                              // Linear speed based unit
+    Terra_UnitsCategory_Angle,                              // Angle/direction based unit
+    Terra_UnitsCategory_Voltage,                            // Voltage based unit
+    Terra_UnitsCategory_Current,                            // Electrical current based unit
+
+    Terra_UnitsCategory_Count,                              // Placeholder
+    Terra_UnitsCategory_Undefined = -1                      // Placeholder
+};
+
 // Units Type
 // Unit of measurement type. Specifies the unit type associated with a measured value.
-// Note: Rate units may only be in per minute, use PER_X_TO_PER_Y defines to convert.
 enum Terra_UnitsType : signed char {
     Terra_UnitsType_Raw_1,                                  // Normalized raw value mode [0,1=aRef]
     Terra_UnitsType_Percentile_100,                         // Percentile mode [0,100]
-    Terra_UnitsType_Alkalinity_pH_14,                       // pH value alkalinity mode [0,14]
-    Terra_UnitsType_Concentration_EC_5,                     // Siemens electrical conductivity concentration mode [0,5] (aka mS/cm)
-    Terra_UnitsType_Concentration_PPM_500,                  // Parts-per-million 500 concentration mode [0,2500] (NaCl-based, common for US)
-    Terra_UnitsType_Concentration_PPM_640,                  // Parts-per-million 640 concentration mode [0,3200] (common for EU)
-    Terra_UnitsType_Concentration_PPM_700,                  // Parts-per-million 700 concentration mode [0,3500] (KCl-based, common for AU)
     Terra_UnitsType_Distance_Feet,                          // Feet distance mode
     Terra_UnitsType_Distance_Meters,                        // Meters distance mode
-    Terra_UnitsType_LiqDilution_MilliLiterPerGallon,        // Milli liter per gallon dilution mode
-    Terra_UnitsType_LiqDilution_MilliLiterPerLiter,         // Milli liter per liter dilution mode
-    Terra_UnitsType_LiqFlowRate_GallonsPerMin,              // Gallons per minute liquid flow rate mode
-    Terra_UnitsType_LiqFlowRate_LitersPerMin,               // Liters per minute liquid flow rate mode
     Terra_UnitsType_LiqVolume_Gallons,                      // Gallons liquid volume mode
     Terra_UnitsType_LiqVolume_Liters,                       // Liters liquid volume mode
     Terra_UnitsType_Power_Amperage,                         // Amperage current power mode
     Terra_UnitsType_Power_Wattage,                          // Wattage power mode
+    Terra_UnitsType_Irradiance_WattsPerSquareMeter,         // Watts per square meter irradiance mode
+    Terra_UnitsType_Energy_KilowattHours,                   // Kilowatt-hours energy mode
     Terra_UnitsType_Temperature_Celsius,                    // Celsius temperature mode
     Terra_UnitsType_Temperature_Fahrenheit,                 // Fahrenheit temperature mode
     Terra_UnitsType_Temperature_Kelvin,                     // Kelvin temperature mode
-    Terra_UnitsType_Weight_Kilograms,                       // Kilograms weight mode
-    Terra_UnitsType_Weight_Pounds,                          // Pounds weight mode
+    Terra_UnitsType_Pressure_Kilopascals,                   // Kilopascals pressure mode
+    Terra_UnitsType_Pressure_PSI,                           // Pounds per square inch pressure mode
+    Terra_UnitsType_Pressure_Hectopascals,                  // Hectopascals pressure mode
+    Terra_UnitsType_Distance_Millimeters,                   // Millimeters distance/rainfall depth mode
+    Terra_UnitsType_Distance_Inches,                        // Inches distance/rainfall depth mode
+    Terra_UnitsType_RainRate_MillimetersPerHour,            // Millimeters per hour rainfall rate mode
+    Terra_UnitsType_RainRate_InchesPerHour,                 // Inches per hour rainfall rate mode
+    Terra_UnitsType_Speed_MetersPerSecond,                  // Meters per second speed mode
+    Terra_UnitsType_Speed_KilometersPerHour,                // Kilometers per hour speed mode
+    Terra_UnitsType_Speed_MilesPerHour,                     // Miles per hour speed mode
+    Terra_UnitsType_Angle_Degrees_360,                      // Degrees angle mode [0,%360)
+    Terra_UnitsType_Voltage_Volts,                          // Volts mode
+    Terra_UnitsType_Current_Amperage,                       // Amperage mode
 
     Terra_UnitsType_Count,                                  // Placeholder
-    Terra_UnitsType_Concentration_TDS = Terra_UnitsType_Concentration_EC_5, // Standard TDS concentration mode alias
-    Terra_UnitsType_Concentration_PPM = Terra_UnitsType_Concentration_PPM_500, // Standard PPM concentration mode alias
     Terra_UnitsType_Power_JoulesPerSecond = Terra_UnitsType_Power_Wattage, // Joules per second power mode alias
     Terra_UnitsType_Undefined = -1                          // Placeholder
 };
@@ -525,7 +648,6 @@ struct TerraIdentity;
 struct TerraData;
 struct TerraSubData;
 struct TerraCalibrationData;
-struct TerraCustomAdditiveData;
 struct TerraObjectData;
 struct TerraSystemData;
 struct TerraPin;
@@ -546,6 +668,10 @@ class TerraTrigger;
 class TerraActuator;
 class TerraSensor;
 class TerraReservoir;
+class TerraWaterRoute;
+class TerraRainCatchment;
+class TerraThermalLoop;
+class TerraEnvironment;
 class TerraRail;
 
 // System sketches setup enums (for non-zero resolution)
