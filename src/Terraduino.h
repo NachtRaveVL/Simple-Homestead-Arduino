@@ -219,7 +219,6 @@ template<class T, class U> inline SharedPtr<T> reinterpret_pointer_cast(const Sh
 
 #endif
 
-#include "TerraTypes.h"
 #include "TerraSetup.h"
 #include "TerraStrings.h"
 #include "TerraInlines.hh"

@@ -6,7 +6,7 @@
 #ifndef TerraStrings_H
 #define TerraStrings_H
 
-#include "TerraTypes.h"
+#include "Terraduino.h"
 
 // Common library strings. Built-in values live in program Flash where supported.
 enum Terra_String : uint16_t {

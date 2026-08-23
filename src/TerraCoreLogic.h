@@ -6,11 +6,7 @@
 #ifndef TerraCoreLogic_H
 #define TerraCoreLogic_H
 
-#include "TerraTypes.h"
-#include <stdint.h>
-#include <stddef.h>
-#include <float.h>
-#include <math.h>
+#include "Terraduino.h"
 
 // Returns elapsed unsigned time while remaining safe across 32-bit timer rollover.
 inline uint32_t terraElapsedTime(uint32_t now, uint32_t start)

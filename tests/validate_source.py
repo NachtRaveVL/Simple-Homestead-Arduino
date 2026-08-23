@@ -32,7 +32,7 @@ required = [
     "src/TerraReservoir.h", "src/TerraReservoir.cpp", "src/TerraScheduler.h", "src/TerraScheduler.cpp",
     "src/TerraSensors.h", "src/TerraSensors.cpp", "src/TerraSetup.h", "src/TerraStreams.h", "src/TerraStreams.cpp",
     "src/TerraStrings.h", "src/TerraStrings.cpp", "src/TerraThermal.h", "src/TerraThermal.cpp",
-    "src/TerraTriggers.h", "src/TerraTriggers.cpp", "src/TerraTypes.h", "src/TerraUtils.h", "src/TerraUtils.cpp",
+    "src/TerraTriggers.h", "src/TerraTriggers.cpp", "src/TerraUtils.h", "src/TerraUtils.cpp",
     "src/TerraUtils.hpp", "src/TerraWater.h", "src/TerraWater.cpp",
     "src/shared/TerraUIDefines.h", "src/shared/TerraUIStrings.h", "src/shared/TerraUIStrings.cpp",
     "src/shared/TerraUIData.h", "src/shared/TerraUIData.cpp", "src/shared/TerraDisplayDrivers.h", "src/shared/TerraDisplayDrivers.cpp", "src/shared/TerraDisplayDrivers.hpp",
@@ -201,7 +201,7 @@ for token in ["measurementMode", "loggerMinimumLevel", "publisherIntervalMs"]:
 # Main header keeps the same front-door ordering and active-controller helpers as the sibling libraries.
 main_header = (SRC / "Terraduino.h").read_text()
 header_sequence = [
-    '#include "TerraPlatform.h"', '#include "TerraDefines.h"', '#include "TerraTypes.h"',
+    '#include "TerraDefines.h"',
     '#include "TerraSetup.h"', '#include "TerraStrings.h"', '#include "TerraInlines.hh"',
     '#include "TerraCallback.hh"', '#include "TerraInterfaces.h"', '#include "TerraActivation.h"',
     '#include "TerraAttachments.h"', '#include "TerraData.h"', '#include "TerraObject.h"',

@@ -6,8 +6,7 @@
 #ifndef TerraSetup_H
 #define TerraSetup_H
 
-#include "TerraDefines.h"
-#include "TerraTypes.h"
+#include "Terraduino.h"
 
 // I2C Device Setup
 // A quick and easy structure for storing I2C device connection settings.

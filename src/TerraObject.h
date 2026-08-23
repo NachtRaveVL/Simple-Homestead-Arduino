@@ -6,13 +6,11 @@
 #ifndef TerraObject_H
 #define TerraObject_H
 
-#include "TerraDefines.h"
-#include "TerraTypes.h"
-#include "TerraInterfaces.h"
-
 class TerraObject;
 struct TerraData;
 struct TerraObjectData;
+
+#include "Terraduino.h"
 
 // Shortcut to get shared pointer for object with built-in cast.
 template<class T = TerraObjInterface> inline SharedPtr<T> getSharedPtr(const TerraObjInterface *object) { return object ? reinterpret_pointer_cast<T>(object->getSharedPtr()) : nullptr; }

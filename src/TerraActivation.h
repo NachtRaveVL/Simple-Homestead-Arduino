@@ -10,7 +10,7 @@ struct TerraActivation;
 struct TerraActivationHandle;
 class TerraActuator;
 
-#include "TerraTypes.h"
+#include "Terraduino.h"
 
 // Activation Flags
 enum Terra_ActivationFlags : uint8_t {
