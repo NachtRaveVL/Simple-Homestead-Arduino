@@ -2,68 +2,212 @@
     Copyright (C) 2026 NachtRaveVL
     Terraduino Attachment Inlines
 */
+
 #ifndef TerraAttachments_HPP
 #define TerraAttachments_HPP
-inline TerraDLinkObject &TerraDLinkObject::operator=(TerraIdentity rhs) { _key = rhs.key; _obj = nullptr; _keyString = rhs.keyString; return *this; }
-inline TerraDLinkObject &TerraDLinkObject::operator=(const char *rhs) { _key = rhs ? terraHashString(rhs) : tkey_none; _obj = nullptr; _keyString = rhs ? TerraString(rhs) : TerraString(); return *this; }
-inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraObjInterface *rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs ? rhs->getSharedPtr() : nullptr; _keyString = rhs && !_obj ? rhs->getKeyString() : TerraString(); return *this; }
-inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraAttachment *rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs && rhs->isResolved() ? const_cast<TerraAttachment *>(rhs)->getObject<TerraObjInterface>() : nullptr; _keyString = rhs && !rhs->isResolved() ? rhs->getKeyString() : TerraString(); return *this; }
-template<class U> inline TerraDLinkObject &TerraDLinkObject::operator=(SharedPtr<U> rhs) { _key = rhs ? rhs->getKey() : tkey_none; _obj = rhs ? static_pointer_cast<TerraObjInterface>(rhs) : nullptr; _keyString = TerraString(); return *this; }
-template<class U> void TerraAttachment::setObject(U object, bool modify) { if (!(_obj == object)) { if (_obj.isResolved()) { detachObject(); } _obj = object; if (_obj.isResolved()) { attachObject(); } if (modify) { bumpRevisionIfNeeded(); } } }
-template<class U> SharedPtr<U> TerraAttachment::getObject() { if (_obj) { return _obj.getObject<U>(); } if (!_obj.isSet()) { return nullptr; } if (_obj.needsResolved() && _obj.resolveObject()) { attachObject(); } return _obj.getObject<U>(); }
 
+#include "Terraduino.h"
 
-template<class ParameterType, int Slots>
+inline TerraDLinkObject &TerraDLinkObject::operator=(TerraIdentity rhs)
+{
+    _key = rhs.key;
+    _obj = nullptr;
+    if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+
+    auto len = rhs.keyString.length();
+    if (len) {
+        _keyStr = (const char *)malloc(len + 1);
+        strncpy((char *)_keyStr, rhs.keyString.c_str(), len + 1);
+    }
+    return *this;
+}
+
+inline TerraDLinkObject &TerraDLinkObject::operator=(const char *rhs)
+{
+    _key = stringHash(rhs);
+    _obj = nullptr;
+    if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+
+    auto len = strnlen(rhs, TERRA_NAME_MAXSIZE);
+    if (len) {
+        _keyStr = (const char *)malloc(len + 1);
+        strncpy((char *)_keyStr, rhs, len + 1);
+    }
+    return *this;
+}
+
+inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraObjInterface *rhs)
+{
+    _key = rhs ? rhs->getKey() : tkey_none;
+    _obj = rhs ? rhs->getSharedPtr() : nullptr;
+    if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+
+    return *this;
+}
+
+inline TerraDLinkObject &TerraDLinkObject::operator=(const TerraAttachment *rhs)
+{
+    _key = rhs ? rhs->getKey() : tkey_none;
+    _obj = rhs && rhs->isResolved() ? rhs->getSharedPtr() : nullptr;
+    if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+
+    if (rhs && !rhs->isResolved()) {
+        String keyString = rhs->getKeyString();
+        auto len = keyString.length();
+        if (len) {
+            _keyStr = (const char *)malloc(len + 1);
+            strncpy((char *)_keyStr, keyString.c_str(), len + 1);
+        }
+    }
+    return *this;
+}
+
 template<class U>
-SignalAttachment<ParameterType, Slots>::SignalAttachment(TerraObjInterface *parent, Signal<ParameterType, Slots> &(U::*signalGetter)(void))
-    : TerraAttachment(parent), _signalGetter(nullptr), _handleSlot(nullptr)
+inline TerraDLinkObject &TerraDLinkObject::operator=(SharedPtr<U> &rhs)
 {
-    setSignalGetter(signalGetter);
+    _key = rhs ? rhs->getKey() : tkey_none;
+    _obj = rhs ? static_pointer_cast<TerraObjInterface>(rhs) : nullptr;
+    if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+
+    return *this;
+}
+
+
+template<class U>
+void TerraAttachment::setObject(U obj, bool modify)
+{
+    if (!(_obj == obj)) {
+        if (_obj.isResolved()) { detachObject(); }
+
+        _obj = obj; // will be replaced by templated operator= inline
+
+        if (_obj.isResolved()) { attachObject(); }
+
+        if (modify && _parent) {
+            if (_parent->isObject()) {
+                ((TerraObject *)_parent)->bumpRevisionIfNeeded();
+            } else {
+                ((TerraSubObject *)_parent)->bumpRevisionIfNeeded();
+            }
+        }
+    }
+}
+
+template<class U>
+SharedPtr<U> TerraAttachment::getObject()
+{
+    if (_obj) { return _obj.getObject<U>(); }
+    else if (!_obj.isSet()) { return nullptr; }
+    else if (_obj.needsResolved() && _obj.resolveObject()) {
+        attachObject();
+    }
+    return _obj.getObject<U>();
+}
+
+
+template<class ParameterType, int Slots> template<class U>
+TerraSignalAttachment<ParameterType,Slots>::TerraSignalAttachment(TerraObjInterface *parent, Signal<ParameterType,Slots> &(U::*signalGetter)(void))
+    : TerraAttachment(parent), _signalGetter((SignalGetterPtr)signalGetter), _handleSlot(nullptr)
+{ ; }
+
+template<class ParameterType, int Slots>
+TerraSignalAttachment<ParameterType,Slots>::TerraSignalAttachment(const TerraSignalAttachment<ParameterType,Slots> &attachment)
+    : TerraAttachment(attachment), _signalGetter((SignalGetterPtr)attachment._signalGetter),
+      _handleSlot(attachment._handleSlot ? attachment._handleSlot->clone() : nullptr)
+{ ; }
+
+template<class ParameterType, int Slots>
+TerraSignalAttachment<ParameterType,Slots>::~TerraSignalAttachment()
+{
+    if (isResolved() && _handleSlot && _signalGetter) {
+        (get()->*_signalGetter)().detach(*_handleSlot);
+    }
+    if (_handleSlot) {
+        delete _handleSlot; _handleSlot = nullptr;
+    }
 }
 
 template<class ParameterType, int Slots>
-SignalAttachment<ParameterType, Slots>::SignalAttachment(const SignalAttachment<ParameterType, Slots> &attachment)
-    : TerraAttachment(attachment), _signalGetter(attachment._signalGetter), _handleSlot(nullptr)
-{
-    if (attachment._handleSlot) { _handleSlot = attachment._handleSlot->clone(); }
-}
-
-template<class ParameterType, int Slots>
-SignalAttachment<ParameterType, Slots>::~SignalAttachment()
-{
-    if (isResolved()) { detachObject(); }
-    if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
-}
-
-template<class ParameterType, int Slots>
-void SignalAttachment<ParameterType, Slots>::attachObject()
+void TerraSignalAttachment<ParameterType,Slots>::attachObject()
 {
     TerraAttachment::attachObject();
-    if (_signalGetter && _handleSlot && resolve()) { (get()->*_signalGetter)().attach(*_handleSlot); }
+
+    if (isResolved() && _handleSlot && _signalGetter) {
+        (get()->*_signalGetter)().attach(*_handleSlot);
+    }
 }
 
 template<class ParameterType, int Slots>
-void SignalAttachment<ParameterType, Slots>::detachObject()
+void TerraSignalAttachment<ParameterType,Slots>::detachObject()
 {
-    if (_signalGetter && _handleSlot && isResolved()) { (get()->*_signalGetter)().detach(*_handleSlot); }
+    if (isResolved() && _handleSlot && _signalGetter) {
+        (get()->*_signalGetter)().detach(*_handleSlot);
+    }
+
     TerraAttachment::detachObject();
 }
 
-template<class ParameterType, int Slots>
-template<class U>
-void SignalAttachment<ParameterType, Slots>::setSignalGetter(Signal<ParameterType, Slots> &(U::*signalGetter)(void))
+template<class ParameterType, int Slots> template<class U>
+void TerraSignalAttachment<ParameterType,Slots>::setSignalGetter(Signal<ParameterType,Slots> &(U::*signalGetter)(void))
 {
-    _signalGetter = reinterpret_cast<SignalGetterPtr>(signalGetter);
+    if (_signalGetter != signalGetter) {
+        if (isResolved() && _handleSlot && _signalGetter) { (get()->*_signalGetter)().detach(*_handleSlot); }
+
+        _signalGetter = signalGetter;
+
+        if (isResolved() && _handleSlot && _signalGetter) { (get()->*_signalGetter)().attach(*_handleSlot); }
+    }
 }
 
 template<class ParameterType, int Slots>
-void SignalAttachment<ParameterType, Slots>::setHandleSlot(const Slot<ParameterType> &handleSlot)
+void TerraSignalAttachment<ParameterType,Slots>::setHandleSlot(const Slot<ParameterType> &handleSlot)
 {
-    bool attached = isResolved();
-    if (attached) { detachObject(); }
-    if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
-    _handleSlot = handleSlot.clone();
-    if (attached) { attachObject(); }
+    if (!_handleSlot || !_handleSlot->operator==(&handleSlot)) {
+        if (isResolved() && _handleSlot && _signalGetter) { (get()->*_signalGetter)().detach(*_handleSlot); }
+
+        if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
+        _handleSlot = handleSlot.clone();
+
+        if (isResolved() && _handleSlot && _signalGetter) { (get()->*_signalGetter)().attach(*_handleSlot); }
+    }
+}
+
+
+inline Terra_UnitsType TerraActuatorAttachment::getActivationUnits()
+{
+    return resolve() && get()->getUserCalibrationData() ? get()->getUserCalibrationData()->calibrationUnits : Terra_UnitsType_Raw_1;
+}
+
+inline float TerraActuatorAttachment::getActiveDriveIntensity()
+{
+    return resolve() ? get()->getDriveIntensity() : 0.0f;
+}
+
+inline float TerraActuatorAttachment::getActiveCalibratedValue()
+{
+    return resolve() ? get()->getCalibratedValue() : 0.0f;
+}
+
+inline float TerraActuatorAttachment::getSetupDriveIntensity() const
+{
+    return _actSetup.intensity;
+}
+
+inline float TerraActuatorAttachment::getSetupCalibratedValue()
+{
+    return resolve() ? get()->calibrationTransform(_actSetup.intensity) : 0.0f;
+}
+
+
+inline Terra_TriggerState TerraTriggerAttachment::getTriggerState(bool poll)
+{
+    return resolve() ? get()->getTriggerState(poll) : Terra_TriggerState_Undefined;
+}
+
+
+inline Terra_BalancingState TerraBalancerAttachment::getBalancingState(bool poll)
+{
+    return resolve() ? get()->getBalancingState(poll) : Terra_BalancingState_Undefined;
 }
 
 #endif // /ifndef TerraAttachments_HPP
