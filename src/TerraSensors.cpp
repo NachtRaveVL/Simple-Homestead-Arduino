@@ -5,6 +5,26 @@
 
 #include "Terraduino.h"
 
+TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn)
+{
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Sensor,
+                      F("Invalid sensor data"));
+    if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Sensor) { return nullptr; }
+
+    switch (dataIn->id.object.classType) {
+        case (tid_t)TerraSensor::Value:
+            return new TerraSensor(dataIn);
+        case (tid_t)TerraSensor::Binary:
+            return new TerraBinarySensor(dataIn);
+        case (tid_t)TerraSensor::Analog:
+            return new TerraAnalogSensor(dataIn);
+        case (tid_t)TerraSensor::Remote:
+            return new TerraRemoteSensor(dataIn);
+        default:
+            return nullptr;
+    }
+}
+
 TerraSensor::TerraSensor(Terra_SensorType sensorType, tposi_t sensorIndex, Terra_UnitsType units, int classTypeIn)
     : TerraObject(TerraIdentity(sensorType, sensorIndex)), TerraMeasurementUnitsInterfaceStorageSingle(units),
       classType(static_cast<decltype(Value)>(classTypeIn)),
@@ -190,24 +210,6 @@ void TerraRemoteSensor::saveToData(TerraData *dataOut) const
     auto data = static_cast<TerraSensorData *>(dataOut);
     data->reportedType = _reportedType;
     data->staleAfterMs = _staleAfterMs;
-}
-
-TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn)
-{
-    if (!dataIn) { return nullptr; }
-
-    switch (dataIn->id.object.classType) {
-        case (tid_t)TerraSensor::Value:
-            return new TerraSensor(dataIn);
-        case (tid_t)TerraSensor::Binary:
-            return new TerraBinarySensor(dataIn);
-        case (tid_t)TerraSensor::Analog:
-            return new TerraAnalogSensor(dataIn);
-        case (tid_t)TerraSensor::Remote:
-            return new TerraRemoteSensor(dataIn);
-        default:
-            return nullptr;
-    }
 }
 
 TerraSensorData::TerraSensorData()

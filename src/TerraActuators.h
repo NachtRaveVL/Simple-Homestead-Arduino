@@ -28,9 +28,6 @@ extern TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
 // Base controlled output using a shared output driver and resident activation requests.
 class TerraActuator : public TerraObject {
 public:
-    TerraActuator(Terra_ActuatorType actuatorType = Terra_ActuatorType_Undefined,
-                  uint32_t key = TERRA_INVALID_KEY,
-                  const TerraString &name = TerraString());
     const enum : signed char { Relay, RelayPump, Variable, Unknown = -1 } classType; // Actuator class type
 
     TerraActuator(Terra_ActuatorType actuatorType,

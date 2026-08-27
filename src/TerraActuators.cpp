@@ -5,7 +5,6 @@
 
 #include "Terraduino.h"
 #include "TerraSensors.h"
-#include <string.h>
 
 TerraActuator::TerraActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex, int classTypeIn)
     : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(Relay)>(classTypeIn)),
@@ -66,7 +65,8 @@ void TerraActuator::update(uint32_t now)
         float drivingIntensity = 0.0f;
 
         switch (_enableMode) {
-            case Terra_EnableMode_Highest: {
+            case Terra_EnableMode_Highest:
+            case Terra_EnableMode_DescOrder: {
                 drivingIntensity = -__FLT_MAX__;
                 for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
                     if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
@@ -76,7 +76,8 @@ void TerraActuator::update(uint32_t now)
                 }
             } break;
 
-            case Terra_EnableMode_Lowest: {
+            case Terra_EnableMode_Lowest:
+            case Terra_EnableMode_AscOrder: {
                 drivingIntensity = __FLT_MAX__;
                 for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
                     if ((*handleIter)->isValid() && !(*handleIter)->isDone()) {
@@ -129,7 +130,8 @@ void TerraActuator::update(uint32_t now)
         }
 
         switch (_enableMode) {
-            case Terra_EnableMode_InOrder: {
+            case Terra_EnableMode_InOrder:
+            case Terra_EnableMode_DescOrder: {
                 bool selected = false;
                 for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
                     if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
@@ -140,7 +142,8 @@ void TerraActuator::update(uint32_t now)
                 }
             } break;
 
-            case Terra_EnableMode_RevOrder: {
+            case Terra_EnableMode_RevOrder:
+            case Terra_EnableMode_AscOrder: {
                 bool selected = false;
                 for (auto handleIter = _handles.end() - 1; handleIter != _handles.begin() - 1; --handleIter) {
                     if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
@@ -403,7 +406,9 @@ void TerraSumpPump::saveToData(TerraData *dataOut) const
 
 TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
 {
-    if (!dataIn) { return nullptr; }
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Actuator,
+                      F("Invalid actuator data"));
+    if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Actuator) { return nullptr; }
 
     switch (dataIn->id.object.classType) {
         case (tid_t)TerraActuator::Relay:
