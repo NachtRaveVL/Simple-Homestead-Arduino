@@ -15,11 +15,11 @@ struct TerraThermalLoopData;
 
 // Thermal Store
 // Tracks stored heat temperature and normal/safety target ranges.
-class TerraThermalStore : public TerraReservoir {
+class TerraThermalReservoir : public TerraReservoir {
 public:
-    TerraThermalStore(tposi_t storeIndex = TERRA_POS_SEARCH_FROMBEG,
+    TerraThermalReservoir(tposi_t storeIndex = TERRA_POS_SEARCH_FROMBEG,
                       const TerraString &name = TerraString());
-    TerraThermalStore(const TerraThermalStoreData *dataIn);
+    TerraThermalReservoir(const TerraThermalReservoirData *dataIn);
 
     inline void setTemperature(float celsius) { _temperatureC = celsius; }
     inline float getTemperature() const { return _temperatureC; }
@@ -66,7 +66,7 @@ public:
     bool configure(float onDifferentialC, float offDifferentialC, float maxStoreTempC);
 
     template<class T> inline void setSourceTemperatureSensor(const SharedPtr<T> &sensor) { _balancer.setSourceTemperatureSensor(sensor); }
-    template<class T> inline void setThermalStore(const SharedPtr<T> &store) { _balancer.setThermalStore(store); }
+    template<class T> inline void setThermalReservoir(const SharedPtr<T> &store) { _balancer.setThermalReservoir(store); }
     template<class T> inline void setCirculator(const SharedPtr<T> &circulator) { _balancer.setCirculator(circulator); }
 
     virtual void setEnabled(bool enabled) override;
@@ -76,7 +76,7 @@ public:
     inline float getOffDifferential() const { return _offDifferentialC; }
     inline float getMaxStoreTemperature() const { return _maxStoreTempC; }
     inline tkey_t getSourceTemperatureSensorKey() const { return _balancer.getSourceTemperatureAttachment().getKey(); }
-    inline tkey_t getThermalStoreKey() const { return _balancer.getStoreAttachment().getKey(); }
+    inline tkey_t getThermalReservoirKey() const { return _balancer.getStoreAttachment().getKey(); }
     inline tkey_t getCirculatorKey() const { return _balancer.getCirculatorAttachment().getKey(); }
 
     inline TerraThermalBalancer &getBalancer() { return _balancer; }

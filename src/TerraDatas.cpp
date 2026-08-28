@@ -70,8 +70,8 @@ TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
                     return new TerraCisternData();
                 case (tid_t)TerraReservoir::WaterSource:
                     return new TerraWaterSourceData();
-                case (tid_t)TerraReservoir::ThermalStore:
-                    return new TerraThermalStoreData();
+                case (tid_t)TerraReservoir::ThermalReservoir:
+                    return new TerraThermalReservoirData();
                 default: break;
             }
             break;

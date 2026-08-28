@@ -9,7 +9,7 @@
 Terraduino terraController;
 SharedPtr<TerraSensor> collectorTemperature;
 SharedPtr<TerraSensor> storeTemperature;
-SharedPtr<TerraThermalStore> heatStore;
+SharedPtr<TerraThermalReservoir> heatStore;
 SharedPtr<TerraThermalLoop> collectorLoop;
 SharedPtr<TerraActuator> circulator;
 
@@ -27,7 +27,7 @@ void setup()
     terraController.init();
     collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Collector Temperature");
     storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Store Temperature");
-    heatStore = terraController.addThermalStore(0, "Hot Water Store");
+    heatStore = terraController.addThermalReservoir(0, "Hot Water Store");
     collectorLoop = terraController.addThermalLoop(0, "Collector Loop");
     circulator = terraController.addCirculator(0, "Collector Circulator");
 
@@ -37,7 +37,7 @@ void setup()
 
     collectorLoop->configure(8.0f, 3.0f, 80.0f);
     collectorLoop->setSourceTemperatureSensor(collectorTemperature);
-    collectorLoop->setThermalStore(heatStore);
+    collectorLoop->setThermalReservoir(heatStore);
     collectorLoop->setCirculator(circulator);
 
     circulator->setDriver(SharedPtr<TerraOutputDriver>(new TerraCallbackOutputDriver(driveCirculator)));

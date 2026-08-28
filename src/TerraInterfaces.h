@@ -18,7 +18,6 @@ struct TerraAnalogInputPinInterface;
 struct TerraAnalogOutputPinInterface;
 
 class TerraAirConcentrateUnitsInterfaceStorage;
-class TerraDilutionUnitsInterfaceStorage;
 class TerraFlowRateUnitsInterfaceStorage;
 class TerraMeasurementUnitsInterface;
 template <size_t N = 1> class TerraMeasurementUnitsStorage;
@@ -28,7 +27,6 @@ class TerraMeasurementUnitsInterfaceStorageTriple;
 class TerraPowerUnitsInterfaceStorage;
 class TerraTemperatureUnitsInterfaceStorage;
 class TerraVolumeUnitsInterfaceStorage;
-class TerraWaterConcentrateUnitsInterfaceStorage;
 
 class TerraActuatorObjectInterface;
 class TerraSensorObjectInterface;
@@ -44,24 +42,22 @@ class TerraParentSensorAttachmentInterface;
 class TerraParentReservoirAttachmentInterface;
 class TerraParentRailAttachmentInterface;
 
-class TerraFeedReservoirAttachmentInterface;
+class TerraWaterReservoirAttachmentInterface;
+class TerraThermalReservoirAttachmentInterface;
 
 class TerraSensorAttachmentInterface;
 class TerraAirCO2SensorAttachmentInterface;
 class TerraAirTemperatureSensorAttachmentInterface;
+class TerraMediumTemperatureSensorAttachmentInterface;
 class TerraPowerProductionSensorAttachmentInterface;
 class TerraPowerUsageSensorAttachmentInterface;
-class TerraSoilMoistureSensorAttachmentInterface;
 class TerraWaterFlowRateSensorAttachmentInterface;
-class TerraWaterPHSensorAttachmentInterface;
-class TerraWaterTDSSensorAttachmentInterface;
 class TerraWaterTemperatureSensorAttachmentInterface;
 class TerraWaterVolumeSensorAttachmentInterface;
 
 class TerraTriggerAttachmentInterface;
 class TerraFilledTriggerAttachmentInterface;
 class TerraEmptyTriggerAttachmentInterface;
-class TerraFeedingTriggerAttachmentInterface;
 class TerraLimitTriggerAttachmentInterface;
 
 #include "Terraduino.h"
@@ -150,18 +146,6 @@ protected:
     inline TerraAirConcentrateUnitsInterfaceStorage(Terra_UnitsType airConcentrateUnits = Terra_UnitsType_Undefined) : _airConcUnits(airConcentrateUnits) { ; }
 };
 
-// Dilution Units Interface + Storage
-class TerraDilutionUnitsInterfaceStorage {
-public:
-    virtual void setDilutionUnits(Terra_UnitsType dilutionUnits) = 0;
-    inline Terra_UnitsType getDilutionUnits() const { return _dilutionUnits; }
-    inline Terra_UnitsType getVolumeUnits() const;
-
-protected:
-    Terra_UnitsType _dilutionUnits;
-    inline TerraDilutionUnitsInterfaceStorage(Terra_UnitsType dilutionUnits = Terra_UnitsType_Undefined) : _dilutionUnits(dilutionUnits) { ; }
-};
-
 // Flow Rate Units Interface + Storage
 class TerraFlowRateUnitsInterfaceStorage {
 public:
@@ -244,18 +228,6 @@ protected:
     inline TerraVolumeUnitsInterfaceStorage(Terra_UnitsType volumeUnits = Terra_UnitsType_Undefined) : _volumeUnits(volumeUnits) { ; }
 };
 
-// Water Concentrate Units Interface + Storage
-class TerraWaterConcentrateUnitsInterfaceStorage {
-public:
-    virtual void setWaterConcentrateUnits(Terra_UnitsType waterConcentrateUnits) = 0;
-    inline Terra_UnitsType getWaterConcentrateUnits() const { return _waterConcUnits; }
-
-protected:
-    Terra_UnitsType _waterConcUnits;
-    inline TerraWaterConcentrateUnitsInterfaceStorage(Terra_UnitsType waterConcentrateUnits = Terra_UnitsType_Undefined) : _waterConcUnits(waterConcentrateUnits) { ; }
-};
-
-
 // Actuator Object Interface
 class TerraActuatorObjectInterface {
 public:
@@ -285,7 +257,12 @@ public:
 class TerraReservoirObjectInterface {
 public:
     virtual bool canActivate(TerraActuator *actuator) = 0;
+    virtual float getLevel(bool poll = false) = 0;
+
+    virtual Terra_ResourceState getState(bool poll = false) = 0;
     virtual bool isFilled(bool poll = false) = 0;
+    virtual bool isHigh(bool poll = false) = 0;
+    virtual bool isLow(bool poll = false) = 0;
     virtual bool isEmpty(bool poll = false) = 0;
 };
 
@@ -377,13 +354,22 @@ public:
 };
 
 
-// Feed Reservoir Attachment Interface
-class TerraFeedReservoirAttachmentInterface {
+// Water Reservoir Attachment Interface
+class TerraWaterReservoirAttachmentInterface {
 public:
-    virtual TerraAttachment &getFeedReservoirAttachment() = 0;
+    virtual TerraAttachment &getWaterReservoirAttachment() = 0;
 
-    template<class U> inline void setFeedReservoir(U reservoir);
-    template<class U = TerraFeedReservoir> inline SharedPtr<U> getFeedReservoir(bool poll = false);
+    template<class U> inline void setWaterReservoir(U reservoir);
+    template<class U = TerraWaterReservoir> inline SharedPtr<U> getWaterReservoir(bool poll = false);
+};
+
+// Head Reservoir Attachment Interface
+class TerraThermalReservoirAttachmentInterface {
+public:
+    virtual TerraAttachment &getThermalReservoirAttachment() = 0;
+
+    template<class U> inline void setThermalReservoir(U reservoir);
+    template<class U = TerraThermalReservoir> inline SharedPtr<U> getThermalReservoir(bool poll = false);
 };
 
 
@@ -413,6 +399,15 @@ public:
     template<class U = TerraSensor> inline SharedPtr<U> getAirTemperatureSensor(bool poll = false);
 };
 
+// Thermal Medium Temperature Sensor Attachment Interface
+class TerraMediumTemperatureSensorAttachmentInterface {
+public:
+    virtual TerraSensorAttachment &getMediumTemperatureSensorAttachment() = 0;
+
+    template<class U> inline void setMediumTemperatureSensor(U sensor);
+    template<class U = TerraSensor> inline SharedPtr<U> getMediumTemperatureSensor(bool poll = false);
+};
+
 // Power Production Sensor Attachment Interface
 class TerraPowerProductionSensorAttachmentInterface {
 public:
@@ -431,15 +426,6 @@ public:
     template<class U = TerraSensor> inline SharedPtr<U> getPowerUsageSensor(bool poll = false);
 };
 
-// Soil Moisture Sensor Attachment Interface
-class TerraSoilMoistureSensorAttachmentInterface {
-public:
-    virtual TerraSensorAttachment &getSoilMoistureSensorAttachment() = 0;
-
-    template<class U> inline void setSoilMoistureSensor(U sensor);
-    template<class U = TerraSensor> inline SharedPtr<U> getSoilMoistureSensor(bool poll = false);
-};
-
 // Liquid Flow Rate Sensor Attachment Interface
 class TerraWaterFlowRateSensorAttachmentInterface {
 public:
@@ -447,24 +433,6 @@ public:
 
     template<class U> inline void setFlowRateSensor(U sensor);
     template<class U = TerraSensor> inline SharedPtr<U> getFlowRateSensor(bool poll = false);
-};
-
-// Water pH/Alkalinity Sensor Attachment Interface
-class TerraWaterPHSensorAttachmentInterface {
-public:
-    virtual TerraSensorAttachment &getWaterPHSensorAttachment() = 0;
-
-    template<class U> inline void setWaterPHSensor(U sensor);
-    template<class U = TerraSensor> inline SharedPtr<U> getWaterPHSensor(bool poll = false);
-};
-
-// Water TDS/Concentration Sensor Attachment Interface
-class TerraWaterTDSSensorAttachmentInterface {
-public:
-    virtual TerraSensorAttachment &getWaterTDSSensorAttachment() = 0;
-
-    template<class U> inline void setWaterTDSSensor(U sensor);
-    template<class U = TerraSensor> inline SharedPtr<U> getWaterTDSSensor(bool poll = false);
 };
 
 // Water Temperature Sensor Attachment Interface
@@ -503,6 +471,24 @@ public:
     template<class U = TerraTrigger> inline SharedPtr<U>getFilledTrigger(bool poll = false);
 };
 
+// High Trigger Attachment Interface
+class TerraHighTriggerAttachmentInterface {
+public:
+    virtual TerraTriggerAttachment &getHighTriggerAttachment() = 0;
+
+    template<class U> inline void setHighTrigger(U trigger);
+    template<class U = TerraTrigger> inline SharedPtr<U>getHighTrigger(bool poll = false);
+};
+
+// Low Trigger Attachment Interface
+class TerraLowTriggerAttachmentInterface {
+public:
+    virtual TerraTriggerAttachment &getLowTriggerAttachment() = 0;
+
+    template<class U> inline void setLowTrigger(U trigger);
+    template<class U = TerraTrigger> inline SharedPtr<U>getLowTrigger(bool poll = false);
+};
+
 // Empty Trigger Attachment Interface
 class TerraEmptyTriggerAttachmentInterface {
 public:
@@ -510,15 +496,6 @@ public:
 
     template<class U> inline void setEmptyTrigger(U trigger);
     template<class U = TerraTrigger> inline SharedPtr<U>getEmptyTrigger(bool poll = false);
-};
-
-// Feeding Trigger Attachment Interface
-class TerraFeedingTriggerAttachmentInterface {
-public:
-    virtual TerraTriggerAttachment &getFeedingTriggerAttachment() = 0;
-
-    template<class U> inline void setFeedingTrigger(U trigger);
-    template<class U = TerraTrigger> inline SharedPtr<U>getFeedingTrigger(bool poll = false);
 };
 
 // Limit Trigger Attachment Interface

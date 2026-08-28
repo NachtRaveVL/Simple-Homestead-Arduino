@@ -162,7 +162,7 @@ void TerraThermalBalancer::update(uint32_t now)
         return;
     }
 
-    SharedPtr<TerraThermalStore> store = _store.getObject<TerraThermalStore>();
+    SharedPtr<TerraThermalReservoir> store = _store.getObject<TerraThermalReservoir>();
     if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
         _circulator.off();
         _loop->setRunning(false);

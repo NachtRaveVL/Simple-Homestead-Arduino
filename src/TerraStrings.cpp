@@ -82,28 +82,12 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Resource";
             return flashStr;
         }
-        case TStr_WaterStorage: {
-            static const char flashStr[] PROGMEM = "WaterStorage";
+        case TStr_WaterReservoir: {
+            static const char flashStr[] PROGMEM = "WaterReservoir";
             return flashStr;
         }
-        case TStr_WaterSource: {
-            static const char flashStr[] PROGMEM = "WaterSource";
-            return flashStr;
-        }
-        case TStr_WaterRoute: {
-            static const char flashStr[] PROGMEM = "WaterRoute";
-            return flashStr;
-        }
-        case TStr_RainCatchment: {
-            static const char flashStr[] PROGMEM = "RainCatchment";
-            return flashStr;
-        }
-        case TStr_ThermalStore: {
-            static const char flashStr[] PROGMEM = "ThermalStore";
-            return flashStr;
-        }
-        case TStr_ThermalLoop: {
-            static const char flashStr[] PROGMEM = "ThermalLoop";
+        case TStr_ThermalReservoir: {
+            static const char flashStr[] PROGMEM = "ThermalReservoir";
             return flashStr;
         }
         case TStr_Environment: {
@@ -760,7 +744,7 @@ TerraString terraObjectTypeToString(Terra_ObjectType value)
         case Terra_ObjectType_WaterSource: return SFP(TStr_WaterSource);
         case Terra_ObjectType_WaterRoute: return SFP(TStr_WaterRoute);
         case Terra_ObjectType_RainCatchment: return SFP(TStr_RainCatchment);
-        case Terra_ObjectType_ThermalStore: return SFP(TStr_ThermalStore);
+        case Terra_ObjectType_ThermalReservoir: return SFP(TStr_ThermalReservoir);
         case Terra_ObjectType_ThermalLoop: return SFP(TStr_ThermalLoop);
         case Terra_ObjectType_Environment: return SFP(TStr_Environment);
         case Terra_ObjectType_PowerRail: return SFP(TStr_PowerRail);
@@ -1078,7 +1062,7 @@ Terra_ObjectType terraObjectTypeFromString(const TerraString &value)
                 case 'l':
                     return Terra_ObjectType_ThermalLoop;
                 case 's':
-                    return Terra_ObjectType_ThermalStore;
+                    return Terra_ObjectType_ThermalReservoir;
             }
             return Terra_ObjectType_Undefined;
         case 'i':

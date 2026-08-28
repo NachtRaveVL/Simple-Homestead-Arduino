@@ -12,7 +12,7 @@ SharedPtr<TerraSensor> outsideTemperature;
 SharedPtr<TerraSensor> outsideHumidity;
 SharedPtr<TerraCistern> cistern;
 SharedPtr<TerraSensor> cisternLevel;
-SharedPtr<TerraThermalStore> thermalTank;
+SharedPtr<TerraThermalReservoir> thermalTank;
 SharedPtr<TerraSensor> thermalTankTemperature;
 
 void setup()
@@ -26,7 +26,7 @@ void setup()
     outsideHumidity = terraController.addSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percent, "Outside Humidity");
     cistern = terraController.addCistern(2000.0f, "Main Cistern");
     cisternLevel = terraController.addSensor(Terra_SensorType_Level, Terra_UnitsType_Percent, "Cistern Level");
-    thermalTank = terraController.addThermalStore("Thermal Store");
+    thermalTank = terraController.addThermalReservoir("Thermal Store");
     thermalTankTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, "Thermal Store Temperature");
 
     outside->setAirTemperatureSensor(outsideTemperature);

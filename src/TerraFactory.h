@@ -32,7 +32,7 @@ class TerraCistern;                                         // Terra Cistern
 class TerraWaterSource;                                     // Terra Water Source
 class TerraWaterRoute;                                      // Terra Water Route
 class TerraRainCatchment;                                   // Terra Rain Catchment
-class TerraThermalStore;                                    // Terra Thermal Store
+class TerraThermalReservoir;                                    // Terra Thermal Store
 class TerraThermalLoop;                                     // Terra Thermal Loop
 class TerraEnvironment;                                     // Terra Environment
 class TerraSimpleRail;                                      // Terra Simple Power Rail
@@ -105,7 +105,7 @@ public:
     SharedPtr<TerraRainCatchment> addRainCatchment(float areaSquareMeters,
                                                    float collectionEfficiency = 0.85f,
                                                    const TerraString &name = TerraString());
-    SharedPtr<TerraThermalStore> addThermalStore(const TerraString &name = TerraString());
+    SharedPtr<TerraThermalReservoir> addThermalReservoir(const TerraString &name = TerraString());
     SharedPtr<TerraThermalLoop> addThermalLoop(const TerraString &name = TerraString());
     SharedPtr<TerraEnvironment> addEnvironment(const TerraString &name = TerraString("Environment"));
 

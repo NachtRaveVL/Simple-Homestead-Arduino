@@ -10,7 +10,7 @@ int main()
     assert(cistern.configureFillBand(30.0f, 90.0f, 99.0f));
     assert(!cistern.configureFillBand(40.0f, 99.0f, 99.0f));
 
-    TerraThermalStore store(0, "Store");
+    TerraThermalReservoir store(0, "Store");
     assert(store.setTargetRange(40.0f, 60.0f));
     assert(!store.setTargetRange(70.0f, 60.0f));
     assert(store.setAbsoluteMaximum(90.0f));

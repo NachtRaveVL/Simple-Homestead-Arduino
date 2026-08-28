@@ -146,14 +146,14 @@ void setup() {
     pass &= isFPEqual(sumpDataCopy.sumpStopPercent, sumpData.sumpStopPercent);
     pass &= isFPEqual(sumpDataCopy.sumpAlarmPercent, sumpData.sumpAlarmPercent);
 
-    TerraThermalStoreData thermal;
+    TerraThermalReservoirData thermal;
     thermal.key = 2001;
     thermal.name = F("Thermal Store");
     thermal.temperatureC = 58.0f;
     thermal.minimumTargetC = 45.0f;
     thermal.maximumTargetC = 65.0f;
     thermal.absoluteMaximumC = 90.0f;
-    TerraThermalStoreData thermalCopy;
+    TerraThermalReservoirData thermalCopy;
     pass &= thermalCopy.fromJSON(thermal.toJSON());
     pass &= isFPEqual(thermalCopy.temperatureC, thermal.temperatureC);
     pass &= isFPEqual(thermalCopy.absoluteMaximumC, thermal.absoluteMaximumC);

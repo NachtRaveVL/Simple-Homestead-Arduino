@@ -460,7 +460,7 @@ SharedPtr<TerraWaterRoute> fillRoute;
 SharedPtr<TerraPump> transferPump;
 SharedPtr<TerraSensor> collectorTemperature;
 SharedPtr<TerraSensor> storeTemperature;
-SharedPtr<TerraThermalStore> thermalStore;
+SharedPtr<TerraThermalReservoir> thermalStore;
 SharedPtr<TerraThermalLoop> thermalLoop;
 SharedPtr<TerraActuator> circulator;
 SharedPtr<TerraRemoteSensor> barnTemp;
@@ -498,7 +498,7 @@ void setup()
     transferPump = terraStaticPointerCast<TerraPump>(terraController.addActuator(Terra_ActuatorType_Pump, 0, "Transfer Pump"));
     collectorTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Collector Temperature");
     storeTemperature = terraController.addSensor(Terra_SensorType_Temperature, Terra_UnitsType_Celsius, 0, "Store Temperature");
-    thermalStore = terraController.addThermalStore(0, "Thermal Store");
+    thermalStore = terraController.addThermalReservoir(0, "Thermal Store");
     thermalLoop = terraController.addThermalLoop(0, "Thermal Loop");
     circulator = terraController.addActuator(Terra_ActuatorType_Circulator, 0, "Thermal Circulator");
     barnTemp = terraStaticPointerCast<TerraRemoteSensor>(terraController.addSensor(Terra_SensorType_Remote, Terra_UnitsType_Celsius, 0, "Barn Temp"));
@@ -521,7 +521,7 @@ void setup()
     circulator->setDriver(SharedPtr<TerraOutputDriver>(new TerraCallbackOutputDriver(actuatorWrite)));
     thermalLoop->configure(8.0f, 3.0f, 80.0f);
     thermalLoop->setSourceTemperatureSensor(collectorTemperature);
-    thermalLoop->setThermalStore(thermalStore);
+    thermalLoop->setThermalReservoir(thermalStore);
     thermalLoop->setCirculator(circulator);
 
     barnTemp->setStaleAfter(5UL * 60UL * 1000UL);
@@ -567,7 +567,7 @@ void setup() {
 
     Serial.println(cistern.toJSON());
 
-    TerraThermalStoreData thermal;
+    TerraThermalReservoirData thermal;
     thermal.key = 2001;
     thermal.name = "Thermal Store";
     thermal.level = 70.0f;

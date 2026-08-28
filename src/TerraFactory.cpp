@@ -268,13 +268,13 @@ SharedPtr<TerraRainCatchment> TerraFactory::addRainCatchment(float areaSquareMet
     return nullptr;
 }
 
-SharedPtr<TerraThermalStore> TerraFactory::addThermalStore(const TerraString &name)
+SharedPtr<TerraThermalReservoir> TerraFactory::addThermalReservoir(const TerraString &name)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Thermal));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraThermalStore>(new TerraThermalStore(positionIndex, name));
+        auto reservoir = SharedPtr<TerraThermalReservoir>(new TerraThermalReservoir(positionIndex, name));
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 

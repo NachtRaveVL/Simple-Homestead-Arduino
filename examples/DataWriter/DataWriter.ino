@@ -19,7 +19,7 @@ void setup()
     cistern->configureFillBand(35.0f, 90.0f, 99.0f);
     cistern->setLevel(63.5f);
 
-    auto thermal = terraController.addThermalStore("Thermal Store");
+    auto thermal = terraController.addThermalReservoir("Thermal Store");
     thermal->setLevel(70.0f);
     thermal->setTemperature(58.0f);
     thermal->setTargetRange(45.0f, 65.0f);

@@ -69,7 +69,7 @@ TerraFirstFlushController	KEYWORD1
 TerraRainCollectionResult	KEYWORD1
 TerraWeatherSnapshot	KEYWORD1
 TerraEnvironment	KEYWORD1
-TerraThermalStore	KEYWORD1
+TerraThermalReservoir	KEYWORD1
 TerraThermalLoop	KEYWORD1
 TerraWaterBalancer	KEYWORD1
 TerraThermalBalancer	KEYWORD1

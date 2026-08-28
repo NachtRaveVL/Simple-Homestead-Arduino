@@ -22,8 +22,8 @@ TerraReservoir *newReservoirObjectFromData(const TerraReservoirData *dataIn)
             return new TerraCistern((const TerraCisternData *)dataIn);
         case (tid_t)TerraReservoir::WaterSource:
             return new TerraWaterSource((const TerraWaterSourceData *)dataIn);
-        case (tid_t)TerraReservoir::ThermalStore:
-            return new TerraThermalStore((const TerraThermalStoreData *)dataIn);
+        case (tid_t)TerraReservoir::ThermalReservoir:
+            return new TerraThermalReservoir((const TerraThermalReservoirData *)dataIn);
         default:
             return nullptr;
     }
@@ -212,16 +212,16 @@ void TerraWaterSourceData::fromJSONObject(JsonObjectConst &objectIn)
     }
 }
 
-TerraThermalStoreData::TerraThermalStoreData()
+TerraThermalReservoirData::TerraThermalReservoirData()
     : TerraReservoirData(), temperatureC(0.0f), minimumTargetC(0.0f), maximumTargetC(80.0f),
       absoluteMaximumC(95.0f), temperatureSensor{0}
 {
     _size = sizeof(*this);
     id.object.objType = (tid_t)Terra_ReservoirType_Thermal;
-    id.object.classType = (tid_t)TerraReservoir::ThermalStore;
+    id.object.classType = (tid_t)TerraReservoir::ThermalReservoir;
 }
 
-void TerraThermalStoreData::toJSONObject(JsonObject &objectOut) const
+void TerraThermalReservoirData::toJSONObject(JsonObject &objectOut) const
 {
     TerraReservoirData::toJSONObject(objectOut);
     objectOut["temperatureC"] = temperatureC;
@@ -231,7 +231,7 @@ void TerraThermalStoreData::toJSONObject(JsonObject &objectOut) const
     if (temperatureSensor[0]) { objectOut["temperatureSensor"] = temperatureSensor; }
 }
 
-void TerraThermalStoreData::fromJSONObject(JsonObjectConst &objectIn)
+void TerraThermalReservoirData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraReservoirData::fromJSONObject(objectIn);
     temperatureC = objectIn["temperatureC"] | temperatureC;

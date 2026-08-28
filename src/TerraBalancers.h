@@ -13,7 +13,7 @@ class TerraWaterSource;
 class TerraWaterStorage;
 class TerraCistern;
 class TerraThermalLoop;
-class TerraThermalStore;
+class TerraThermalReservoir;
 
 // Water Balancer
 // Owns the source, destination, pump, and optional flow-sensor attachment points for one
@@ -63,7 +63,7 @@ public:
 
     void setParent(TerraThermalLoop *loop);
     template<class T> inline void setSourceTemperatureSensor(const SharedPtr<T> &sensor) { _sourceTemperature.setObject(sensor); }
-    template<class T> inline void setThermalStore(const SharedPtr<T> &store) { _store.setObject(store); }
+    template<class T> inline void setThermalReservoir(const SharedPtr<T> &store) { _store.setObject(store); }
     template<class T> inline void setCirculator(const SharedPtr<T> &circulator) { _circulator.setObject(circulator); }
     void update(uint32_t now = millis());
     void unresolveAny(TerraObject *object);
