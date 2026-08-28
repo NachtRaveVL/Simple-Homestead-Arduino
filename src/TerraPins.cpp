@@ -144,18 +144,18 @@ TerraPinData::TerraPinData()
 void TerraPinData::toJSONObject(JsonObject &objectOut) const
 {
     TerraSubData::toJSONObject(objectOut);
-    objectOut["pin"] = pin;
-    objectOut["mode"] = terraPinModeToString(mode);
-    if (activeLow) { objectOut["activeLow"] = true; }
-    if (type == TerraPin::Analog) { objectOut["bitRes"] = bitRes; }
+    objectOut[SFP(TStr_Key_Pin)] = pin;
+    objectOut[SFP(TStr_Key_Mode)] = terraPinModeToString(mode);
+    if (activeLow) { objectOut[SFP(TStr_Key_ActiveLow)] = true; }
+    if (type == TerraPin::Analog) { objectOut[SFP(TStr_Key_BitRes)] = bitRes; }
 }
 
 void TerraPinData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraSubData::fromJSONObject(objectIn);
-    pin = objectIn["pin"] | pin;
-    const char *modeString = objectIn["mode"] | nullptr;
+    pin = objectIn[SFP(TStr_Key_Pin)] | pin;
+    const char *modeString = objectIn[SFP(TStr_Key_Mode)] | nullptr;
     if (modeString) { mode = terraPinModeFromString(TerraString(modeString)); }
-    activeLow = objectIn["activeLow"] | activeLow;
-    bitRes = objectIn["bitRes"] | bitRes;
+    activeLow = objectIn[SFP(TStr_Key_ActiveLow)] | activeLow;
+    bitRes = objectIn[SFP(TStr_Key_BitRes)] | bitRes;
 }

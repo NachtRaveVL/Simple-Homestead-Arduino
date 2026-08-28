@@ -20,7 +20,7 @@ public:
     const enum : signed char { Standard, Unknown = -1 } classType; // Environment class type
 
     TerraEnvironment(tposi_t environmentIndex = TERRA_POS_SEARCH_FROMBEG,
-                     const TerraString &name = TerraString("Environment"));
+                     const TerraString &name = SFP(TStr_Environment));
     TerraEnvironment(const TerraEnvironmentData *dataIn);
 
     float getAirTemperature() const;

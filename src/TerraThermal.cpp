@@ -182,12 +182,12 @@ TerraThermalLoopData::TerraThermalLoopData()
 void TerraThermalLoopData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    if (sourceTemperatureSensor[0]) { objectOut["sourceTemperatureSensor"] = sourceTemperatureSensor; }
-    if (store[0]) { objectOut["store"] = store; }
-    if (circulator[0]) { objectOut["circulator"] = circulator; }
-    objectOut["onDifferentialC"] = onDifferentialC;
-    objectOut["offDifferentialC"] = offDifferentialC;
-    objectOut["maxStoreTempC"] = maxStoreTempC;
+    if (sourceTemperatureSensor[0]) { objectOut[SFP(TStr_Key_SourceTemperatureSensor)] = sourceTemperatureSensor; }
+    if (store[0]) { objectOut[SFP(TStr_Key_Store)] = store; }
+    if (circulator[0]) { objectOut[SFP(TStr_Key_Circulator)] = circulator; }
+    objectOut[SFP(TStr_Key_OnDifferentialC)] = onDifferentialC;
+    objectOut[SFP(TStr_Key_OffDifferentialC)] = offDifferentialC;
+    objectOut[SFP(TStr_Key_MaxStoreTempC)] = maxStoreTempC;
 }
 
 void TerraThermalLoopData::fromJSONObject(JsonObjectConst &objectIn)
@@ -200,10 +200,10 @@ void TerraThermalLoopData::fromJSONObject(JsonObjectConst &objectIn)
             destinationOut[TERRA_NAME_MAXSIZE - 1] = '\0';
         }
     };
-    copyString(sourceTemperatureSensor, objectIn["sourceTemperatureSensor"]);
-    copyString(store, objectIn["store"]);
-    copyString(circulator, objectIn["circulator"]);
-    onDifferentialC = objectIn["onDifferentialC"] | onDifferentialC;
-    offDifferentialC = objectIn["offDifferentialC"] | offDifferentialC;
-    maxStoreTempC = objectIn["maxStoreTempC"] | maxStoreTempC;
+    copyString(sourceTemperatureSensor, objectIn[SFP(TStr_Key_SourceTemperatureSensor)]);
+    copyString(store, objectIn[SFP(TStr_Key_Store)]);
+    copyString(circulator, objectIn[SFP(TStr_Key_Circulator)]);
+    onDifferentialC = objectIn[SFP(TStr_Key_OnDifferentialC)] | onDifferentialC;
+    offDifferentialC = objectIn[SFP(TStr_Key_OffDifferentialC)] | offDifferentialC;
+    maxStoreTempC = objectIn[SFP(TStr_Key_MaxStoreTempC)] | maxStoreTempC;
 }

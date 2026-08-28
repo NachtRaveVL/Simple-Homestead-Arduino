@@ -32,7 +32,7 @@ const TerraCalibrationData *TerraCalibrations::getUserCalibrationData(tkey_t key
 
 bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calibrationData)
 {
-    TERRA_SOFT_ASSERT(calibrationData, TerraString("Invalid calibration data"));
+    TERRA_SOFT_ASSERT(calibrationData, SFP(TStr_Err_InvalidParameter));
 
     if (calibrationData && calibrationData->ownerName[0]) {
         tkey_t key = terraHashString(calibrationData->ownerName);
@@ -42,7 +42,7 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
         if (iter == _calibrationData.end()) {
             auto calibData = new TerraCalibrationData();
 
-            TERRA_SOFT_ASSERT(calibData, TerraString("Calibration allocation failure"));
+            TERRA_SOFT_ASSERT(calibData, SFP(TStr_Err_AllocationFailure));
             if (calibData) {
                 *calibData = *calibrationData;
                 _calibrationData[key] = calibData;
@@ -60,7 +60,7 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
 
 bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *calibrationData)
 {
-    TERRA_HARD_ASSERT(calibrationData, TerraString("Invalid calibration data"));
+    TERRA_HARD_ASSERT(calibrationData, SFP(TStr_Err_InvalidParameter));
     if (!calibrationData) { return false; }
 
     tkey_t key = terraHashString(calibrationData->ownerName);
@@ -144,7 +144,7 @@ SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) con
 
 SharedPtr<TerraObject> TerraObjectRegistration::objectById_Col(const TerraIdentity &id) const
 {
-    TERRA_SOFT_ASSERT(false, TerraString("Hashing collision"));
+    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_HashingCollision));
 
     for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
         if (id.keyString == iter->second->getKeyString()) {

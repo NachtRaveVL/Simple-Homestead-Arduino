@@ -107,6 +107,7 @@ public:
     virtual void setVolumeUnits(Terra_UnitsType volumeUnits) override;
 
     virtual TerraSensorAttachment &getWaterVolumeSensorAttachment() override;
+    virtual TerraSensorAttachment &getWaterTemperatureSensorAttachment() override;
 
     virtual TerraTriggerAttachment &getFilledTriggerAttachment() override;
 
@@ -121,6 +122,7 @@ public:
 protected:
     float _maxVolume;                                       // Maximum volume
     TerraSensorAttachment _waterVolume;                     // Water volume sensor attachment
+    TerraSensorAttachment _waterTemperature;                // Water temperature sensor attachment
     TerraTriggerAttachment _filledTrigger;                  // Filled trigger attachment
     TerraTriggerAttachment _highTrigger;                    // High trigger attachment
     TerraTriggerAttachment _lowTrigger;                     // Low trigger attachment
@@ -163,7 +165,7 @@ public:
 
     virtual void setTemperatureUnits(Terra_UnitsType temperatureUnits) override;
 
-    virtual TerraSensorAttachment &getThermalVolumeSensorAttachment() override;
+    virtual TerraSensorAttachment &getMediumTemperatureSensorAttachment() override;
 
     virtual TerraTriggerAttachment &getFilledTriggerAttachment() override;
 
@@ -191,6 +193,56 @@ protected:
     virtual void handleEmpty(Terra_TriggerState emptyState) override;
 };
 
+// Infinite Water Pipe Reservoir
+// An infinite water pipe reservoir is like your standard water main - it's not technically
+// unlimited, but you can act like it is. Used for reservoirs that should behave as
+// alwaysFilled (e.g. water mains) or not (e.g. drainage pipes).
+class TerraInfiniteWaterReservoir : public TerraWaterReservoir {
+public:
+    TerraInfiniteWaterReservoir(tposi_t reservoirIndex,
+                                bool alwaysFilled = true);
+    TerraInfiniteWaterReservoir(const TerraInfiniteWaterReservoirData *dataIn);
+
+    virtual void update() override;
+
+    virtual float getLevel(bool poll = false) override;
+
+    virtual bool isFilled(bool poll = false) override;
+    virtual bool isHigh(bool poll = false) override;
+    virtual bool isLow(bool poll = false) override;
+    virtual bool isEmpty(bool poll = false) override;
+
+protected:
+    bool _alwaysFilled;                                     // Always filled flag
+
+    virtual void saveToData(TerraData *dataOut) override;
+};
+
+// Infinite Thermal Pipe Reservoir
+// An infinite thermal pipe reservoir models an effectively inexhaustible thermal source
+// or sink. It may be treated as alwaysFilled or alwaysEmpty without implying any numeric
+// percentage level or thermal-medium temperature.
+class TerraInfiniteThermalReservoir : public TerraThermalReservoir {
+public:
+    TerraInfiniteThermalReservoir(tposi_t reservoirIndex,
+                                  bool alwaysFilled = true);
+    TerraInfiniteThermalReservoir(const TerraInfiniteThermalReservoirData *dataIn);
+
+    virtual void update() override;
+
+    virtual float getLevel(bool poll = false) override;
+
+    virtual bool isFilled(bool poll = false) override;
+    virtual bool isHigh(bool poll = false) override;
+    virtual bool isLow(bool poll = false) override;
+    virtual bool isEmpty(bool poll = false) override;
+
+protected:
+    bool _alwaysFilled;                                     // Always filled flag
+
+    virtual void saveToData(TerraData *dataOut) override;
+};
+
 
 // Reservoir Serialization Data
 struct TerraReservoirData : public TerraObjectData {
@@ -209,6 +261,7 @@ struct TerraWaterReservoirData : public TerraReservoirData {
     Terra_UnitsType volumeUnits;                            // Volume units
     float maxVolume;                                        // Maximum volume
     char volumeSensor[TERRA_NAME_MAXSIZE];                  // Volume sensor
+    char waterTemperatureSensor[TERRA_NAME_MAXSIZE];        // Water temperature sensor attachment
 
     TerraWaterReservoirData();
     virtual void toJSONObject(JsonObject &objectOut) const override;

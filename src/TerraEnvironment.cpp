@@ -166,14 +166,14 @@ TerraEnvironmentData::TerraEnvironmentData()
 void TerraEnvironmentData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    if (airTemperatureSensor[0]) { objectOut["airTemperatureSensor"] = airTemperatureSensor; }
-    if (humiditySensor[0]) { objectOut["humiditySensor"] = humiditySensor; }
-    if (pressureSensor[0]) { objectOut["pressureSensor"] = pressureSensor; }
-    if (rainfallSensor[0]) { objectOut["rainfallSensor"] = rainfallSensor; }
-    if (rainRateSensor[0]) { objectOut["rainRateSensor"] = rainRateSensor; }
-    if (windSpeedSensor[0]) { objectOut["windSpeedSensor"] = windSpeedSensor; }
-    if (windDirectionSensor[0]) { objectOut["windDirectionSensor"] = windDirectionSensor; }
-    if (solarRadiationSensor[0]) { objectOut["solarRadiationSensor"] = solarRadiationSensor; }
+    if (airTemperatureSensor[0]) { objectOut[SFP(TStr_Key_AirTemperatureSensor)] = airTemperatureSensor; }
+    if (humiditySensor[0]) { objectOut[SFP(TStr_Key_HumiditySensor)] = humiditySensor; }
+    if (pressureSensor[0]) { objectOut[SFP(TStr_Key_PressureSensor)] = pressureSensor; }
+    if (rainfallSensor[0]) { objectOut[SFP(TStr_Key_RainfallSensor)] = rainfallSensor; }
+    if (rainRateSensor[0]) { objectOut[SFP(TStr_Key_RainRateSensor)] = rainRateSensor; }
+    if (windSpeedSensor[0]) { objectOut[SFP(TStr_Key_WindSpeedSensor)] = windSpeedSensor; }
+    if (windDirectionSensor[0]) { objectOut[SFP(TStr_Key_WindDirectionSensor)] = windDirectionSensor; }
+    if (solarRadiationSensor[0]) { objectOut[SFP(TStr_Key_SolarRadiationSensor)] = solarRadiationSensor; }
 }
 
 void TerraEnvironmentData::fromJSONObject(JsonObjectConst &objectIn)
@@ -186,12 +186,12 @@ void TerraEnvironmentData::fromJSONObject(JsonObjectConst &objectIn)
             destinationOut[TERRA_NAME_MAXSIZE - 1] = '\0';
         }
     };
-    copyString(airTemperatureSensor, objectIn["airTemperatureSensor"]);
-    copyString(humiditySensor, objectIn["humiditySensor"]);
-    copyString(pressureSensor, objectIn["pressureSensor"]);
-    copyString(rainfallSensor, objectIn["rainfallSensor"]);
-    copyString(rainRateSensor, objectIn["rainRateSensor"]);
-    copyString(windSpeedSensor, objectIn["windSpeedSensor"]);
-    copyString(windDirectionSensor, objectIn["windDirectionSensor"]);
-    copyString(solarRadiationSensor, objectIn["solarRadiationSensor"]);
+    copyString(airTemperatureSensor, objectIn[SFP(TStr_Key_AirTemperatureSensor)]);
+    copyString(humiditySensor, objectIn[SFP(TStr_Key_HumiditySensor)]);
+    copyString(pressureSensor, objectIn[SFP(TStr_Key_PressureSensor)]);
+    copyString(rainfallSensor, objectIn[SFP(TStr_Key_RainfallSensor)]);
+    copyString(rainRateSensor, objectIn[SFP(TStr_Key_RainRateSensor)]);
+    copyString(windSpeedSensor, objectIn[SFP(TStr_Key_WindSpeedSensor)]);
+    copyString(windDirectionSensor, objectIn[SFP(TStr_Key_WindDirectionSensor)]);
+    copyString(solarRadiationSensor, objectIn[SFP(TStr_Key_SolarRadiationSensor)]);
 }

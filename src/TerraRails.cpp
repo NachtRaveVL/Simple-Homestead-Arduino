@@ -8,7 +8,7 @@
 TerraRail *newRailObjectFromData(const TerraRailData *dataIn)
 {
     if (dataIn && !isValidType(dataIn->id.object.idType)) return nullptr;
-    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData(), SFP(HStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData(), SFP(TStr_Err_InvalidParameter));
 
     if (dataIn && dataIn->isObjectData()) {
         switch (dataIn->id.object.classType) {
@@ -59,7 +59,7 @@ bool TerraRail::addLinkage(TerraObject *object)
 {
     if (TerraObject::addLinkage(object)) {
         if (object->isActuatorType()) {
-            TERRA_HARD_ASSERT(isSimpleClass() || isRegulatedClass(), HStr_Err_OperationFailure);
+            TERRA_HARD_ASSERT(isSimpleClass() || isRegulatedClass(), SFP(TStr_Err_OperationFailure));
             if (isSimpleClass()) {
                 auto methodSlot = MethodSlot<TerraSimpleRail, TerraActuator *>((TerraSimpleRail *)this, &TerraSimpleRail::handleActivation);
                 ((TerraActuator *)object)->getActivationSignal().attach(methodSlot);
@@ -77,7 +77,7 @@ bool TerraRail::removeLinkage(TerraObject *object)
 {
     if (TerraObject::removeLinkage(object)) {
         if (((TerraObject *)object)->isActuatorType()) {
-            TERRA_HARD_ASSERT(isSimpleClass() || isRegulatedClass(), HStr_Err_OperationFailure);
+            TERRA_HARD_ASSERT(isSimpleClass() || isRegulatedClass(), SFP(TStr_Err_OperationFailure));
             if (isSimpleClass()) {
                 auto methodSlot = MethodSlot<TerraSimpleRail, TerraActuator *>((TerraSimpleRail *)this, &TerraSimpleRail::handleActivation);
                 ((TerraActuator *)object)->getActivationSignal().detach(methodSlot);
@@ -200,7 +200,7 @@ TerraRegulatedRail::TerraRegulatedRail(const TerraRegulatedRailData *dataIn)
 
     _limitTrigger.setHandleMethod(&TerraRail::handleLimit, this);
     _limitTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->limitTrigger)));
-    TERRA_SOFT_ASSERT(_limitTrigger, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(_limitTrigger, SFP(TStr_Err_AllocationFailure));
 }
 
 void TerraRegulatedRail::update()
@@ -317,14 +317,14 @@ void TerraRailData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
 
-    if (powerUnits != Terra_UnitsType_Undefined) { objectOut[SFP(HStr_Key_PowerUnits)] = unitsTypeToSymbol(powerUnits); }
+    if (powerUnits != Terra_UnitsType_Undefined) { objectOut[SFP(TStr_Key_PowerUnits)] = unitsTypeToSymbol(powerUnits); }
 }
 
 void TerraRailData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
 
-    powerUnits = unitsTypeFromSymbol(objectIn[SFP(HStr_Key_PowerUnits)]);
+    powerUnits = unitsTypeFromSymbol(objectIn[SFP(TStr_Key_PowerUnits)]);
 }
 
 TerraSimpleRailData::TerraSimpleRailData()
@@ -337,14 +337,14 @@ void TerraSimpleRailData::toJSONObject(JsonObject &objectOut) const
 {
     TerraRailData::toJSONObject(objectOut);
 
-    if (maxActiveAtOnce != 2) { objectOut[SFP(HStr_Key_MaxActiveAtOnce)] = maxActiveAtOnce; }
+    if (maxActiveAtOnce != 2) { objectOut[SFP(TStr_Key_MaxActiveAtOnce)] = maxActiveAtOnce; }
 }
 
 void TerraSimpleRailData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraRailData::fromJSONObject(objectIn);
 
-    maxActiveAtOnce = objectIn[SFP(HStr_Key_MaxActiveAtOnce)] | maxActiveAtOnce;
+    maxActiveAtOnce = objectIn[SFP(TStr_Key_MaxActiveAtOnce)] | maxActiveAtOnce;
 }
 
 TerraRegulatedRailData::TerraRegulatedRailData()
@@ -357,10 +357,10 @@ void TerraRegulatedRailData::toJSONObject(JsonObject &objectOut) const
 {
     TerraRailData::toJSONObject(objectOut);
 
-    objectOut[SFP(HStr_Key_MaxPower)] = maxPower;
-    if (powerUsageSensor[0]) { objectOut[SFP(HStr_Key_PowerUsageSensor)] = charsToString(powerUsageSensor, TERRA_NAME_MAXSIZE); }
+    objectOut[SFP(TStr_Key_MaxPower)] = maxPower;
+    if (powerUsageSensor[0]) { objectOut[SFP(TStr_Key_PowerUsageSensor)] = charsToString(powerUsageSensor, TERRA_NAME_MAXSIZE); }
     if (isValidType(limitTrigger.type)) {
-        JsonObject limitTriggerObj = objectOut.createNestedObject(SFP(HStr_Key_LimitTrigger));
+        JsonObject limitTriggerObj = objectOut.createNestedObject(SFP(TStr_Key_LimitTrigger));
         limitTrigger.toJSONObject(limitTriggerObj);
     }
 }
@@ -369,9 +369,9 @@ void TerraRegulatedRailData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraRailData::fromJSONObject(objectIn);
 
-    maxPower = objectIn[SFP(HStr_Key_MaxPower)] | maxPower;
-    const char *powerUsageSensorStr = objectIn[SFP(HStr_Key_PowerUsageSensor)];
+    maxPower = objectIn[SFP(TStr_Key_MaxPower)] | maxPower;
+    const char *powerUsageSensorStr = objectIn[SFP(TStr_Key_PowerUsageSensor)];
     if (powerUsageSensorStr && powerUsageSensorStr[0]) { strncpy(powerUsageSensor, powerUsageSensorStr, TERRA_NAME_MAXSIZE); }
-    JsonObjectConst limitTriggerObj = objectIn[SFP(HStr_Key_LimitTrigger)];
+    JsonObjectConst limitTriggerObj = objectIn[SFP(TStr_Key_LimitTrigger)];
     if (!limitTriggerObj.isNull()) { limitTrigger.fromJSONObject(limitTriggerObj); }
 }

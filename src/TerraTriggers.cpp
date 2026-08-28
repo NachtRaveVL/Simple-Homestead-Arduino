@@ -10,7 +10,7 @@
 TerraTrigger *newTriggerObjectFromSubData(const TerraTriggerSubData *dataIn)
 {
     if (!dataIn || !isValidType(dataIn->type)) return nullptr;
-    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), F("Invalid trigger data"));
+    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), SFP(TStr_Err_InvalidParameter));
 
     if (dataIn) {
         switch (dataIn->type) {
@@ -256,39 +256,39 @@ TerraTriggerSubData::TerraTriggerSubData()
 void TerraTriggerSubData::toJSONObject(JsonObject &objectOut) const
 {
     TerraSubData::toJSONObject(objectOut);
-    if (sensorName[0]) { objectOut["sensorName"] = sensorName; }
-    if (measurementRow) { objectOut["measurementRow"] = measurementRow; }
-    objectOut["detriggerTol"] = detriggerTol;
-    objectOut["detriggerDelay"] = detriggerDelay;
-    objectOut["measurementUnits"] = (int)measurementUnits;
+    if (sensorName[0]) { objectOut[SFP(TStr_Key_SensorName)] = sensorName; }
+    if (measurementRow) { objectOut[SFP(TStr_Key_MeasurementRow)] = measurementRow; }
+    objectOut[SFP(TStr_Key_DetriggerTol)] = detriggerTol;
+    objectOut[SFP(TStr_Key_DetriggerDelay)] = detriggerDelay;
+    objectOut[SFP(TStr_Key_MeasurementUnits)] = (int)measurementUnits;
     if (type == TerraTrigger::MeasureValue) {
-        objectOut["tolerance"] = dataAs.measureValue.tolerance;
-        objectOut["triggerBelow"] = dataAs.measureValue.triggerBelow;
+        objectOut[SFP(TStr_Key_Tolerance)] = dataAs.measureValue.tolerance;
+        objectOut[SFP(TStr_Key_TriggerBelow)] = dataAs.measureValue.triggerBelow;
     } else if (type == TerraTrigger::MeasureRange) {
-        objectOut["toleranceLow"] = dataAs.measureRange.toleranceLow;
-        objectOut["toleranceHigh"] = dataAs.measureRange.toleranceHigh;
-        objectOut["triggerOutside"] = dataAs.measureRange.triggerOutside;
+        objectOut[SFP(TStr_Key_ToleranceLow)] = dataAs.measureRange.toleranceLow;
+        objectOut[SFP(TStr_Key_ToleranceHigh)] = dataAs.measureRange.toleranceHigh;
+        objectOut[SFP(TStr_Key_TriggerOutside)] = dataAs.measureRange.triggerOutside;
     }
 }
 
 void TerraTriggerSubData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraSubData::fromJSONObject(objectIn);
-    const char *sensor = objectIn["sensorName"] | nullptr;
+    const char *sensor = objectIn[SFP(TStr_Key_SensorName)] | nullptr;
     if (sensor) {
         strncpy(sensorName, sensor, TERRA_NAME_MAXSIZE - 1);
         sensorName[TERRA_NAME_MAXSIZE - 1] = '\0';
     }
-    measurementRow = objectIn["measurementRow"] | measurementRow;
-    detriggerTol = objectIn["detriggerTol"] | detriggerTol;
-    detriggerDelay = objectIn["detriggerDelay"] | detriggerDelay;
-    measurementUnits = (Terra_UnitsType)(objectIn["measurementUnits"] | (int)measurementUnits);
+    measurementRow = objectIn[SFP(TStr_Key_MeasurementRow)] | measurementRow;
+    detriggerTol = objectIn[SFP(TStr_Key_DetriggerTol)] | detriggerTol;
+    detriggerDelay = objectIn[SFP(TStr_Key_DetriggerDelay)] | detriggerDelay;
+    measurementUnits = (Terra_UnitsType)(objectIn[SFP(TStr_Key_MeasurementUnits)] | (int)measurementUnits);
     if (type == TerraTrigger::MeasureValue) {
-        dataAs.measureValue.tolerance = objectIn["tolerance"] | dataAs.measureValue.tolerance;
-        dataAs.measureValue.triggerBelow = objectIn["triggerBelow"] | dataAs.measureValue.triggerBelow;
+        dataAs.measureValue.tolerance = objectIn[SFP(TStr_Key_Tolerance)] | dataAs.measureValue.tolerance;
+        dataAs.measureValue.triggerBelow = objectIn[SFP(TStr_Key_TriggerBelow)] | dataAs.measureValue.triggerBelow;
     } else if (type == TerraTrigger::MeasureRange) {
-        dataAs.measureRange.toleranceLow = objectIn["toleranceLow"] | dataAs.measureRange.toleranceLow;
-        dataAs.measureRange.toleranceHigh = objectIn["toleranceHigh"] | dataAs.measureRange.toleranceHigh;
-        dataAs.measureRange.triggerOutside = objectIn["triggerOutside"] | dataAs.measureRange.triggerOutside;
+        dataAs.measureRange.toleranceLow = objectIn[SFP(TStr_Key_ToleranceLow)] | dataAs.measureRange.toleranceLow;
+        dataAs.measureRange.toleranceHigh = objectIn[SFP(TStr_Key_ToleranceHigh)] | dataAs.measureRange.toleranceHigh;
+        dataAs.measureRange.triggerOutside = objectIn[SFP(TStr_Key_TriggerOutside)] | dataAs.measureRange.triggerOutside;
     }
 }

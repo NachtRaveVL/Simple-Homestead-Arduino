@@ -95,8 +95,8 @@ void Terraduino::allocateRTC()
             default: break;
         }
         _rtcBegan = false;
-        TERRA_SOFT_ASSERT(_rtc, "RTC allocation failed");
-        TERRA_HARD_ASSERT(_rtcSetup.i2c.address == 0, "RTClib only supports the default I2C RTC address");
+        TERRA_SOFT_ASSERT(_rtc, SFP(TStr_Err_AllocationFailure));
+        TERRA_HARD_ASSERT(_rtcSetup.i2c.address == 0, SFP(TStr_Err_RTCDefaultAddressOnly));
     }
 #endif
 }
@@ -130,20 +130,20 @@ void Terraduino::init(Terra_ControlMode controlMode, Terra_MeasurementMode measu
 #ifdef ARDUINO
     if ((_rtcSyncProvider = getRTC())) { setSyncProvider(rtcNow); }
 #endif
-    logger.info("system", "initialized");
+    logger.info(SFP(TStr_System), SFP(TStr_Initialized));
 }
 
 void Terraduino::launch()
 {
     if (!_initialized) { init(); }
     _running = true;
-    logger.info("system", "launched");
+    logger.info(SFP(TStr_System), SFP(TStr_Launched));
 }
 
 void Terraduino::suspend()
 {
     _running = false;
-    logger.info("system", "suspended");
+    logger.info(SFP(TStr_System), SFP(TStr_Suspended));
 }
 
 void Terraduino::update()
@@ -193,7 +193,7 @@ TerraRTCInterface *Terraduino::getRTC(bool begin)
         if (_rtcBegan) {
             bool rtcBattFailBefore = _rtcBattFail;
             _rtcBattFail = _rtc->lostPower();
-            if (_rtcBattFail && !rtcBattFailBefore) { logger.warning("rtc", "RTC battery failure"); }
+            if (_rtcBattFail && !rtcBattFailBefore) { logger.warning(SFP(TStr_RTCLog), SFP(TStr_Log_RTCBatteryFailure)); }
         } else {
             deallocateRTC();
         }

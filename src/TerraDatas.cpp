@@ -21,10 +21,10 @@ TerraData *_allocateDataFromBaseDecode(const TerraData &baseDecode)
         retVal = _allocateDataForObjType(baseDecode.id.object.idType, baseDecode.id.object.classType);
     }
 
-    TERRA_SOFT_ASSERT(retVal, F("Unknown data decode"));
+    TERRA_SOFT_ASSERT(retVal, SFP(TStr_Err_UnknownDataDecode));
     if (retVal) {
         retVal->id = baseDecode.id;
-        TERRA_SOFT_ASSERT(retVal->_version >= baseDecode._version, F("Data version mismatch"));
+        TERRA_SOFT_ASSERT(retVal->_version >= baseDecode._version, SFP(TStr_Err_DataVersionMismatch));
         retVal->_revision = baseDecode._revision;
         return retVal;
     }

@@ -324,7 +324,7 @@ void TerraPump::update(uint32_t now)
     if (!isEnabled()) { _startedAt = 0; }
     if (isEnabled() && _maxContinuousMs && _startedAt && (uint32_t)(now - _startedAt) >= _maxContinuousMs) {
         while (_handles.size()) { _handles.front()->unset(); }
-        setFault(TerraString("maximum continuous runtime exceeded"));
+        setFault(SFP(TStr_MaxContinuousRuntimeExceeded));
         setNeedsUpdate();
         TerraActuator::update(now);
     }
@@ -369,9 +369,9 @@ void TerraSumpPump::update(uint32_t now)
             _levelValid = false;
             _highWaterAlarm = false;
             off();
-            setFault(TerraString("sump level invalid"));
+            setFault(SFP(TStr_Err_SumpLevelInvalid));
         } else {
-            if (hasFault() && getFaultMessage() == TerraString("sump level invalid")) { clearFault(); }
+            if (hasFault() && getFaultMessage() == SFP(TStr_Err_SumpLevelInvalid)) { clearFault(); }
             _lastLevelPercent = constrain(level.value, 0.0f, 100.0f);
             _levelValid = true;
             _highWaterAlarm = _lastLevelPercent >= _alarmLevelPercent;
@@ -407,7 +407,7 @@ void TerraSumpPump::saveToData(TerraData *dataOut) const
 TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
 {
     TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Actuator,
-                      F("Invalid actuator data"));
+                      SFP(TStr_Err_InvalidParameter));
     if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Actuator) { return nullptr; }
 
     switch (dataIn->id.object.classType) {
@@ -449,31 +449,31 @@ TerraActuatorData::TerraActuatorData()
 void TerraActuatorData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut["enableMode"] = (int)enableMode;
+    objectOut[SFP(TStr_Key_EnableMode)] = (int)enableMode;
     if (outputPin.isSet()) {
-        JsonObject pinObj = objectOut.createNestedObject("outputPin");
+        JsonObject pinObj = objectOut.createNestedObject(SFP(TStr_Key_OutputPin));
         outputPin.toJSONObject(pinObj);
     }
-    if (maxContinuousMs) { objectOut["maxContinuousMs"] = maxContinuousMs; }
-    if (levelSensor[0]) { objectOut["levelSensor"] = levelSensor; }
-    objectOut["sumpStartPercent"] = sumpStartPercent;
-    objectOut["sumpStopPercent"] = sumpStopPercent;
-    objectOut["sumpAlarmPercent"] = sumpAlarmPercent;
+    if (maxContinuousMs) { objectOut[SFP(TStr_Key_MaxContinuousMs)] = maxContinuousMs; }
+    if (levelSensor[0]) { objectOut[SFP(TStr_Key_LevelSensor)] = levelSensor; }
+    objectOut[SFP(TStr_Key_SumpStartPercent)] = sumpStartPercent;
+    objectOut[SFP(TStr_Key_SumpStopPercent)] = sumpStopPercent;
+    objectOut[SFP(TStr_Key_SumpAlarmPercent)] = sumpAlarmPercent;
 }
 
 void TerraActuatorData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    enableMode = (Terra_EnableMode)(objectIn["enableMode"] | (int)enableMode);
-    JsonObjectConst pinObj = objectIn["outputPin"].as<JsonObjectConst>();
+    enableMode = (Terra_EnableMode)(objectIn[SFP(TStr_Key_EnableMode)] | (int)enableMode);
+    JsonObjectConst pinObj = objectIn[SFP(TStr_Key_OutputPin)].as<JsonObjectConst>();
     if (!pinObj.isNull()) { outputPin.fromJSONObject(pinObj); }
-    maxContinuousMs = objectIn["maxContinuousMs"] | maxContinuousMs;
-    const char *levelSensorIn = objectIn["levelSensor"] | nullptr;
+    maxContinuousMs = objectIn[SFP(TStr_Key_MaxContinuousMs)] | maxContinuousMs;
+    const char *levelSensorIn = objectIn[SFP(TStr_Key_LevelSensor)] | nullptr;
     if (levelSensorIn) {
         strncpy(levelSensor, levelSensorIn, TERRA_NAME_MAXSIZE - 1);
         levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
     }
-    sumpStartPercent = objectIn["sumpStartPercent"] | sumpStartPercent;
-    sumpStopPercent = objectIn["sumpStopPercent"] | sumpStopPercent;
-    sumpAlarmPercent = objectIn["sumpAlarmPercent"] | sumpAlarmPercent;
+    sumpStartPercent = objectIn[SFP(TStr_Key_SumpStartPercent)] | sumpStartPercent;
+    sumpStopPercent = objectIn[SFP(TStr_Key_SumpStopPercent)] | sumpStopPercent;
+    sumpAlarmPercent = objectIn[SFP(TStr_Key_SumpAlarmPercent)] | sumpAlarmPercent;
 }

@@ -107,7 +107,7 @@ public:
                                                    const TerraString &name = TerraString());
     SharedPtr<TerraThermalReservoir> addThermalReservoir(const TerraString &name = TerraString());
     SharedPtr<TerraThermalLoop> addThermalLoop(const TerraString &name = TerraString());
-    SharedPtr<TerraEnvironment> addEnvironment(const TerraString &name = TerraString("Environment"));
+    SharedPtr<TerraEnvironment> addEnvironment(const TerraString &name = SFP(TStr_Environment));
 
     // Convenience builders for common power rails (shared, nullptr return -> failure).
     SharedPtr<TerraSimpleRail> addSimplePowerRail(Terra_RailType railType,

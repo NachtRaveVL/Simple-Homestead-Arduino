@@ -62,7 +62,8 @@ tkey_t TerraIdentity::regenKey()
     }
 
     if (posIndex >= 0) {
-        keyString += " #";
+        keyString += ' ';
+        keyString += '#';
         keyString += terraPositionIndexToString(posIndex);
     }
     key = terraHashString(keyString.c_str());
@@ -72,7 +73,7 @@ tkey_t TerraIdentity::regenKey()
 TerraString TerraIdentity::getDisplayString() const
 {
     TerraString display = terraObjectTypeToString(type);
-    display += " ";
+    display += ' ';
     display += keyString;
     return display;
 }

@@ -8,7 +8,7 @@
 TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn)
 {
     TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Sensor,
-                      F("Invalid sensor data"));
+                      SFP(TStr_Err_InvalidParameter));
     if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Sensor) { return nullptr; }
 
     switch (dataIn->id.object.classType) {
@@ -222,21 +222,21 @@ TerraSensorData::TerraSensorData()
 void TerraSensorData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut["measurementUnits"] = (int)measurementUnits;
-    if (reportedType != Terra_SensorType_Undefined) { objectOut["reportedType"] = (int)reportedType; }
+    objectOut[SFP(TStr_Key_MeasurementUnits)] = (int)measurementUnits;
+    if (reportedType != Terra_SensorType_Undefined) { objectOut[SFP(TStr_Key_ReportedType)] = (int)reportedType; }
     if (inputPin.isSet()) {
-        JsonObject pinObj = objectOut.createNestedObject("inputPin");
+        JsonObject pinObj = objectOut.createNestedObject(SFP(TStr_Key_InputPin));
         inputPin.toJSONObject(pinObj);
     }
-    if (staleAfterMs) { objectOut["staleAfterMs"] = staleAfterMs; }
+    if (staleAfterMs) { objectOut[SFP(TStr_Key_StaleAfterMs)] = staleAfterMs; }
 }
 
 void TerraSensorData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    measurementUnits = (Terra_UnitsType)(objectIn["measurementUnits"] | (int)measurementUnits);
-    reportedType = (Terra_SensorType)(objectIn["reportedType"] | (int)reportedType);
-    JsonObjectConst pinObj = objectIn["inputPin"].as<JsonObjectConst>();
+    measurementUnits = (Terra_UnitsType)(objectIn[SFP(TStr_Key_MeasurementUnits)] | (int)measurementUnits);
+    reportedType = (Terra_SensorType)(objectIn[SFP(TStr_Key_ReportedType)] | (int)reportedType);
+    JsonObjectConst pinObj = objectIn[SFP(TStr_Key_InputPin)].as<JsonObjectConst>();
     if (!pinObj.isNull()) { inputPin.fromJSONObject(pinObj); }
-    staleAfterMs = objectIn["staleAfterMs"] | staleAfterMs;
+    staleAfterMs = objectIn[SFP(TStr_Key_StaleAfterMs)] | staleAfterMs;
 }

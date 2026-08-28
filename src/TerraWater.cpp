@@ -287,8 +287,8 @@ bool TerraWaterRoute::validateFlow(float measuredFlowLpm, bool commandedOn)
                                   (_maximumFlowLpm > 0.0f && measuredFlowLpm > _maximumFlowLpm);
     if (fault) {
         _routeState = Terra_RouteState_Fault;
-        setFault(commandedOn ? TerraString("route flow outside limits")
-                             : TerraString("unexpected flow while route idle"));
+        setFault(commandedOn ? SFP(TStr_RouteFlowOutsideLimits)
+                             : SFP(TStr_UnexpectedFlowWhileIdle));
     }
     return !fault;
 }
@@ -409,14 +409,14 @@ TerraWaterRouteData::TerraWaterRouteData()
 void TerraWaterRouteData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    if (source[0]) { objectOut["source"] = source; }
-    if (destination[0]) { objectOut["destination"] = destination; }
-    if (pump[0]) { objectOut["pump"] = pump; }
-    if (flowSensor[0]) { objectOut["flowSensor"] = flowSensor; }
-    objectOut["destinationStartPercent"] = destinationStartPercent;
-    objectOut["destinationStopPercent"] = destinationStopPercent;
-    objectOut["minimumFlowLpm"] = minimumFlowLpm;
-    objectOut["maximumFlowLpm"] = maximumFlowLpm;
+    if (source[0]) { objectOut[SFP(TStr_Key_Source)] = source; }
+    if (destination[0]) { objectOut[SFP(TStr_Key_Destination)] = destination; }
+    if (pump[0]) { objectOut[SFP(TStr_Key_Pump)] = pump; }
+    if (flowSensor[0]) { objectOut[SFP(TStr_Key_FlowSensor)] = flowSensor; }
+    objectOut[SFP(TStr_Key_DestinationStartPercent)] = destinationStartPercent;
+    objectOut[SFP(TStr_Key_DestinationStopPercent)] = destinationStopPercent;
+    objectOut[SFP(TStr_Key_MinimumFlowLpm)] = minimumFlowLpm;
+    objectOut[SFP(TStr_Key_MaximumFlowLpm)] = maximumFlowLpm;
 }
 
 void TerraWaterRouteData::fromJSONObject(JsonObjectConst &objectIn)
@@ -429,14 +429,14 @@ void TerraWaterRouteData::fromJSONObject(JsonObjectConst &objectIn)
             destinationOut[TERRA_NAME_MAXSIZE - 1] = '\0';
         }
     };
-    copyString(source, objectIn["source"]);
-    copyString(destination, objectIn["destination"]);
-    copyString(pump, objectIn["pump"]);
-    copyString(flowSensor, objectIn["flowSensor"]);
-    destinationStartPercent = objectIn["destinationStartPercent"] | destinationStartPercent;
-    destinationStopPercent = objectIn["destinationStopPercent"] | destinationStopPercent;
-    minimumFlowLpm = objectIn["minimumFlowLpm"] | minimumFlowLpm;
-    maximumFlowLpm = objectIn["maximumFlowLpm"] | maximumFlowLpm;
+    copyString(source, objectIn[SFP(TStr_Key_Source)]);
+    copyString(destination, objectIn[SFP(TStr_Key_Destination)]);
+    copyString(pump, objectIn[SFP(TStr_Key_Pump)]);
+    copyString(flowSensor, objectIn[SFP(TStr_Key_FlowSensor)]);
+    destinationStartPercent = objectIn[SFP(TStr_Key_DestinationStartPercent)] | destinationStartPercent;
+    destinationStopPercent = objectIn[SFP(TStr_Key_DestinationStopPercent)] | destinationStopPercent;
+    minimumFlowLpm = objectIn[SFP(TStr_Key_MinimumFlowLpm)] | minimumFlowLpm;
+    maximumFlowLpm = objectIn[SFP(TStr_Key_MaximumFlowLpm)] | maximumFlowLpm;
 }
 
 TerraRainCatchmentData::TerraRainCatchmentData()
@@ -452,15 +452,15 @@ TerraRainCatchmentData::TerraRainCatchmentData()
 void TerraRainCatchmentData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut["areaSquareMeters"] = areaSquareMeters;
-    objectOut["collectionEfficiency"] = collectionEfficiency;
+    objectOut[SFP(TStr_Key_AreaSquareMeters)] = areaSquareMeters;
+    objectOut[SFP(TStr_Key_CollectionEfficiency)] = collectionEfficiency;
 }
 
 void TerraRainCatchmentData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    areaSquareMeters = objectIn["areaSquareMeters"] | areaSquareMeters;
-    collectionEfficiency = objectIn["collectionEfficiency"] | collectionEfficiency;
+    areaSquareMeters = objectIn[SFP(TStr_Key_AreaSquareMeters)] | areaSquareMeters;
+    collectionEfficiency = objectIn[SFP(TStr_Key_CollectionEfficiency)] | collectionEfficiency;
 }
 
 

@@ -205,19 +205,19 @@ TerraMeasurementData::TerraMeasurementData()
 
 void TerraMeasurementData::toJSONObject(JsonObject &objectOut) const
 {
-    objectOut["measurementRow"] = measurementRow;
-    objectOut["value"] = value;
-    objectOut["units"] = terraUnitToString(units);
-    objectOut["timestamp"] = timestamp;
+    objectOut[SFP(TStr_Key_MeasurementRow)] = measurementRow;
+    objectOut[SFP(TStr_Key_Value)] = value;
+    objectOut[SFP(TStr_Key_Units)] = terraUnitToString(units);
+    objectOut[SFP(TStr_Key_Timestamp)] = timestamp;
 }
 
 void TerraMeasurementData::fromJSONObject(JsonObjectConst &objectIn)
 {
-    measurementRow = objectIn["measurementRow"] | measurementRow;
-    value = objectIn["value"] | value;
-    const char *unitsString = objectIn["units"] | nullptr;
+    measurementRow = objectIn[SFP(TStr_Key_MeasurementRow)] | measurementRow;
+    value = objectIn[SFP(TStr_Key_Value)] | value;
+    const char *unitsString = objectIn[SFP(TStr_Key_Units)] | nullptr;
     if (unitsString) { units = unitsTypeFromSymbol(TerraString(unitsString)); }
-    timestamp = objectIn["timestamp"] | timestamp;
+    timestamp = objectIn[SFP(TStr_Key_Timestamp)] | timestamp;
 }
 
 void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
@@ -228,6 +228,6 @@ void TerraMeasurementData::fromJSONVariant(JsonVariantConst &variantIn)
     } else if (variantIn.is<float>() || variantIn.is<int>()) {
         value = variantIn.as<float>();
     } else {
-        TERRA_SOFT_ASSERT(false, TerraString("Unsupported operation"));
+        TERRA_SOFT_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
     }
 }
