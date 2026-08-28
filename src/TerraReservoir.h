@@ -194,10 +194,10 @@ protected:
 
 // Reservoir Serialization Data
 struct TerraReservoirData : public TerraObjectData {
-    HydroTriggerSubData filledTrigger;                      // Filled trigger
-    HydroTriggerSubData highTrigger;                        // High trigger
-    HydroTriggerSubData lowTrigger;                         // Low trigger
-    HydroTriggerSubData emptyTrigger;                       // Empty trigger
+    TerraTriggerSubData filledTrigger;                      // Filled trigger
+    TerraTriggerSubData highTrigger;                        // High trigger
+    TerraTriggerSubData lowTrigger;                         // Low trigger
+    TerraTriggerSubData emptyTrigger;                       // Empty trigger
 
     TerraReservoirData();
     virtual void toJSONObject(JsonObject &objectOut) const override;
