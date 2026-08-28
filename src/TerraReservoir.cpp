@@ -4,87 +4,60 @@
 */
 
 #include "Terraduino.h"
-#include "TerraUtils.h"
-#include <string.h>
 
 TerraReservoir *newReservoirObjectFromData(const TerraReservoirData *dataIn)
 {
-    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Reservoir,
-                      F("Invalid reservoir data"));
-    if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Reservoir) { return nullptr; }
+    if (dataIn && !isValidType(dataIn->id.object.idType)) return nullptr;
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData(), F("Invalid reservoir data"));
 
-    switch (dataIn->id.object.classType) {
-        case (tid_t)TerraReservoir::Base:
-            return new TerraReservoir(dataIn);
-        case (tid_t)TerraReservoir::WaterStorage:
-            return new TerraWaterStorage((const TerraWaterStorageData *)dataIn);
-        case (tid_t)TerraReservoir::Cistern:
-            return new TerraCistern((const TerraCisternData *)dataIn);
-        case (tid_t)TerraReservoir::WaterSource:
-            return new TerraWaterSource((const TerraWaterSourceData *)dataIn);
-        case (tid_t)TerraReservoir::ThermalReservoir:
-            return new TerraThermalReservoir((const TerraThermalReservoirData *)dataIn);
-        default:
-            return nullptr;
+    if (dataIn && dataIn->isObjectData()) {
+        switch (dataIn->id.object.classType) {
+            case (tid_t)TerraReservoir::Water:
+                return new TerraWaterReservoir((const TerraWaterReservoirData *)dataIn);
+            case (tid_t)TerraReservoir::Thermal:
+                return new TerraThermalReservoir((const TerraThermalReservoirData *)dataIn);
+            case (tid_t)TerraReservoir::WaterPipe:
+                return new TerraInfiniteWaterReservoir((const TerraInfiniteWaterReservoirData *)dataIn);
+            case (tid_t)TerraReservoir::ThermalPipe:
+                return new TerraInfiniteThermalReservoir((const TerraInfiniteThermalReservoirData *)dataIn);
+            default: break;
+        }
     }
+
+    return nullptr;
 }
 
-TerraReservoir::TerraReservoir(Terra_ReservoirType type, tposi_t reservoirIndex, const TerraString &name, int classTypeIn)
-    : TerraObject(TerraIdentity(type, reservoirIndex), name), classType(static_cast<decltype(Base)>(classTypeIn)),
-      _state(Terra_ResourceState_Reserve), _level(0.0f), _reserveLevel(10.0f), _lowLevel(25.0f), _highLevel(90.0f)
+
+TerraReservoir::TerraReservoir(Terra_ReservoirType reservoirType, tposi_t reservoirIndex, int classTypeIn)
+    : TerraObject(TerraIdentity(reservoirType, reservoirIndex)), classType((typeof(classType))classTypeIn),
+      _filledState(Terra_TriggerState_Disabled), _highState(Terra_TriggerState_Disabled),
+      _lowState(Terra_TriggerState_Disabled), _emptyState(Terra_TriggerState_Disabled)
 { ; }
 
 TerraReservoir::TerraReservoir(const TerraReservoirData *dataIn)
-    : TerraObject(dataIn), classType(static_cast<decltype(Base)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
-      _state(Terra_ResourceState_Reserve),
-      _level(dataIn ? dataIn->level : 0.0f),
-      _reserveLevel(dataIn ? dataIn->reserveLevel : 10.0f),
-      _lowLevel(dataIn ? dataIn->lowLevel : 25.0f),
-      _highLevel(dataIn ? dataIn->highLevel : 90.0f)
+    : TerraObject(dataIn), classType((typeof(classType))(dataIn->id.object.classType)),
+      _filledState(Terra_TriggerState_Disabled), _highState(Terra_TriggerState_Disabled),
+      _lowState(Terra_TriggerState_Disabled), _emptyState(Terra_TriggerState_Disabled)
+{ ; }
+
+Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getFilledSignal()
 {
-    updateState();
+    return _filledSignal;
 }
 
-bool TerraReservoir::setThresholds(float reserveLevel, float lowLevel, float highLevel)
+Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getHighSignal()
 {
-    if (reserveLevel < 0.0f || reserveLevel > lowLevel || lowLevel >= highLevel || highLevel > 100.0f) return false;
-    _reserveLevel = reserveLevel;
-    _lowLevel = lowLevel;
-    _highLevel = highLevel;
-    updateState();
-    bumpRevisionIfNeeded();
-    return true;
+    return _highSignal;
 }
 
-void TerraReservoir::setLevel(float level)
+Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getLowSignal()
 {
-    float constrainedLevel = constrain(level, 0.0f, 100.0f);
-    if (!isFPEqual(_level, constrainedLevel)) {
-        _level = constrainedLevel;
-        updateState();
-        bumpRevisionIfNeeded();
-    }
+    return _lowSignal;
 }
 
-void TerraReservoir::setFault(const TerraString &message)
+Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getEmptySignal()
 {
-    TerraObject::setFault(message);
-    updateState();
-}
-
-void TerraReservoir::clearFault()
-{
-    TerraObject::clearFault();
-    updateState();
-}
-
-void TerraReservoir::updateState()
-{
-    if (_fault) { _state = Terra_ResourceState_Fault; }
-    else if (_level <= _reserveLevel) { _state = Terra_ResourceState_Reserve; }
-    else if (_level <= _lowLevel) { _state = Terra_ResourceState_Low; }
-    else if (_level >= _highLevel) { _state = Terra_ResourceState_High; }
-    else { _state = Terra_ResourceState_Normal; }
+    return _emptySignal;
 }
 
 TerraData *TerraReservoir::allocateData() const
@@ -92,155 +65,546 @@ TerraData *TerraReservoir::allocateData() const
     return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
-void TerraReservoir::saveToData(TerraData *dataOut) const
+void TerraReservoir::saveToData(TerraData *dataOut)
 {
     TerraObject::saveToData(dataOut);
-    dataOut->id.object.classType = (tid_t)classType;
-    auto data = static_cast<TerraReservoirData *>(dataOut);
-    data->level = _level;
-    data->reserveLevel = _reserveLevel;
-    data->lowLevel = _lowLevel;
-    data->highLevel = _highLevel;
+
+    dataOut->id.object.classType = (int8_t)classType;
+}
+
+void TerraReservoir::handleFilled(Terra_TriggerState filledState)
+{
+    if (filledState == Terra_TriggerState_Disabled || filledState == Terra_TriggerState_Undefined) { return; }
+
+    if (_filledState != filledState) {
+        _filledState = filledState;
+
+        if (triggerStateToBool(_filledState)) {
+            #ifdef TERRA_USE_MULTITASKING
+                scheduleSignalFireOnce<TerraReservoir *>(getSharedPtr(), _filledSignal, this);
+            #else
+                _filledSignal.fire(this);
+            #endif
+        }
+    }
+}
+
+void TerraReservoir::handleHigh(Terra_TriggerState highState)
+{
+    if (highState == Terra_TriggerState_Disabled || highState == Terra_TriggerState_Undefined) { return; }
+
+    if (_highState != highState) {
+        _highState = highState;
+
+        if (triggerStateToBool(_highState)) {
+            #ifdef TERRA_USE_MULTITASKING
+                scheduleSignalFireOnce<TerraReservoir *>(getSharedPtr(), _highSignal, this);
+            #else
+                _highSignal.fire(this);
+            #endif
+        }
+    }
+}
+
+void TerraReservoir::handleLow(Terra_TriggerState lowState)
+{
+    if (lowState == Terra_TriggerState_Disabled || lowState == Terra_TriggerState_Undefined) { return; }
+
+    if (_lowState != lowState) {
+        _lowState = lowState;
+
+        if (triggerStateToBool(_lowState)) {
+            #ifdef TERRA_USE_MULTITASKING
+                scheduleSignalFireOnce<TerraReservoir *>(getSharedPtr(), _lowSignal, this);
+            #else
+                _lowSignal.fire(this);
+            #endif
+        }
+    }
+}
+
+void TerraReservoir::handleEmpty(Terra_TriggerState emptyState)
+{
+    if (emptyState == Terra_TriggerState_Disabled || emptyState == Terra_TriggerState_Undefined) { return; }
+
+    if (_emptyState != emptyState) {
+        _emptyState = emptyState;
+
+        if (triggerStateToBool(_emptyState)) {
+            #ifdef TERRA_USE_MULTITASKING
+                scheduleSignalFireOnce<TerraReservoir *>(getSharedPtr(), _emptySignal, this);
+            #else
+                _emptySignal.fire(this);
+            #endif
+        }
+    }
+}
+
+
+TerraWaterReservoir::TerraWaterReservoir(tposi_t reservoirIndex, float maxVolume, int classTypeIn)
+    : TerraReservoir(Terra_ReservoirType_Water, reservoirIndex, classTypeIn),
+      TerraVolumeUnitsInterfaceStorage(defaultVolumeUnits()),
+      _maxVolume(maxVolume), _waterVolume(this),
+      _filledTrigger(this), _highTrigger(this), _lowTrigger(this), _emptyTrigger(this)
+{
+    _waterVolume.setMeasurementUnits(getVolumeUnits());
+
+    _filledTrigger.setHandleMethod(&TerraWaterReservoir::handleFilled, this);
+    _highTrigger.setHandleMethod(&TerraWaterReservoir::handleHigh, this);
+    _lowTrigger.setHandleMethod(&TerraWaterReservoir::handleLow, this);
+    _emptyTrigger.setHandleMethod(&TerraWaterReservoir::handleEmpty, this);
+}
+
+TerraWaterReservoir::TerraWaterReservoir(const TerraWaterReservoirData *dataIn)
+    : TerraReservoir(dataIn),
+      TerraVolumeUnitsInterfaceStorage(definedUnitsElse(dataIn->volumeUnits, defaultVolumeUnits())),
+      _maxVolume(dataIn->maxVolume), _waterVolume(this),
+      _filledTrigger(this), _highTrigger(this), _lowTrigger(this), _emptyTrigger(this)
+{
+    _waterVolume.setMeasurementUnits(getVolumeUnits());
+    _waterVolume.initObject(dataIn->volumeSensor);
+
+    _filledTrigger.setHandleMethod(&TerraWaterReservoir::handleFilled, this);
+    _filledTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->filledTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->filledTrigger.isSet() || _filledTrigger, F("Trigger allocation failure"));
+
+    _highTrigger.setHandleMethod(&TerraWaterReservoir::handleHigh, this);
+    _highTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->highTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->highTrigger.isSet() || _highTrigger, F("Trigger allocation failure"));
+
+    _lowTrigger.setHandleMethod(&TerraWaterReservoir::handleLow, this);
+    _lowTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->lowTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->lowTrigger.isSet() || _lowTrigger, F("Trigger allocation failure"));
+
+    _emptyTrigger.setHandleMethod(&TerraWaterReservoir::handleEmpty, this);
+    _emptyTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->emptyTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->emptyTrigger.isSet() || _emptyTrigger, F("Trigger allocation failure"));
+}
+
+void TerraWaterReservoir::update()
+{
+    TerraObject::update();
+
+    _waterVolume.updateIfNeeded(true);
+
+    _filledTrigger.updateIfNeeded(true);
+    _highTrigger.updateIfNeeded(true);
+    _lowTrigger.updateIfNeeded(true);
+    _emptyTrigger.updateIfNeeded(true);
+}
+
+SharedPtr<TerraObjInterface> TerraWaterReservoir::getSharedPtrFor(const TerraObjInterface *obj) const
+{
+    return obj->getKey() == _filledTrigger.getKey() ? _filledTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _highTrigger.getKey() ? _highTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _lowTrigger.getKey() ? _lowTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _emptyTrigger.getKey() ? _emptyTrigger.getSharedPtrFor(obj) :
+           TerraObject::getSharedPtrFor(obj);
+}
+
+float TerraWaterReservoir::getLevel(bool poll)
+{
+    if (_maxVolume <= FLT_EPSILON) { return 0.0f; }
+    return constrain((_waterVolume.getMeasurementValue(poll) / _maxVolume) * 100.0f, 0.0f, 100.0f);
+}
+
+Terra_ResourceState TerraWaterReservoir::getState(bool poll)
+{
+    if (hasFault()) { return Terra_ResourceState_Fault; }
+    if (isFilled(poll) || isHigh(poll)) { return Terra_ResourceState_High; }
+    if (isEmpty(poll)) { return Terra_ResourceState_Reserve; }
+    if (isLow(poll)) { return Terra_ResourceState_Low; }
+    return Terra_ResourceState_Normal;
+}
+
+bool TerraWaterReservoir::isFilled(bool poll)
+{
+    return _filledTrigger.isTriggered(poll);
+}
+
+bool TerraWaterReservoir::isHigh(bool poll)
+{
+    return _highTrigger.isTriggered(poll);
+}
+
+bool TerraWaterReservoir::isLow(bool poll)
+{
+    return _lowTrigger.isTriggered(poll);
+}
+
+bool TerraWaterReservoir::isEmpty(bool poll)
+{
+    return _emptyTrigger.isTriggered(poll);
+}
+
+void TerraWaterReservoir::setVolumeUnits(Terra_UnitsType volumeUnits)
+{
+    if (_volumeUnits != volumeUnits) {
+        _volumeUnits = volumeUnits;
+
+        _waterVolume.setMeasurementUnits(volumeUnits);
+        bumpRevisionIfNeeded();
+    }
+}
+
+TerraSensorAttachment &TerraWaterReservoir::getWaterVolumeSensorAttachment()
+{
+    return _waterVolume;
+}
+
+TerraTriggerAttachment &TerraWaterReservoir::getFilledTriggerAttachment()
+{
+    return _filledTrigger;
+}
+
+TerraTriggerAttachment &TerraWaterReservoir::getHighTriggerAttachment()
+{
+    return _highTrigger;
+}
+
+TerraTriggerAttachment &TerraWaterReservoir::getLowTriggerAttachment()
+{
+    return _lowTrigger;
+}
+
+TerraTriggerAttachment &TerraWaterReservoir::getEmptyTriggerAttachment()
+{
+    return _emptyTrigger;
+}
+
+void TerraWaterReservoir::saveToData(TerraData *dataOut)
+{
+    TerraReservoir::saveToData(dataOut);
+
+    ((TerraWaterReservoirData *)dataOut)->volumeUnits = _volumeUnits;
+    ((TerraWaterReservoirData *)dataOut)->maxVolume = _maxVolume;
+    if (_waterVolume.isSet()) {
+        strncpy(((TerraWaterReservoirData *)dataOut)->volumeSensor, _waterVolume.getKeyString().c_str(), TERRA_NAME_MAXSIZE);
+    }
+    if (_filledTrigger.isSet()) {
+        _filledTrigger->saveToData(&(((TerraWaterReservoirData *)dataOut)->filledTrigger));
+    }
+    if (_highTrigger.isSet()) {
+        _highTrigger->saveToData(&(((TerraWaterReservoirData *)dataOut)->highTrigger));
+    }
+    if (_lowTrigger.isSet()) {
+        _lowTrigger->saveToData(&(((TerraWaterReservoirData *)dataOut)->lowTrigger));
+    }
+    if (_emptyTrigger.isSet()) {
+        _emptyTrigger->saveToData(&(((TerraWaterReservoirData *)dataOut)->emptyTrigger));
+    }
+}
+
+void TerraWaterReservoir::handleFilled(Terra_TriggerState filledState)
+{
+    TerraReservoir::handleFilled(filledState);
+
+    if (triggerStateToBool(_filledState) && !_waterVolume.isSet()) {
+        _waterVolume.setMeasurement(_maxVolume, _volumeUnits);
+    }
+}
+
+void TerraWaterReservoir::handleHigh(Terra_TriggerState highState)
+{
+    TerraReservoir::handleHigh(highState);
+}
+
+void TerraWaterReservoir::handleLow(Terra_TriggerState lowState)
+{
+    TerraReservoir::handleLow(lowState);
+}
+
+void TerraWaterReservoir::handleEmpty(Terra_TriggerState emptyState)
+{
+    TerraReservoir::handleEmpty(emptyState);
+
+    if (triggerStateToBool(_emptyState) && !_waterVolume.isSet()) {
+        _waterVolume.setMeasurement(0.0f, _volumeUnits);
+    }
+}
+
+
+TerraThermalReservoir::TerraThermalReservoir(tposi_t reservoirIndex, float maxTemperature, int classTypeIn)
+    : TerraReservoir(Terra_ReservoirType_Thermal, reservoirIndex, classTypeIn),
+      TerraTemperatureUnitsInterfaceStorage(defaultTemperatureUnits()),
+      _maxTemperature(maxTemperature), _temperatureSensor(this),
+      _filledTrigger(this), _highTrigger(this), _lowTrigger(this), _emptyTrigger(this)
+{
+    _temperatureSensor.setMeasurementUnits(getTemperatureUnits());
+
+    _filledTrigger.setHandleMethod(&TerraThermalReservoir::handleFilled, this);
+    _highTrigger.setHandleMethod(&TerraThermalReservoir::handleHigh, this);
+    _lowTrigger.setHandleMethod(&TerraThermalReservoir::handleLow, this);
+    _emptyTrigger.setHandleMethod(&TerraThermalReservoir::handleEmpty, this);
+}
+
+TerraThermalReservoir::TerraThermalReservoir(const TerraThermalReservoirData *dataIn)
+    : TerraReservoir(dataIn),
+      TerraTemperatureUnitsInterfaceStorage(definedUnitsElse(dataIn->temperatureUnits, defaultTemperatureUnits())),
+      _maxTemperature(dataIn->maxTemperature), _temperatureSensor(this),
+      _filledTrigger(this), _highTrigger(this), _lowTrigger(this), _emptyTrigger(this)
+{
+    _temperatureSensor.setMeasurementUnits(getTemperatureUnits());
+    _temperatureSensor.initObject(dataIn->temperatureSensor);
+
+    _filledTrigger.setHandleMethod(&TerraThermalReservoir::handleFilled, this);
+    _filledTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->filledTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->filledTrigger.isSet() || _filledTrigger, F("Trigger allocation failure"));
+
+    _highTrigger.setHandleMethod(&TerraThermalReservoir::handleHigh, this);
+    _highTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->highTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->highTrigger.isSet() || _highTrigger, F("Trigger allocation failure"));
+
+    _lowTrigger.setHandleMethod(&TerraThermalReservoir::handleLow, this);
+    _lowTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->lowTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->lowTrigger.isSet() || _lowTrigger, F("Trigger allocation failure"));
+
+    _emptyTrigger.setHandleMethod(&TerraThermalReservoir::handleEmpty, this);
+    _emptyTrigger.setObject(newTriggerObjectFromSubData(&(dataIn->emptyTrigger)));
+    TERRA_SOFT_ASSERT(!dataIn->emptyTrigger.isSet() || _emptyTrigger, F("Trigger allocation failure"));
+}
+
+void TerraThermalReservoir::update()
+{
+    TerraObject::update();
+
+    _temperatureSensor.updateIfNeeded(true);
+
+    _filledTrigger.updateIfNeeded(true);
+    _highTrigger.updateIfNeeded(true);
+    _lowTrigger.updateIfNeeded(true);
+    _emptyTrigger.updateIfNeeded(true);
+}
+
+SharedPtr<TerraObjInterface> TerraThermalReservoir::getSharedPtrFor(const TerraObjInterface *obj) const
+{
+    return obj->getKey() == _filledTrigger.getKey() ? _filledTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _highTrigger.getKey() ? _highTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _lowTrigger.getKey() ? _lowTrigger.getSharedPtrFor(obj) :
+           obj->getKey() == _emptyTrigger.getKey() ? _emptyTrigger.getSharedPtrFor(obj) :
+           TerraObject::getSharedPtrFor(obj);
+}
+
+float TerraThermalReservoir::getLevel(bool poll)
+{
+    if (_maxTemperature <= FLT_EPSILON) { return 0.0f; }
+    return constrain((_temperatureSensor.getMeasurementValue(poll) / _maxTemperature) * 100.0f, 0.0f, 100.0f);
+}
+
+Terra_ResourceState TerraThermalReservoir::getState(bool poll)
+{
+    if (hasFault()) { return Terra_ResourceState_Fault; }
+    if (isFilled(poll) || isHigh(poll)) { return Terra_ResourceState_High; }
+    if (isEmpty(poll)) { return Terra_ResourceState_Reserve; }
+    if (isLow(poll)) { return Terra_ResourceState_Low; }
+    return Terra_ResourceState_Normal;
+}
+
+bool TerraThermalReservoir::isFilled(bool poll)
+{
+    return _filledTrigger.isTriggered(poll);
+}
+
+bool TerraThermalReservoir::isHigh(bool poll)
+{
+    return _highTrigger.isTriggered(poll);
+}
+
+bool TerraThermalReservoir::isLow(bool poll)
+{
+    return _lowTrigger.isTriggered(poll);
+}
+
+bool TerraThermalReservoir::isEmpty(bool poll)
+{
+    return _emptyTrigger.isTriggered(poll);
+}
+
+void TerraThermalReservoir::setTemperatureUnits(Terra_UnitsType temperatureUnits)
+{
+    if (_tempUnits != temperatureUnits) {
+        _tempUnits = temperatureUnits;
+
+        _temperatureSensor.setMeasurementUnits(temperatureUnits);
+        bumpRevisionIfNeeded();
+    }
+}
+
+TerraSensorAttachment &TerraThermalReservoir::getMediumTemperatureSensorAttachment()
+{
+    return _temperatureSensor;
+}
+
+TerraTriggerAttachment &TerraThermalReservoir::getFilledTriggerAttachment()
+{
+    return _filledTrigger;
+}
+
+TerraTriggerAttachment &TerraThermalReservoir::getHighTriggerAttachment()
+{
+    return _highTrigger;
+}
+
+TerraTriggerAttachment &TerraThermalReservoir::getLowTriggerAttachment()
+{
+    return _lowTrigger;
+}
+
+TerraTriggerAttachment &TerraThermalReservoir::getEmptyTriggerAttachment()
+{
+    return _emptyTrigger;
+}
+
+void TerraThermalReservoir::saveToData(TerraData *dataOut)
+{
+    TerraReservoir::saveToData(dataOut);
+
+    ((TerraThermalReservoirData *)dataOut)->temperatureUnits = _tempUnits;
+    ((TerraThermalReservoirData *)dataOut)->maxTemperature = _maxTemperature;
+    if (_temperatureSensor.isSet()) {
+        strncpy(((TerraThermalReservoirData *)dataOut)->temperatureSensor, _temperatureSensor.getKeyString().c_str(), TERRA_NAME_MAXSIZE);
+    }
+    if (_filledTrigger.isSet()) {
+        _filledTrigger->saveToData(&(((TerraThermalReservoirData *)dataOut)->filledTrigger));
+    }
+    if (_highTrigger.isSet()) {
+        _highTrigger->saveToData(&(((TerraThermalReservoirData *)dataOut)->highTrigger));
+    }
+    if (_lowTrigger.isSet()) {
+        _lowTrigger->saveToData(&(((TerraThermalReservoirData *)dataOut)->lowTrigger));
+    }
+    if (_emptyTrigger.isSet()) {
+        _emptyTrigger->saveToData(&(((TerraThermalReservoirData *)dataOut)->emptyTrigger));
+    }
+}
+
+void TerraThermalReservoir::handleFilled(Terra_TriggerState filledState)
+{
+    TerraReservoir::handleFilled(filledState);
+
+    if (triggerStateToBool(_filledState) && !_temperatureSensor.isSet()) {
+        _temperatureSensor.setMeasurement(_maxTemperature, _tempUnits);
+    }
+}
+
+void TerraThermalReservoir::handleHigh(Terra_TriggerState highState)
+{
+    TerraReservoir::handleHigh(highState);
+}
+
+void TerraThermalReservoir::handleLow(Terra_TriggerState lowState)
+{
+    TerraReservoir::handleLow(lowState);
+}
+
+void TerraThermalReservoir::handleEmpty(Terra_TriggerState emptyState)
+{
+    TerraReservoir::handleEmpty(emptyState);
+
+    if (triggerStateToBool(_emptyState) && !_temperatureSensor.isSet()) {
+        _temperatureSensor.setMeasurement(0.0f, _tempUnits);
+    }
 }
 
 
 TerraReservoirData::TerraReservoirData()
-    : TerraObjectData(), level(0.0f), reserveLevel(10.0f), lowLevel(25.0f), highLevel(90.0f)
+    : TerraObjectData()
 {
     _size = sizeof(*this);
     id.object.idType = (tid_t)Terra_ObjectType_Reservoir;
     id.object.objType = (tid_t)Terra_ReservoirType_Undefined;
     id.object.posIndex = TERRA_POS_SEARCH_FROMBEG;
-    id.object.classType = (tid_t)TerraReservoir::Base;
+    id.object.classType = (tid_t)TerraReservoir::Unknown;
 }
 
 void TerraReservoirData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut["level"] = level;
-    objectOut["reserveLevel"] = reserveLevel;
-    objectOut["lowLevel"] = lowLevel;
-    objectOut["highLevel"] = highLevel;
+
+    if (filledTrigger.isSet()) {
+        JsonObject filledTriggerObj = objectOut.createNestedObject("filledTrigger");
+        filledTrigger.toJSONObject(filledTriggerObj);
+    }
+    if (highTrigger.isSet()) {
+        JsonObject highTriggerObj = objectOut.createNestedObject("highTrigger");
+        highTrigger.toJSONObject(highTriggerObj);
+    }
+    if (lowTrigger.isSet()) {
+        JsonObject lowTriggerObj = objectOut.createNestedObject("lowTrigger");
+        lowTrigger.toJSONObject(lowTriggerObj);
+    }
+    if (emptyTrigger.isSet()) {
+        JsonObject emptyTriggerObj = objectOut.createNestedObject("emptyTrigger");
+        emptyTrigger.toJSONObject(emptyTriggerObj);
+    }
 }
 
 void TerraReservoirData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    level = objectIn["level"] | level;
-    reserveLevel = objectIn["reserveLevel"] | reserveLevel;
-    lowLevel = objectIn["lowLevel"] | lowLevel;
-    highLevel = objectIn["highLevel"] | highLevel;
+
+    JsonObjectConst filledTriggerObj = objectIn["filledTrigger"];
+    if (!filledTriggerObj.isNull()) { filledTrigger.fromJSONObject(filledTriggerObj); }
+    JsonObjectConst highTriggerObj = objectIn["highTrigger"];
+    if (!highTriggerObj.isNull()) { highTrigger.fromJSONObject(highTriggerObj); }
+    JsonObjectConst lowTriggerObj = objectIn["lowTrigger"];
+    if (!lowTriggerObj.isNull()) { lowTrigger.fromJSONObject(lowTriggerObj); }
+    JsonObjectConst emptyTriggerObj = objectIn["emptyTrigger"];
+    if (!emptyTriggerObj.isNull()) { emptyTrigger.fromJSONObject(emptyTriggerObj); }
 }
 
-TerraWaterStorageData::TerraWaterStorageData()
-    : TerraReservoirData(), capacityLiters(0.0f), levelSensor{0}
+
+TerraWaterReservoirData::TerraWaterReservoirData()
+    : TerraReservoirData(), volumeUnits(Terra_UnitsType_Undefined), maxVolume(0.0f), volumeSensor{0}
 {
     _size = sizeof(*this);
     id.object.objType = (tid_t)Terra_ReservoirType_Water;
-    id.object.classType = (tid_t)TerraReservoir::WaterStorage;
+    id.object.classType = (tid_t)TerraReservoir::Water;
 }
 
-void TerraWaterStorageData::toJSONObject(JsonObject &objectOut) const
+void TerraWaterReservoirData::toJSONObject(JsonObject &objectOut) const
 {
     TerraReservoirData::toJSONObject(objectOut);
-    objectOut["capacityLiters"] = capacityLiters;
-    if (levelSensor[0]) { objectOut["levelSensor"] = levelSensor; }
+
+    objectOut["volumeUnits"] = (int)volumeUnits;
+    objectOut["maxVolume"] = maxVolume;
+    if (volumeSensor[0]) { objectOut["volumeSensor"] = charsToString(volumeSensor, TERRA_NAME_MAXSIZE); }
 }
 
-void TerraWaterStorageData::fromJSONObject(JsonObjectConst &objectIn)
+void TerraWaterReservoirData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraReservoirData::fromJSONObject(objectIn);
-    capacityLiters = objectIn["capacityLiters"] | capacityLiters;
-    const char *levelSensorIn = objectIn["levelSensor"] | nullptr;
-    if (levelSensorIn) {
-        strncpy(levelSensor, levelSensorIn, TERRA_NAME_MAXSIZE - 1);
-        levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
-    }
+
+    volumeUnits = (Terra_UnitsType)(objectIn["volumeUnits"] | (int)volumeUnits);
+    maxVolume = objectIn["maxVolume"] | maxVolume;
+    const char *volumeSensorStr = objectIn["volumeSensor"];
+    if (volumeSensorStr && volumeSensorStr[0]) { strncpy(volumeSensor, volumeSensorStr, TERRA_NAME_MAXSIZE); }
 }
 
-TerraCisternData::TerraCisternData()
-    : TerraWaterStorageData(), fillStartPercent(35.0f), fillStopPercent(90.0f), overflowPercent(99.0f)
-{
-    _size = sizeof(*this);
-    id.object.classType = (tid_t)TerraReservoir::Cistern;
-}
-
-void TerraCisternData::toJSONObject(JsonObject &objectOut) const
-{
-    TerraWaterStorageData::toJSONObject(objectOut);
-    objectOut["fillStartPercent"] = fillStartPercent;
-    objectOut["fillStopPercent"] = fillStopPercent;
-    objectOut["overflowPercent"] = overflowPercent;
-}
-
-void TerraCisternData::fromJSONObject(JsonObjectConst &objectIn)
-{
-    TerraWaterStorageData::fromJSONObject(objectIn);
-    fillStartPercent = objectIn["fillStartPercent"] | fillStartPercent;
-    fillStopPercent = objectIn["fillStopPercent"] | fillStopPercent;
-    overflowPercent = objectIn["overflowPercent"] | overflowPercent;
-}
-
-
-TerraWaterSourceData::TerraWaterSourceData()
-    : TerraReservoirData(), priority(0), available(true), maximumFlowLpm(0.0f), levelSensor{0}
-{
-    _size = sizeof(*this);
-    id.object.objType = (tid_t)Terra_ReservoirType_Water;
-    id.object.classType = (tid_t)TerraReservoir::WaterSource;
-}
-
-void TerraWaterSourceData::toJSONObject(JsonObject &objectOut) const
-{
-    TerraReservoirData::toJSONObject(objectOut);
-    objectOut["priority"] = priority;
-    objectOut["available"] = available;
-    objectOut["maximumFlowLpm"] = maximumFlowLpm;
-    if (levelSensor[0]) { objectOut["levelSensor"] = levelSensor; }
-}
-
-void TerraWaterSourceData::fromJSONObject(JsonObjectConst &objectIn)
-{
-    TerraReservoirData::fromJSONObject(objectIn);
-    priority = objectIn["priority"] | priority;
-    available = objectIn["available"] | available;
-    maximumFlowLpm = objectIn["maximumFlowLpm"] | maximumFlowLpm;
-    const char *levelSensorIn = objectIn["levelSensor"] | nullptr;
-    if (levelSensorIn) {
-        strncpy(levelSensor, levelSensorIn, TERRA_NAME_MAXSIZE - 1);
-        levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
-    }
-}
 
 TerraThermalReservoirData::TerraThermalReservoirData()
-    : TerraReservoirData(), temperatureC(0.0f), minimumTargetC(0.0f), maximumTargetC(80.0f),
-      absoluteMaximumC(95.0f), temperatureSensor{0}
+    : TerraReservoirData(), temperatureUnits(Terra_UnitsType_Undefined), maxTemperature(0.0f), temperatureSensor{0}
 {
     _size = sizeof(*this);
     id.object.objType = (tid_t)Terra_ReservoirType_Thermal;
-    id.object.classType = (tid_t)TerraReservoir::ThermalReservoir;
+    id.object.classType = (tid_t)TerraReservoir::Thermal;
 }
 
 void TerraThermalReservoirData::toJSONObject(JsonObject &objectOut) const
 {
     TerraReservoirData::toJSONObject(objectOut);
-    objectOut["temperatureC"] = temperatureC;
-    objectOut["minimumTargetC"] = minimumTargetC;
-    objectOut["maximumTargetC"] = maximumTargetC;
-    objectOut["absoluteMaximumC"] = absoluteMaximumC;
-    if (temperatureSensor[0]) { objectOut["temperatureSensor"] = temperatureSensor; }
+
+    objectOut["temperatureUnits"] = (int)temperatureUnits;
+    objectOut["maxTemperature"] = maxTemperature;
+    if (temperatureSensor[0]) { objectOut["temperatureSensor"] = charsToString(temperatureSensor, TERRA_NAME_MAXSIZE); }
 }
 
 void TerraThermalReservoirData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraReservoirData::fromJSONObject(objectIn);
-    temperatureC = objectIn["temperatureC"] | temperatureC;
-    minimumTargetC = objectIn["minimumTargetC"] | minimumTargetC;
-    maximumTargetC = objectIn["maximumTargetC"] | maximumTargetC;
-    absoluteMaximumC = objectIn["absoluteMaximumC"] | absoluteMaximumC;
-    const char *temperatureSensorIn = objectIn["temperatureSensor"] | nullptr;
-    if (temperatureSensorIn) {
-        strncpy(temperatureSensor, temperatureSensorIn, TERRA_NAME_MAXSIZE - 1);
-        temperatureSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
-    }
+
+    temperatureUnits = (Terra_UnitsType)(objectIn["temperatureUnits"] | (int)temperatureUnits);
+    maxTemperature = objectIn["maxTemperature"] | maxTemperature;
+    const char *temperatureSensorStr = objectIn["temperatureSensor"];
+    if (temperatureSensorStr && temperatureSensorStr[0]) { strncpy(temperatureSensor, temperatureSensorStr, TERRA_NAME_MAXSIZE); }
 }

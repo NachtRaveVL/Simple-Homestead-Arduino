@@ -88,7 +88,7 @@ class TerraWaterReservoir : public TerraReservoir,
                                    TerraLowTriggerAttachmentInterface,
                                    TerraEmptyTriggerAttachmentInterface {
 public:
-    TerraWaterReservoir(hposi_t reservoirIndex,
+    TerraWaterReservoir(tposi_t reservoirIndex,
                         float maxVolume,
                         int classType = Water);
     TerraWaterReservoir(const TerraWaterReservoirData *dataIn);
@@ -145,7 +145,7 @@ class TerraThermalReservoir : public TerraReservoir,
                                      TerraLowTriggerAttachmentInterface,
                                      TerraEmptyTriggerAttachmentInterface {
 public:
-    TerraThermalReservoir(hposi_t reservoirIndex,
+    TerraThermalReservoir(tposi_t reservoirIndex,
                           float maxTemperature,
                           int classType = Thermal);
     TerraThermalReservoir(const TerraThermalReservoirData *dataIn);
@@ -222,6 +222,24 @@ struct TerraThermalReservoirData : public TerraReservoirData {
     char temperatureSensor[TERRA_NAME_MAXSIZE];             // Temperature sensor attachment
 
     TerraThermalReservoirData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
+};
+
+// Infinite Water Pipe Reservoir Serialization Data
+struct TerraInfiniteWaterReservoirData : public TerraWaterReservoirData {
+    bool alwaysFilled;                                      // Always filled flag
+
+    TerraInfiniteWaterReservoirData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
+};
+
+// Infinite Thermal Pipe Reservoir Serialization Data
+struct TerraInfiniteThermalReservoirData : public TerraThermalReservoirData {
+    bool alwaysFilled;                                      // Always filled flag
+
+    TerraInfiniteThermalReservoirData();
     virtual void toJSONObject(JsonObject &objectOut) const override;
     virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
