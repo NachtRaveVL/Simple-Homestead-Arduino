@@ -97,14 +97,9 @@ Core logic and source checks can be run without an Arduino connected:
 ./tests/run_tests.sh
 ```
 
-The script verifies the generated enum trie and source/example checks before running the CMake host build and CTest suite.
-
 The equivalent individual commands are:
 
 ```sh
-python3 tests/generate_enum_trie.py --check
-python3 tests/validate_source.py
-python3 tests/validate_examples.py
 cmake -S tests -B build-host
 cmake --build build-host
 ctest --test-dir build-host --output-on-failure

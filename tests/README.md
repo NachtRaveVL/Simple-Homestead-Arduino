@@ -40,7 +40,3 @@ Floating-point equality semantics use `isFPEqual`. Direct floating-point `==` an
 `JSONExportTests` exercises the Arduino-facing JSON and binary persistence APIs, including cistern, attachment, pin-driver, thermal, environment, and controller settings.
 
 These sketches still need an Arduino-compatible board/toolchain to execute as Arduino programs. The host build compile-checks their public API surface but does not pretend to execute the Arduino runtime.
-
-## Hardware validation
-
-Host tests cannot validate electrical behavior. Real hardware testing is still required for pin voltage levels, ADC calibration, sensors, relays, pumps, valves, flow meters, pressure systems, thermal equipment, and any network/radio transport used by an installation.

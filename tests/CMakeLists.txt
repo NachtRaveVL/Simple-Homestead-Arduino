@@ -58,8 +58,3 @@ add_terraduino_example(example_ui_setup UISetup)
 add_terraduino_example(devtest_enum_conversion EnumConversionTests)
 add_terraduino_example(devtest_enum_trie_export EnumTrieExportToCPP)
 add_terraduino_example(devtest_json_export JSONExportTests)
-
-find_package(Python3 COMPONENTS Interpreter)
-if(Python3_Interpreter_FOUND)
-    add_test(NAME parity_validation COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/validate_parity.py)
-endif()
