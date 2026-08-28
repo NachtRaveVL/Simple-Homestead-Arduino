@@ -60,10 +60,10 @@ protected:
     Terra_TriggerState _lowState;                           // Low state (last handled)
     Terra_TriggerState _emptyState;                         // Empty state (last handled)
 
-    Signal<TerraReservoir *, HYDRO_RESERVOIR_SIGNAL_SLOTS> _filledSignal; // Filled state signal
-    Signal<TerraReservoir *, HYDRO_RESERVOIR_SIGNAL_SLOTS> _highSignal; // High state signal
-    Signal<TerraReservoir *, HYDRO_RESERVOIR_SIGNAL_SLOTS> _lowSignal; // Low state signal
-    Signal<TerraReservoir *, HYDRO_RESERVOIR_SIGNAL_SLOTS> _emptySignal; // Empty state signal
+    Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> _filledSignal; // Filled state signal
+    Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> _highSignal; // High state signal
+    Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> _lowSignal; // Low state signal
+    Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> _emptySignal; // Empty state signal
 
     virtual TerraData *allocateData() const override;
     virtual void saveToData(TerraData *dataOut) override;
