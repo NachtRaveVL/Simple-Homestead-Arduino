@@ -9,12 +9,18 @@
 
 TerraTrigger *newTriggerObjectFromSubData(const TerraTriggerSubData *dataIn)
 {
-    if (!dataIn) { return nullptr; }
-    switch (dataIn->type) {
-        case TerraTrigger::MeasureValue: return new TerraMeasurementValueTrigger(dataIn);
-        case TerraTrigger::MeasureRange: return new TerraMeasurementRangeTrigger(dataIn);
-        default: return nullptr;
+    if (!dataIn || !isValidType(dataIn->type)) return nullptr;
+    TERRA_SOFT_ASSERT(dataIn && isValidType(dataIn->type), F("Invalid trigger data"));
+
+    if (dataIn) {
+        switch (dataIn->type) {
+            case TerraTrigger::MeasureValue: return new TerraMeasurementValueTrigger(dataIn);
+            case TerraTrigger::MeasureRange: return new TerraMeasurementRangeTrigger(dataIn);
+            default: break;
+        }
     }
+
+    return nullptr;
 }
 
 TerraTrigger::TerraTrigger(TerraIdentity sensorId, uint8_t measurementRow,
