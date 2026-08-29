@@ -55,7 +55,7 @@ float TerraEnvironment::getRainfall() const
 
 float TerraEnvironment::getRainfallRate() const
 {
-    return terraEnvironmentValue(_rainRate, Terra_UnitsType_RainRate_MillimetersPerHour);
+    return terraEnvironmentValue(_rainRate, Terra_UnitsType_Speed_MillimetersPerHour);
 }
 
 float TerraEnvironment::getBarometricPressure() const

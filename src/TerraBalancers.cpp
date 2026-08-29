@@ -25,19 +25,19 @@ void TerraWaterBalancer::setParent(TerraWaterRoute *route)
 void TerraWaterBalancer::update(uint32_t now)
 {
     if (!_route || !_route->isEnabled() || _route->hasFault()) {
-        _pump.off();
+        _pump.disableActivation();
         return;
     }
 
     SharedPtr<TerraWaterSource> source = _source.getObject<TerraWaterSource>();
     SharedPtr<TerraWaterStorage> destination = _destination.getObject<TerraWaterStorage>();
     if (!source || !destination || !_pump.isSet()) {
-        _pump.off();
+        _pump.disableActivation();
         return;
     }
 
     bool run = false;
-    bool pumpWasActive = _pump.isActive();
+    bool pumpWasActive = _pump.isActivated();
     const TerraCistern *cistern = destination->classType == TerraReservoir::Cistern
                                 ? static_cast<const TerraCistern *>(destination.get())
                                 : nullptr;
@@ -80,8 +80,8 @@ void TerraWaterBalancer::update(uint32_t now)
         }
     }
 
-    if (run) { _pump.setOutput(1.0f, (millis_t)-1, now); }
-    else { _pump.off(); }
+    if (run) { _pump.setupActivation((millis_t)-1); _pump.enableActivation(); }
+    else { _pump.disableActivation(); }
 }
 
 void TerraWaterBalancer::unresolveAny(TerraObject *object)
@@ -157,14 +157,14 @@ void TerraThermalBalancer::setParent(TerraThermalLoop *loop)
 void TerraThermalBalancer::update(uint32_t now)
 {
     if (!_loop || !_loop->isEnabled() || _loop->hasFault()) {
-        _circulator.off();
+        _circulator.disableActivation();
         if (_loop) { _loop->setRunning(false); }
         return;
     }
 
     SharedPtr<TerraThermalReservoir> store = _store.getObject<TerraThermalReservoir>();
     if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
-        _circulator.off();
+        _circulator.disableActivation();
         _loop->setRunning(false);
         return;
     }
@@ -174,15 +174,15 @@ void TerraThermalBalancer::update(uint32_t now)
         source.toUnits(Terra_UnitsType_Temperature_Celsius);
     }
     if (!source.isSet() || source.units != Terra_UnitsType_Temperature_Celsius) {
-        _circulator.off();
+        _circulator.disableActivation();
         _loop->setRunning(false);
         return;
     }
 
     bool run = _loop->shouldCirculate(source.value, store->getTemperature());
     _loop->setRunning(run);
-    if (run) { _circulator.setOutput(1.0f, (millis_t)-1, now); }
-    else { _circulator.off(); }
+    if (run) { _circulator.setupActivation((millis_t)-1); _circulator.enableActivation(); }
+    else { _circulator.disableActivation(); }
 }
 
 void TerraThermalBalancer::unresolveAny(TerraObject *object)

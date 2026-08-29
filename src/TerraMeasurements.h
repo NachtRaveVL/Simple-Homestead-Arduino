@@ -42,7 +42,7 @@ struct TerraBinaryMeasurement : public TerraMeasurement {
         : TerraMeasurement(Binary, timestampIn, frameIn), state(stateIn) { ; }
 
     TerraSingleMeasurement getAsSingleMeasurement(float trueScale = 1.0f,
-                                                   Terra_UnitsType unitsIn = Terra_UnitsType_Raw) const;
+                                                   Terra_UnitsType unitsIn = Terra_UnitsType_Raw_1) const;
 };
 
 // Single Value Measurement
@@ -56,8 +56,17 @@ struct TerraSingleMeasurement : public TerraMeasurement {
                            tframe_t frameIn = tframe_none)
         : TerraMeasurement(Single, timestampIn, frameIn), value(valueIn), units(unitsIn) { ; }
 
-    TerraSingleMeasurement &toUnits(Terra_UnitsType outUnits);
-    TerraSingleMeasurement asUnits(Terra_UnitsType outUnits) const;
+    // Modifiers (in utils)
+
+    inline TerraSingleMeasurement &toUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF);
+    inline TerraSingleMeasurement &wrapBy(float range);
+    inline TerraSingleMeasurement &wrapBySplit(float range);
+
+    // Copiers (in utils)
+
+    inline TerraSingleMeasurement asUnits(Terra_UnitsType outUnits, float convertParam = FLT_UNDEF) const;
+    inline TerraSingleMeasurement wrappedBy(float range) const;
+    inline TerraSingleMeasurement wrappedBySplit(float range) const;
 };
 
 // Double Value Measurement
@@ -88,15 +97,11 @@ struct TerraTripleMeasurement : public TerraMeasurement {
 
 extern float getMeasurementValue(const TerraMeasurement *measurement, uint8_t row = 0, float trueScale = 1.0f);
 extern Terra_UnitsType getMeasurementUnits(const TerraMeasurement *measurement, uint8_t row = 0,
-                                      Terra_UnitsType binaryUnits = Terra_UnitsType_Raw);
+                                      Terra_UnitsType binaryUnits = Terra_UnitsType_Raw_1);
 extern uint8_t getMeasurementRowCount(const TerraMeasurement *measurement);
 extern TerraSingleMeasurement getAsSingleMeasurement(const TerraMeasurement *measurement, uint8_t row = 0,
                                                       float trueScale = 1.0f,
-                                                      Terra_UnitsType binaryUnits = Terra_UnitsType_Raw);
-extern bool canConvertUnits(Terra_UnitsType fromUnits, Terra_UnitsType toUnits);
-extern float convertUnits(float value, Terra_UnitsType fromUnits, Terra_UnitsType toUnits);
-inline TerraSingleMeasurement terraConvertMeasurement(TerraSingleMeasurement measurement, Terra_UnitsType units)
-    { return measurement.asUnits(units); }
+                                                      Terra_UnitsType binaryUnits = Terra_UnitsType_Raw_1);
 
 // Measurement Serialization Data
 struct TerraMeasurementData : public TerraSubData {

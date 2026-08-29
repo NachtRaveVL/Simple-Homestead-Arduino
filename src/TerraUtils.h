@@ -273,34 +273,51 @@ inline bool convertUnits(TerraSingleMeasurement *measureInOut, Terra_UnitsType o
 // Convert param used in certain unit conversions. Returns conversion success flag.
 inline bool convertUnits(const TerraSingleMeasurement *measureIn, TerraSingleMeasurement *measureOut, Terra_UnitsType outUnits, float convertParam = FLT_UNDEF);
 
-// Returns the base units from a rate unit (e.g. L/min -> L). Also will convert dilution to volume.
+// For wrapping of values to positive-only moduli range [0, +range), e.g. [0,360).
+template<typename T> inline T wrapBy(T value, T range) { value = value % range; return value >= 0 ? value : value + range; }
+// For wrapping of values to positive-and-negative-split moduli range [-range/2,+range/2), e.g. [-180,180).
+template<typename T> inline T wrapBySplit(T value, T range) { return wrapBy<T>(value + (range / 2), range) - (range / 2); }
+// For wrapping of degree angle values to [0,360).
+template<typename T> inline T wrapBy360(T value) { return wrapBy<T>(value, 360); }
+// For wrapping of degree angle values to [-180,180).
+template<typename T> inline T wrapBy180Neg180(T value) { return wrapBySplit<T>(value, 360); }
+
+// Returns the base units from a rate unit (e.g. L/min -> L).
 extern Terra_UnitsType baseUnits(Terra_UnitsType units);
-// Returns the rate units from a base unit (e.g. mm -> mm/min).
+// Returns the rate units from a base unit (e.g. L -> L/min).
 extern Terra_UnitsType rateUnits(Terra_UnitsType units);
-// Returns the base units from a dilution unit (e.g. mL/L -> L).
-extern Terra_UnitsType volumeUnits(Terra_UnitsType units);
-// Returns the dilution units from a base unit (e.g. L -> mL/L).
-extern Terra_UnitsType dilutionUnits(Terra_UnitsType units);
 
 // Returns default units based on category and measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 extern Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined);
 
-// Returns default concentrate units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultConcentrateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Concentration, measureMode); }
 // Returns default distance units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultDistanceUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Distance, measureMode); }
 // Returns default liquid flow rate units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultFlowRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_LiqFlowRate, measureMode); }
-// Returns default liquid dilution units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultDilutionUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_LiqDilution, measureMode); }
-// Returns default power units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultPowerUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Power, measureMode); }
-// Returns default temperature units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultTemperatureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Temperature, measureMode); }
 // Returns default liquid volume units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultVolumeUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_LiqVolume, measureMode); }
-// Returns default weight units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultWeightUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Weight, measureMode); }
+// Returns default percentile units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultPercentileUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Percentile, measureMode); }
+// Returns default pressure units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultPressureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Pressure, measureMode); }
+// Returns default rainfall rate units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_RainRate, measureMode); }
+// Returns default power units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultPowerUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Power, measureMode); }
+// Returns default irradiance units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultIrradianceUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Irradiance, measureMode); }
+// Returns default energy units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultEnergyUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Energy, measureMode); }
+// Returns default speed units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultSpeedUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Speed, measureMode); }
+// Returns default angle units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultAngleUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Angle, measureMode); }
+// Returns default temperature units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultTemperatureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Temperature, measureMode); }
+// Returns default voltage units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultVoltageUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Voltage, measureMode); }
+// Returns default current units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
+inline Terra_UnitsType defaultCurrentUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Current, measureMode); }
 // Returns default decimal places rounded to based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline int defaultDecimalPlaces(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return (int)defaultUnits(Terra_UnitsCategory_Count, measureMode); }
 

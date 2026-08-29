@@ -46,7 +46,6 @@ public:
                   tposi_t actuatorIndex,
                   int classTypeIn = Unknown);
     TerraActuator(const TerraActuatorData *dataIn);
-    virtual ~TerraActuator();
 
     virtual void update(uint32_t now = millis()) override;
 
@@ -112,9 +111,6 @@ protected:
     const TerraCalibrationData *_calibrationData;           // Calibration data
     Signal<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS> _activateSignal; // Activation update signal
 
-    virtual void _enableActuator(float intensity = 1.0f) = 0;
-    virtual void _disableActuator() = 0;
-
     virtual TerraData *allocateData() const override;
     virtual void saveToData(TerraData *dataOut) const override;
 
@@ -144,9 +140,10 @@ public:
 protected:
     TerraDigitalPin _outputPin;                             // Digital output pin
 
+    virtual void saveToData(TerraData *dataOut) const override;
+
     virtual void _enableActuator(float intensity = 1.0f) override;
     virtual void _disableActuator() override;
-    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Relay Pump Actuator
@@ -221,9 +218,10 @@ protected:
     TerraAnalogPin _outputPin;                              // Analog/PWM output pin
     float _intensity;                                       // Current normalized output
 
+    virtual void saveToData(TerraData *dataOut) const override;
+
     virtual void _enableActuator(float intensity = 1.0f) override;
     virtual void _disableActuator() override;
-    virtual void saveToData(TerraData *dataOut) const override;
 };
 
 // Variable/Throttled Pump Actuator
@@ -233,7 +231,6 @@ protected:
 //class TerraVariablePumpActuator : public TerraVariableActuator, public TerraPumpObjectInterface, public TerraWaterFlowRateSensorAttachmentInterface {
 // TODO: Port alongside HydroVariablePumpActuator once Hydruino implements it.
 //};
-
 
 // Actuator Serialization Data
 struct TerraActuatorData : public TerraObjectData {

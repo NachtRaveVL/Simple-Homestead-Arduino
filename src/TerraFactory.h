@@ -75,12 +75,18 @@ public:
     SharedPtr<TerraRelayPumpActuator> addPumpRelay(uint8_t outputPin,
                                                     bool activeLow = false,
                                                     const TerraString &name = TerraString());
+    SharedPtr<TerraRelayPumpActuator> addSumpPumpRelay(uint8_t outputPin,
+                                                        bool activeLow = false,
+                                                        const TerraString &name = TerraString());
     SharedPtr<TerraRelayPumpActuator> addCirculatorRelay(uint8_t outputPin,
                                                           bool activeLow = false,
                                                           const TerraString &name = TerraString());
     SharedPtr<TerraRelayPumpActuator> addValveRelay(uint8_t outputPin,
                                                      bool activeLow = false,
                                                      const TerraString &name = TerraString());
+    SharedPtr<TerraRelayActuator> addFanRelay(uint8_t outputPin,
+                                              bool activeLow = false,
+                                              const TerraString &name = TerraString());
     SharedPtr<TerraRelayActuator> addHeaterRelay(uint8_t outputPin,
                                                  bool activeLow = false,
                                                  const TerraString &name = TerraString());

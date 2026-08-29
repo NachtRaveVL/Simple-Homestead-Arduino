@@ -1262,6 +1262,14 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "gal";
             return flashStr;
         }
+        case TStr_m: {
+            static const char flashStr[] PROGMEM = "m";
+            return flashStr;
+        }
+        case TStr_ft: {
+            static const char flashStr[] PROGMEM = "ft";
+            return flashStr;
+        }
         case TStr_LPerMin: {
             static const char flashStr[] PROGMEM = "L/min";
             return flashStr;
@@ -1486,63 +1494,6 @@ TerraString terraPinModeToString(Terra_PinMode value)
         case Terra_PinMode_Analog_Output: return SFP(TStr_AnalogOutput);
         case Terra_PinMode_Count: return SFP(TStr_CountLabel);
         case Terra_PinMode_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-TerraString terraUnitToString(Terra_UnitsType value)
-{
-    switch (value) {
-        case Terra_UnitsType_Undefined: return SFP(TStr_Undefined);
-        case Terra_UnitsType_Raw: return SFP(TStr_raw);
-        case Terra_UnitsType_Percent: return SFP(TStr_Percent);
-        case Terra_UnitsType_Celsius: return SFP(TStr_C);
-        case Terra_UnitsType_Fahrenheit: return SFP(TStr_F);
-        case Terra_UnitsType_Kelvin: return SFP(TStr_K);
-        case Terra_UnitsType_Liters: return SFP(TStr_L);
-        case Terra_UnitsType_GallonsUS: return SFP(TStr_gal);
-        case Terra_UnitsType_LitersPerMinute: return SFP(TStr_LPerMin);
-        case Terra_UnitsType_GallonsPerMinute: return SFP(TStr_galPerMin);
-        case Terra_UnitsType_Kilopascals: return SFP(TStr_kPa);
-        case Terra_UnitsType_PSI: return SFP(TStr_psi);
-        case Terra_UnitsType_Hectopascals: return SFP(TStr_hPa);
-        case Terra_UnitsType_Millimeters: return SFP(TStr_mm);
-        case Terra_UnitsType_Inches: return SFP(TStr_in);
-        case Terra_UnitsType_MillimetersPerHour: return SFP(TStr_mmPerH);
-        case Terra_UnitsType_InchesPerHour: return SFP(TStr_inPerH);
-        case Terra_UnitsType_Watts: return SFP(TStr_W);
-        case Terra_UnitsType_WattsPerSquareMeter: return SFP(TStr_WPerM2);
-        case Terra_UnitsType_KilowattHours: return SFP(TStr_kWh);
-        case Terra_UnitsType_MetersPerSecond: return SFP(TStr_mPerS);
-        case Terra_UnitsType_KilometersPerHour: return SFP(TStr_kmPerH);
-        case Terra_UnitsType_MilesPerHour: return SFP(TStr_mph);
-        case Terra_UnitsType_Degrees: return SFP(TStr_deg);
-        case Terra_UnitsType_Volts: return SFP(TStr_V);
-        case Terra_UnitsType_Amps: return SFP(TStr_A);
-    }
-    return SFP(TStr_Undefined);
-}
-
-TerraString terraUnitsCategoryToString(Terra_UnitsTypesCategory value)
-{
-    switch (value) {
-        case Terra_UnitsTypesCategory_Raw: return SFP(TStr_Raw);
-        case Terra_UnitsTypesCategory_Percentile: return SFP(TStr_Percentile);
-        case Terra_UnitsTypesCategory_Temperature: return SFP(TStr_Temperature);
-        case Terra_UnitsTypesCategory_LiquidVolume: return SFP(TStr_LiquidVolume);
-        case Terra_UnitsTypesCategory_LiquidFlowRate: return SFP(TStr_LiquidFlowRate);
-        case Terra_UnitsTypesCategory_Pressure: return SFP(TStr_Pressure);
-        case Terra_UnitsTypesCategory_Distance: return SFP(TStr_Distance);
-        case Terra_UnitsTypesCategory_RainRate: return SFP(TStr_RainRate);
-        case Terra_UnitsTypesCategory_Power: return SFP(TStr_Power);
-        case Terra_UnitsTypesCategory_Irradiance: return SFP(TStr_Irradiance);
-        case Terra_UnitsTypesCategory_Energy: return SFP(TStr_Energy);
-        case Terra_UnitsTypesCategory_Speed: return SFP(TStr_Speed);
-        case Terra_UnitsTypesCategory_Angle: return SFP(TStr_Angle);
-        case Terra_UnitsTypesCategory_Voltage: return SFP(TStr_Voltage);
-        case Terra_UnitsTypesCategory_Current: return SFP(TStr_Current);
-        case Terra_UnitsTypesCategory_Count: return SFP(TStr_CountLabel);
-        case Terra_UnitsTypesCategory_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
@@ -1897,134 +1848,6 @@ Terra_PinMode terraPinModeFromString(const TerraString &value)
             return Terra_PinMode_Analog_Output;
     }
     return Terra_PinMode_Undefined;
-}
-
-Terra_UnitsType unitsTypeFromSymbol(const TerraString &value)
-{
-    switch (terraTrieChar(value, 3)) {
-        case '\0':
-            switch (terraTrieChar(value, 0)) {
-                case '%':
-                    return Terra_UnitsType_Percent;
-                case 'a':
-                    return Terra_UnitsType_Amps;
-                case 'c':
-                    return Terra_UnitsType_Celsius;
-                case 'd':
-                    return Terra_UnitsType_Degrees;
-                case 'f':
-                    return Terra_UnitsType_Fahrenheit;
-                case 'g':
-                    return Terra_UnitsType_GallonsUS;
-                case 'h':
-                    return Terra_UnitsType_Hectopascals;
-                case 'i':
-                    return Terra_UnitsType_Inches;
-                case 'k':
-                    switch (terraTrieChar(value, 1)) {
-                        case '\0':
-                            return Terra_UnitsType_Kelvin;
-                        case 'p':
-                            return Terra_UnitsType_Kilopascals;
-                        case 'w':
-                            return Terra_UnitsType_KilowattHours;
-                    }
-                    return Terra_UnitsType_Undefined;
-                case 'l':
-                    return Terra_UnitsType_Liters;
-                case 'm':
-                    switch (terraTrieChar(value, 1)) {
-                        case '/':
-                            return Terra_UnitsType_MetersPerSecond;
-                        case 'm':
-                            return Terra_UnitsType_Millimeters;
-                        case 'p':
-                            return Terra_UnitsType_MilesPerHour;
-                    }
-                    return Terra_UnitsType_Undefined;
-                case 'p':
-                    return Terra_UnitsType_PSI;
-                case 'r':
-                    return Terra_UnitsType_Raw;
-                case 'v':
-                    return Terra_UnitsType_Volts;
-                case 'w':
-                    return Terra_UnitsType_Watts;
-            }
-            return Terra_UnitsType_Undefined;
-        case '/':
-            return Terra_UnitsType_GallonsPerMinute;
-        case '2':
-            return Terra_UnitsType_WattsPerSquareMeter;
-        case 'e':
-            return Terra_UnitsType_Undefined;
-        case 'h':
-            switch (terraTrieChar(value, 0)) {
-                case 'i':
-                    return Terra_UnitsType_InchesPerHour;
-                case 'k':
-                    return Terra_UnitsType_KilometersPerHour;
-                case 'm':
-                    return Terra_UnitsType_MillimetersPerHour;
-            }
-            return Terra_UnitsType_Undefined;
-        case 'i':
-            return Terra_UnitsType_LitersPerMinute;
-    }
-    return Terra_UnitsType_Undefined;
-}
-
-Terra_UnitsTypesCategory terraUnitsCategoryFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 6)) {
-        case '\0':
-            switch (terraTrieChar(value, 0)) {
-                case 'a':
-                    return Terra_UnitsTypesCategory_Angle;
-                case 'c':
-                    return Terra_UnitsTypesCategory_Count;
-                case 'e':
-                    return Terra_UnitsTypesCategory_Energy;
-                case 'p':
-                    return Terra_UnitsTypesCategory_Power;
-                case 'r':
-                    return Terra_UnitsTypesCategory_Raw;
-                case 's':
-                    return Terra_UnitsTypesCategory_Speed;
-            }
-            return Terra_UnitsTypesCategory_Undefined;
-        case 'a':
-            switch (terraTrieChar(value, 0)) {
-                case 'i':
-                    return Terra_UnitsTypesCategory_Irradiance;
-                case 't':
-                    return Terra_UnitsTypesCategory_Temperature;
-            }
-            return Terra_UnitsTypesCategory_Undefined;
-        case 'c':
-            return Terra_UnitsTypesCategory_Distance;
-        case 'e':
-            return Terra_UnitsTypesCategory_Voltage;
-        case 'f':
-            return Terra_UnitsTypesCategory_LiquidFlowRate;
-        case 'n':
-            return Terra_UnitsTypesCategory_Undefined;
-        case 'r':
-            return Terra_UnitsTypesCategory_Pressure;
-        case 't':
-            switch (terraTrieChar(value, 0)) {
-                case 'c':
-                    return Terra_UnitsTypesCategory_Current;
-                case 'p':
-                    return Terra_UnitsTypesCategory_Percentile;
-                case 'r':
-                    return Terra_UnitsTypesCategory_RainRate;
-            }
-            return Terra_UnitsTypesCategory_Undefined;
-        case 'v':
-            return Terra_UnitsTypesCategory_LiquidVolume;
-    }
-    return Terra_UnitsTypesCategory_Undefined;
 }
 
 Terra_RailType terraRailTypeFromString(const TerraString &value)

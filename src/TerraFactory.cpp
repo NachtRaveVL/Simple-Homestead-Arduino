@@ -127,6 +127,11 @@ SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(uint8_t outputPin, 
     return nullptr;
 }
 
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addSumpPumpRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+{
+    return addPumpRelay(outputPin, activeLow, name);
+}
+
 SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
@@ -150,6 +155,21 @@ SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(uint8_t outputPin,
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayPumpActuator>(new TerraRelayPumpActuator(
             Terra_ActuatorType_Valve, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
+        if (name.length()) { actuator->setName(name); }
+        if (getController()->registerObject(actuator)) { return actuator; }
+    }
+
+    return nullptr;
+}
+
+SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+{
+    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Fan));
+
+    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
+        auto actuator = SharedPtr<TerraRelayActuator>(new TerraRelayActuator(
+            Terra_ActuatorType_Fan, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
         if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }

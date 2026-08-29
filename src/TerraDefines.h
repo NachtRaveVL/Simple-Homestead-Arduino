@@ -547,51 +547,42 @@ enum Terra_TriggerState : signed char {
     Terra_TriggerState_Undefined = -1                       // Placeholder
 };
 
+// Balancing State
+// Common balancing states. Specifies balance or which direction of imbalance.
+enum Terra_BalancingState : signed char {
+    Terra_BalancingState_TooLow,                            // Too low / reading needs to go higher
+    Terra_BalancingState_Balanced,                          // Balanced state
+    Terra_BalancingState_TooHigh,                           // Too high / reading needs to go lower
+
+    Terra_BalancingState_Count,                             // Placeholder
+    Terra_BalancingState_Undefined = -1                     // Placeholder
+};
+
 // Resource State
 // Common reservoir/resource states.
 enum Terra_ResourceState : signed char {
     Terra_ResourceState_Normal,                             // Within normal operating band
     Terra_ResourceState_Low,                                // Below low threshold
-    Terra_ResourceState_Reserve,                            // At or below protected reserve
     Terra_ResourceState_High,                               // At or above high threshold
-    Terra_ResourceState_Fault,                              // Resource or measurement fault
 
     Terra_ResourceState_Count,                              // Placeholder
     Terra_ResourceState_Unknown = -1                        // Placeholder
 };
 
-// Water Route State
-// Common water-transfer route states.
-enum Terra_RouteState : signed char {
-    Terra_RouteState_Idle,                                  // Route idle
-    Terra_RouteState_Requested,                             // Route requested to start
-    Terra_RouteState_Active,                                // Route actively transferring
-    Terra_RouteState_Complete,                              // Destination target reached
-    Terra_RouteState_Fault,                                 // Route faulted
-
-    Terra_RouteState_Count,                                 // Placeholder
-    Terra_RouteState_Undefined = -1                         // Placeholder
-};
-
 // Units Category
 // Unit of measurement category. Specifies the kind of unit.
 enum Terra_UnitsCategory : signed char {
-    Terra_UnitsCategory_Raw,                                // Raw/dimensionless unit
-    Terra_UnitsCategory_Percentile,                         // Percentile based unit
-    Terra_UnitsCategory_Temperature,                        // Temperature based unit
+    Terra_UnitsCategory_Angle,                              // Angle/direction based unit
+    Terra_UnitsCategory_Distance,                           // Distance/rainfall depth based unit
+    Terra_UnitsCategory_Energy,                             // Energy based unit
+    Terra_UnitsCategory_Irradiance,                         // Solar irradiance based unit
     Terra_UnitsCategory_LiqVolume,                          // Liquid volume based unit
     Terra_UnitsCategory_LiqFlowRate,                        // Liquid flow rate based unit
-    Terra_UnitsCategory_Pressure,                           // Pressure based unit
-    Terra_UnitsCategory_Distance,                           // Distance/rainfall depth based unit
-    Terra_UnitsCategory_RainRate,                           // Rainfall rate based unit
     Terra_UnitsCategory_Power,                              // Power based unit
-    Terra_UnitsCategory_Irradiance,                         // Solar irradiance based unit
-    Terra_UnitsCategory_Energy,                             // Energy based unit
+    Terra_UnitsCategory_Pressure,                           // Pressure based unit
     Terra_UnitsCategory_Speed,                              // Linear speed based unit
-    Terra_UnitsCategory_Angle,                              // Angle/direction based unit
-    Terra_UnitsCategory_Voltage,                            // Voltage based unit
-    Terra_UnitsCategory_Current,                            // Electrical current based unit
-
+    Terra_UnitsCategory_Temperature,                        // Temperature based unit
+    
     Terra_UnitsCategory_Count,                              // Placeholder
     Terra_UnitsCategory_Undefined = -1                      // Placeholder
 };
@@ -601,30 +592,33 @@ enum Terra_UnitsCategory : signed char {
 enum Terra_UnitsType : signed char {
     Terra_UnitsType_Raw_1,                                  // Normalized raw value mode [0,1=aRef]
     Terra_UnitsType_Percentile_100,                         // Percentile mode [0,100]
+    Terra_UnitsType_Angle_Degrees_360,                      // Degrees angle mode [0,%360)
+    Terra_UnitsType_Angle_Radians_2pi,                      // Radians angle mode [0,%2pi)
+    Terra_UnitsType_Angle_Minutes_24hr,                     // Minutes angle mode [0,%24hr)
+    Terra_UnitsType_Distance_Millimeters,                   // Millimeters distance/rainfall depth mode
+    Terra_UnitsType_Distance_Inches,                        // Inches distance/rainfall depth mode
     Terra_UnitsType_Distance_Feet,                          // Feet distance mode
     Terra_UnitsType_Distance_Meters,                        // Meters distance mode
     Terra_UnitsType_LiqVolume_Gallons,                      // Gallons liquid volume mode
     Terra_UnitsType_LiqVolume_Liters,                       // Liters liquid volume mode
-    Terra_UnitsType_Power_Amperage,                         // Amperage current power mode
-    Terra_UnitsType_Power_Wattage,                          // Wattage power mode
+    Terra_UnitsType_LiqFlowRate_GallonsPerMin,              // Gallons per minute liquid flow rate mode
+    Terra_UnitsType_LiqFlowRate_LitersPerMin,               // Liters per minute liquid flow rate mode
     Terra_UnitsType_Irradiance_WattsPerSquareMeter,         // Watts per square meter irradiance mode
     Terra_UnitsType_Energy_KilowattHours,                   // Kilowatt-hours energy mode
-    Terra_UnitsType_Temperature_Celsius,                    // Celsius temperature mode
-    Terra_UnitsType_Temperature_Fahrenheit,                 // Fahrenheit temperature mode
-    Terra_UnitsType_Temperature_Kelvin,                     // Kelvin temperature mode
+    Terra_UnitsType_Power_Amperage,                         // Amperage current power mode
+    Terra_UnitsType_Power_Wattage,                          // Wattage power mode
+    Terra_UnitsType_Power_Volts,                            // Volts power mode
     Terra_UnitsType_Pressure_Kilopascals,                   // Kilopascals pressure mode
     Terra_UnitsType_Pressure_PSI,                           // Pounds per square inch pressure mode
     Terra_UnitsType_Pressure_Hectopascals,                  // Hectopascals pressure mode
-    Terra_UnitsType_Distance_Millimeters,                   // Millimeters distance/rainfall depth mode
-    Terra_UnitsType_Distance_Inches,                        // Inches distance/rainfall depth mode
-    Terra_UnitsType_RainRate_MillimetersPerHour,            // Millimeters per hour rainfall rate mode
-    Terra_UnitsType_RainRate_InchesPerHour,                 // Inches per hour rainfall rate mode
+    Terra_UnitsType_Speed_MillimetersPerHour,               // Millimeters per hour rainfall rate mode
+    Terra_UnitsType_Speed_InchesPerHour,                    // Inches per hour rainfall rate mode
     Terra_UnitsType_Speed_MetersPerSecond,                  // Meters per second speed mode
     Terra_UnitsType_Speed_KilometersPerHour,                // Kilometers per hour speed mode
     Terra_UnitsType_Speed_MilesPerHour,                     // Miles per hour speed mode
-    Terra_UnitsType_Angle_Degrees_360,                      // Degrees angle mode [0,%360)
-    Terra_UnitsType_Voltage_Volts,                          // Volts mode
-    Terra_UnitsType_Current_Amperage,                       // Amperage mode
+    Terra_UnitsType_Temperature_Celsius,                    // Celsius temperature mode
+    Terra_UnitsType_Temperature_Fahrenheit,                 // Fahrenheit temperature mode
+    Terra_UnitsType_Temperature_Kelvin,                     // Kelvin temperature mode
 
     Terra_UnitsType_Count,                                  // Placeholder
     Terra_UnitsType_Power_JoulesPerSecond = Terra_UnitsType_Power_Wattage, // Joules per second power mode alias

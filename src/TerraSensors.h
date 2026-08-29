@@ -156,7 +156,7 @@ public:
                         TerraAnalogPin inputPin = TerraAnalogPin(),
                         bool rate = false)
         : TerraAnalogSensor(Terra_SensorType_Rainfall, sensorIndex, inputPin,
-                            rate ? Terra_UnitsType_RainRate_MillimetersPerHour : Terra_UnitsType_Distance_Millimeters) { ; }
+                            rate ? Terra_UnitsType_Speed_MillimetersPerHour : Terra_UnitsType_Distance_Millimeters) { ; }
 };
 
 class TerraWindSpeedSensor : public TerraAnalogSensor {
@@ -184,7 +184,7 @@ class TerraVoltageSensor : public TerraAnalogSensor {
 public:
     TerraVoltageSensor(tposi_t sensorIndex,
                        TerraAnalogPin inputPin = TerraAnalogPin())
-        : TerraAnalogSensor(Terra_SensorType_Voltage, sensorIndex, inputPin, Terra_UnitsType_Voltage_Volts) { ; }
+        : TerraAnalogSensor(Terra_SensorType_Voltage, sensorIndex, inputPin, Terra_UnitsType_Power_Volts) { ; }
 };
 
 class TerraCurrentSensor : public TerraAnalogSensor {

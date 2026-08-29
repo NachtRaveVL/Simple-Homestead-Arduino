@@ -27,7 +27,7 @@ inline int terraDirectionForValue(float value, float epsilon = FLT_EPSILON)
 }
 
 // Applies a minimum stable time before accepting a changed binary sensor state.
-inline bool terraUpdateStableBinaryState(bool acceptedState, bool sampledState, uint32_t nowMillis,
+inline bool terraUpdateStableBinaryState(bool acceptedState, bool sampledState, uint32_t now,
                                          uint16_t stableTimeMillis, bool &pendingState,
                                          bool &hasPendingState, uint32_t &pendingStateStart)
 {
@@ -38,9 +38,9 @@ inline bool terraUpdateStableBinaryState(bool acceptedState, bool sampledState, 
         return sampledState;
     } else if (!hasPendingState || pendingState != sampledState) {
         pendingState = sampledState;
-        pendingStateStart = nowMillis;
+        pendingStateStart = now;
         hasPendingState = true;
-    } else if (terraHasElapsed(nowMillis, pendingStateStart, stableTimeMillis)) {
+    } else if (terraHasElapsed(now, pendingStateStart, stableTimeMillis)) {
         hasPendingState = false;
         return sampledState;
     }

@@ -318,6 +318,8 @@ enum Terra_String : uint16_t {
     TStr_F,                                 ///< "F"
     TStr_K,                                 ///< "K"
     TStr_L,                                 ///< "L"
+    TStr_m,                                 ///< "m"
+    TStr_ft,                                ///< "ft"
     TStr_gal,                               ///< "gal"
     TStr_LPerMin,                           ///< "L/min"
     TStr_galPerMin,                         ///< "gal/min"
@@ -368,8 +370,6 @@ TerraString terraActuatorTypeToString(Terra_ActuatorType value);
 TerraString terraMeasurementModeToString(Terra_MeasurementMode value);
 TerraString terraEnableModeToString(Terra_EnableMode value);
 TerraString terraPinModeToString(Terra_PinMode value);
-TerraString terraUnitToString(Terra_UnitsType value);
-TerraString terraUnitsCategoryToString(Terra_UnitsCategory value);
 TerraString terraRailTypeToString(Terra_RailType value);
 TerraString terraComparisonToString(Terra_Comparison value);
 TerraString terraTriggerStateToString(Terra_TriggerState value);
@@ -389,8 +389,6 @@ Terra_ActuatorType terraActuatorTypeFromString(const TerraString &value);
 Terra_MeasurementMode terraMeasurementModeFromString(const TerraString &value);
 Terra_EnableMode terraEnableModeFromString(const TerraString &value);
 Terra_PinMode terraPinModeFromString(const TerraString &value);
-Terra_UnitsType unitsTypeFromSymbol(const TerraString &value);
-Terra_UnitsCategory terraUnitsCategoryFromString(const TerraString &value);
 Terra_RailType terraRailTypeFromString(const TerraString &value);
 Terra_Comparison terraComparisonFromString(const TerraString &value);
 Terra_TriggerState terraTriggerStateFromString(const TerraString &value);

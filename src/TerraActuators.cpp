@@ -47,15 +47,6 @@ TerraActuator::TerraActuator(const TerraActuatorData *dataIn)
     _parentReservoir.initObject(dataIn->reservoirName);
 }
 
-TerraActuator::~TerraActuator()
-{
-    while (_handles.size()) {
-        TerraActivationHandle *handle = _handles.front();
-        if (handle) { handle->unset(); }
-        else { _handles.erase(_handles.begin()); }
-    }
-}
-
 void TerraActuator::update(uint32_t now)
 {
     TerraObject::update(now);
@@ -340,6 +331,12 @@ bool TerraRelayActuator::isEnabled(float tolerance) const
     return _enabled;
 }
 
+void TerraRelayActuator::saveToData(TerraData *dataOut) const
+{
+    TerraActuator::saveToData(dataOut);
+    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
+}
+
 void TerraRelayActuator::_enableActuator(float intensity)
 {
     bool wasEnabled = _enabled;
@@ -349,11 +346,10 @@ void TerraRelayActuator::_enableActuator(float intensity)
             _enabled = true;
             _outputPin.activate();
         } else {
-            _enabled = false;
             _outputPin.deactivate();
         }
 
-        if (wasEnabled != _enabled) { handleActivation(); }
+        if (!wasEnabled) { handleActivation(); }
     }
 }
 
@@ -368,13 +364,6 @@ void TerraRelayActuator::_disableActuator()
         if (wasEnabled) { handleActivation(); }
     }
 }
-
-void TerraRelayActuator::saveToData(TerraData *dataOut) const
-{
-    TerraActuator::saveToData(dataOut);
-    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
-}
-
 
 TerraRelayPumpActuator::TerraRelayPumpActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
                                                TerraDigitalPin outputPin, int classTypeIn)
@@ -442,11 +431,10 @@ bool TerraRelayPumpActuator::canPump(float volume, Terra_UnitsType volumeUnits)
 TerraActivationHandle TerraRelayPumpActuator::pump(float volume, Terra_UnitsType volumeUnits)
 {
     if (getSourceReservoir() && _contFlowRate.value > FLT_EPSILON) {
-        volumeUnits = definedUnitsElse(volumeUnits, getVolumeUnits());
-        if (volumeUnits != getVolumeUnits() && !convertUnits(&volume, &volumeUnits, getVolumeUnits())) {
-            return TerraActivationHandle();
-        }
-        return pump((millis_t)((volume / _contFlowRate.value) * secondsToMillis(SECS_PER_MIN)));
+        TerraSingleMeasurement requestedVolume(volume, definedUnitsElse(volumeUnits, getVolumeUnits()), 0, 1);
+        requestedVolume.toUnits(getVolumeUnits());
+        if (!requestedVolume.isSet()) { return TerraActivationHandle(); }
+        return pump((millis_t)((requestedVolume.value / _contFlowRate.value) * secondsToMillis(SECS_PER_MIN)));
     }
     return TerraActivationHandle();
 }
@@ -480,7 +468,7 @@ void TerraRelayPumpActuator::setFlowRateUnits(Terra_UnitsType flowRateUnits)
 {
     if (_flowRateUnits != flowRateUnits) {
         _flowRateUnits = flowRateUnits;
-        convertUnits(&_contFlowRate, getFlowRateUnits());
+        _contFlowRate.toUnits(getFlowRateUnits());
         _flowRate.setMeasurementUnits(getFlowRateUnits());
         bumpRevisionIfNeeded();
     }
@@ -500,7 +488,7 @@ void TerraRelayPumpActuator::setContinuousFlowRate(TerraSingleMeasurement contFl
 {
     _contFlowRate = contFlowRate;
     _contFlowRate.updateFrame(1);
-    convertUnits(&_contFlowRate, getFlowRateUnits());
+    _contFlowRate.toUnits(getFlowRateUnits());
     bumpRevisionIfNeeded();
 }
 
@@ -563,13 +551,40 @@ void TerraRelayPumpActuator::handleActivation()
 void TerraRelayPumpActuator::handlePumpTime(millis_t time)
 {
     auto flowRate = getFlowRateSensor(true) ? _flowRate.getMeasurement() : _contFlowRate;
+
     if (flowRate.isSet() && flowRate.value > FLT_EPSILON) {
         flowRate.toUnits(getFlowRateUnits());
         if (flowRate.isSet()) {
             auto timeDelta = (time - _pumpTimeAccum) / (float)secondsToMillis(SECS_PER_MIN);
-            _pumpVolumeAccum += flowRate.value * timeDelta;
+            auto volDelta = flowRate.value * timeDelta;
+            _pumpVolumeAccum += volDelta;
+
+            auto srcRes = getSourceReservoir();
+            auto destRes = getDestinationReservoir();
+            if (srcRes != destRes) {
+                if (srcRes && srcRes->isWaterClass()) {
+                    auto srcWaterRes = static_pointer_cast<TerraWaterReservoir>(srcRes);
+
+                    if (srcWaterRes && !srcWaterRes->getWaterVolumeSensorAttachment()) {
+                        auto volume = srcWaterRes->getWaterVolumeSensorAttachment().getMeasurement(true).asUnits(getVolumeUnits());
+                        volume.value -= volDelta;
+                        srcWaterRes->getWaterVolumeSensorAttachment().setMeasurement(volume);
+                    }
+                }
+
+                if (destRes && destRes->isWaterClass()) {
+                    auto destWaterRes = static_pointer_cast<TerraWaterReservoir>(destRes);
+
+                    if (destWaterRes && !destWaterRes->getWaterVolumeSensorAttachment()) {
+                        auto volume = destWaterRes->getWaterVolumeSensorAttachment().getMeasurement(true).asUnits(getVolumeUnits());
+                        volume.value += volDelta;
+                        destWaterRes->getWaterVolumeSensorAttachment().setMeasurement(volume);
+                    }
+                }
+            }
         }
     }
+
     _pumpTimeAccum = time;
 }
 
@@ -614,6 +629,12 @@ bool TerraVariableActuator::isEnabled(float tolerance) const
     return _enabled && _intensity >= tolerance - FLT_EPSILON;
 }
 
+void TerraVariableActuator::saveToData(TerraData *dataOut) const
+{
+    TerraActuator::saveToData(dataOut);
+    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
+}
+
 void TerraVariableActuator::_enableActuator(float intensity)
 {
     bool wasEnabled = _enabled;
@@ -632,20 +653,12 @@ void TerraVariableActuator::_disableActuator()
     bool wasEnabled = _enabled;
 
     if (_outputPin.isValid()) {
-        _intensity = 0.0f;
         _enabled = false;
         _outputPin.analogWrite(0.0f);
 
         if (wasEnabled) { handleActivation(); }
     }
 }
-
-void TerraVariableActuator::saveToData(TerraData *dataOut) const
-{
-    TerraActuator::saveToData(dataOut);
-    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
-}
-
 
 TerraActuatorData::TerraActuatorData()
     : TerraObjectData(), outputPin(), enableMode(Terra_EnableMode_Undefined),
