@@ -6,23 +6,49 @@
 #include "Terraduino.h"
 #include "TerraSensors.h"
 
+TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
+{
+    if (dataIn && !isValidType(dataIn->id.object.idType)) return nullptr;
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData(), SFP(TStr_Err_InvalidParameter));
+
+    if (dataIn && dataIn->isObjectData()) {
+        switch (dataIn->id.object.classType) {
+            case (tid_t)TerraActuator::Relay:
+                return new TerraRelayActuator((const TerraActuatorData *)dataIn);
+            case (tid_t)TerraActuator::RelayPump:
+                return new TerraRelayPumpActuator((const TerraPumpActuatorData *)dataIn);
+            case (tid_t)TerraActuator::Variable:
+                return new TerraVariableActuator((const TerraActuatorData *)dataIn);
+            case (tid_t)TerraActuator::VariablePump:
+                //return new TerraVariablePumpActuator((const TerraPumpActuatorData *)dataIn);
+            default: break;
+        }
+    }
+
+    return nullptr;
+}
+
+
 TerraActuator::TerraActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex, int classTypeIn)
-    : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(Relay)>(classTypeIn)),
-      _enabled(false), _needsUpdate(false), _enableMode(Terra_EnableMode_Highest),
-      _handles(), _directActivation()
+    : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(classType)>(classTypeIn)),
+      _enabled(false), _needsUpdate(false), _enableMode(Terra_EnableMode_Undefined),
+      _contPowerUsage(), _parentRail(this), _parentReservoir(this), _calibrationData(nullptr)
 { ; }
 
 TerraActuator::TerraActuator(const TerraActuatorData *dataIn)
-    : TerraObject((const TerraObjectData *)dataIn),
-      classType(static_cast<decltype(Relay)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
-      _enabled(false), _needsUpdate(false),
-      _enableMode(dataIn ? dataIn->enableMode : Terra_EnableMode_Highest),
-      _handles(), _directActivation()
-{ ; }
+    : TerraObject(dataIn), classType(static_cast<decltype(classType)>(dataIn->id.object.classType)),
+      _enabled(false), _needsUpdate(false), _enableMode(dataIn->enableMode),
+      _contPowerUsage(dataIn->contPowerUsage.value, dataIn->contPowerUsage.units,
+                      dataIn->contPowerUsage.timestamp,
+                      dataIn->contPowerUsage.units != Terra_UnitsType_Undefined ? 1 : tframe_none),
+      _parentRail(this), _parentReservoir(this), _calibrationData(nullptr)
+{
+    _parentRail.initObject(dataIn->railName);
+    _parentReservoir.initObject(dataIn->reservoirName);
+}
 
 TerraActuator::~TerraActuator()
 {
-    _directActivation.unset();
     while (_handles.size()) {
         TerraActivationHandle *handle = _handles.front();
         if (handle) { handle->unset(); }
@@ -30,17 +56,14 @@ TerraActuator::~TerraActuator()
     }
 }
 
-void TerraActuator::setEnableMode(Terra_EnableMode mode)
-{
-    if (_enableMode != mode) {
-        _enableMode = mode;
-        setNeedsUpdate();
-        bumpRevisionIfNeeded();
-    }
-}
-
 void TerraActuator::update(uint32_t now)
 {
+    TerraObject::update(now);
+
+    _parentRail.resolve();
+    _parentReservoir.resolve();
+
+    // Update running handles and elapse them as needed, determine forced status, and remove invalid/finished handles
     bool forced = false;
     if (_handles.size()) {
         for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
@@ -57,13 +80,15 @@ void TerraActuator::update(uint32_t now)
         }
     }
 
+    // Enablement checking
     bool canEnable = _handles.size() && (forced || getCanEnable());
 
-    if (!canEnable && (_enabled || _needsUpdate)) {
+    if (!canEnable && (_enabled || _needsUpdate)) { // If enabled and shouldn't be (unless force enabled)
         _disableActuator();
-    } else if (canEnable && (!_enabled || _needsUpdate)) {
+    } else if (canEnable && (!_enabled || _needsUpdate)) { // If can enable and isn't (maybe force enabled)
         float drivingIntensity = 0.0f;
 
+        // Determine what driving intensity [-1,1] actuator should use
         switch (_enableMode) {
             case Terra_EnableMode_Highest:
             case Terra_EnableMode_DescOrder: {
@@ -129,6 +154,7 @@ void TerraActuator::update(uint32_t now)
                 break;
         }
 
+        // Enable/disable activation handles as needed (serial modes only select 1 at a time)
         switch (_enableMode) {
             case Terra_EnableMode_InOrder:
             case Terra_EnableMode_DescOrder: {
@@ -170,34 +196,60 @@ void TerraActuator::update(uint32_t now)
 
 bool TerraActuator::getCanEnable()
 {
+    if (!TerraObject::_enabled) { return false; }
+    if (getParentRail() && !getParentRail()->canActivate(this)) { return false; }
+    if (getParentReservoir() && !getParentReservoir()->canActivate(this)) { return false; }
     return true;
 }
 
-TerraActivationHandle TerraActuator::activate(Terra_DirectionMode direction, float intensity,
-                                              millis_t duration, bool force)
+void TerraActuator::setEnableMode(Terra_EnableMode mode)
 {
-    return TerraActivationHandle(static_pointer_cast<TerraActuator>(getSharedPtr()), direction, intensity, duration, force);
-}
-
-void TerraActuator::setOutput(float intensity, millis_t duration, uint32_t now)
-{
-    _directActivation.activation = TerraActivation(intensity > FLT_EPSILON ? Terra_DirectionMode_Forward :
-                                                   intensity < -FLT_EPSILON ? Terra_DirectionMode_Reverse : Terra_DirectionMode_Stop,
-                                                   fabsf(intensity), duration, Terra_ActivationFlags_None);
-    if (_directActivation.activation.isValid()) {
-        _directActivation = static_pointer_cast<TerraActuator>(getSharedPtr());
-    } else {
-        _directActivation.unset();
+    if (_enableMode != mode) {
+        _enableMode = mode;
+        setNeedsUpdate();
+        bumpRevisionIfNeeded();
     }
-    setNeedsUpdate();
-    update(now);
 }
 
-void TerraActuator::off()
+void TerraActuator::setContinuousPowerUsage(TerraSingleMeasurement contPowerUsage)
 {
-    _directActivation.unset();
-    setNeedsUpdate();
-    update();
+    _contPowerUsage = contPowerUsage;
+    _contPowerUsage.updateFrame(1);
+    bumpRevisionIfNeeded();
+}
+
+const TerraSingleMeasurement &TerraActuator::getContinuousPowerUsage()
+{
+    return _contPowerUsage;
+}
+
+TerraAttachment &TerraActuator::getParentRailAttachment()
+{
+    return _parentRail;
+}
+
+TerraAttachment &TerraActuator::getParentReservoirAttachment()
+{
+    return _parentReservoir;
+}
+
+void TerraActuator::setUserCalibrationData(const TerraCalibrationData *userCalibrationData)
+{
+    if (_calibrationData && _calibrationData != userCalibrationData) { bumpRevisionIfNeeded(); }
+    if (getController()) {
+        if (userCalibrationData && getController()->setUserCalibrationData(userCalibrationData)) {
+            _calibrationData = getController()->getUserCalibrationData(_id.key);
+        } else if (!userCalibrationData && _calibrationData && getController()->dropUserCalibrationData(_calibrationData)) {
+            _calibrationData = nullptr;
+        }
+    } else {
+        _calibrationData = userCalibrationData;
+    }
+}
+
+Signal<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS> &TerraActuator::getActivationSignal()
+{
+    return _activateSignal;
 }
 
 TerraData *TerraActuator::allocateData() const
@@ -208,14 +260,50 @@ TerraData *TerraActuator::allocateData() const
 void TerraActuator::saveToData(TerraData *dataOut) const
 {
     TerraObject::saveToData(dataOut);
-    dataOut->id.object.classType = (tid_t)classType;
-    static_cast<TerraActuatorData *>(dataOut)->enableMode = _enableMode;
+
+    dataOut->id.object.classType = (int8_t)classType;
+    auto actuatorData = (TerraActuatorData *)dataOut;
+    actuatorData->enableMode = _enableMode;
+    if (_contPowerUsage.isSet()) {
+        actuatorData->contPowerUsage.value = _contPowerUsage.value;
+        actuatorData->contPowerUsage.units = _contPowerUsage.units;
+        actuatorData->contPowerUsage.timestamp = _contPowerUsage.timestamp;
+    }
+    if (_parentReservoir.isSet()) {
+        strncpy(actuatorData->reservoirName, _parentReservoir.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        actuatorData->reservoirName[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+    if (_parentRail.isSet()) {
+        strncpy(actuatorData->railName, _parentRail.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        actuatorData->railName[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
 }
+
+void TerraActuator::handleActivation()
+{
+    if (_enabled) {
+        if (getLogger()) { getLogger()->logActivation(this); }
+    } else {
+        for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
+            if ((*handleIter)->checkTime) { (*handleIter)->checkTime = 0; }
+        }
+
+        if (getLogger()) { getLogger()->logDeactivation(this); }
+    }
+
+    #ifdef TERRA_USE_MULTITASKING
+        scheduleSignalFireOnce<TerraActuator *>(getSharedPtr(), _activateSignal, this);
+    #else
+        _activateSignal.fire(this);
+    #endif
+}
+
 
 TerraRelayActuator::TerraRelayActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
                                        TerraDigitalPin outputPin, int classTypeIn)
     : TerraActuator(actuatorType, actuatorIndex, classTypeIn), _outputPin(outputPin)
 {
+    TERRA_HARD_ASSERT(_outputPin.isValid(), SFP(TStr_Err_InvalidPinOrType));
     _outputPin.init();
     _outputPin.deactivate();
 }
@@ -223,14 +311,17 @@ TerraRelayActuator::TerraRelayActuator(Terra_ActuatorType actuatorType, tposi_t 
 TerraRelayActuator::TerraRelayActuator(const TerraActuatorData *dataIn)
     : TerraActuator(dataIn), _outputPin(&dataIn->outputPin)
 {
+    TERRA_HARD_ASSERT(_outputPin.isValid(), SFP(TStr_Err_InvalidPinOrType));
     _outputPin.init();
     _outputPin.deactivate();
 }
 
 TerraRelayActuator::~TerraRelayActuator()
 {
-    _enabled = false;
-    _outputPin.deactivate();
+    if (_enabled) {
+        _enabled = false;
+        _outputPin.deactivate();
+    }
 }
 
 bool TerraRelayActuator::getCanEnable()
@@ -238,33 +329,256 @@ bool TerraRelayActuator::getCanEnable()
     return _outputPin.isValid() && TerraActuator::getCanEnable();
 }
 
+float TerraRelayActuator::getDriveIntensity() const
+{
+    return _enabled ? 1.0f : 0.0f;
+}
+
+bool TerraRelayActuator::isEnabled(float tolerance) const
+{
+    (void)tolerance;
+    return _enabled;
+}
+
 void TerraRelayActuator::_enableActuator(float intensity)
 {
-    if (!_outputPin.isValid()) { return; }
-    if (intensity > FLT_EPSILON) {
-        _enabled = true;
-        _outputPin.activate();
-    } else {
-        _disableActuator();
+    bool wasEnabled = _enabled;
+
+    if (_outputPin.isValid()) {
+        if (intensity > FLT_EPSILON) {
+            _enabled = true;
+            _outputPin.activate();
+        } else {
+            _enabled = false;
+            _outputPin.deactivate();
+        }
+
+        if (wasEnabled != _enabled) { handleActivation(); }
     }
 }
 
 void TerraRelayActuator::_disableActuator()
 {
-    _enabled = false;
-    if (_outputPin.isValid()) { _outputPin.deactivate(); }
+    bool wasEnabled = _enabled;
+
+    if (_outputPin.isValid()) {
+        _enabled = false;
+        _outputPin.deactivate();
+
+        if (wasEnabled) { handleActivation(); }
+    }
 }
 
 void TerraRelayActuator::saveToData(TerraData *dataOut) const
 {
     TerraActuator::saveToData(dataOut);
-    _outputPin.saveToData(&static_cast<TerraActuatorData *>(dataOut)->outputPin);
+    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
 }
 
-TerraVariableActuator::TerraVariableActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
-                                             TerraAnalogPin outputPin)
-    : TerraActuator(actuatorType, actuatorIndex, Variable), _outputPin(outputPin), _intensity(0.0f)
+
+TerraRelayPumpActuator::TerraRelayPumpActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
+                                               TerraDigitalPin outputPin, int classTypeIn)
+    : TerraRelayActuator(actuatorType, actuatorIndex, outputPin, classTypeIn),
+      TerraFlowRateUnitsInterfaceStorage(defaultFlowRateUnits()),
+      _contFlowRate(), _flowRate(this), _destReservoir(this),
+      _pumpVolumeAccum(0.0f), _pumpTimeStart(0), _pumpTimeAccum(0)
 {
+    _flowRate.setMeasurementUnits(getFlowRateUnits());
+}
+
+TerraRelayPumpActuator::TerraRelayPumpActuator(const TerraPumpActuatorData *dataIn)
+    : TerraRelayActuator(dataIn),
+      TerraFlowRateUnitsInterfaceStorage(definedUnitsElse(dataIn->flowRateUnits, defaultFlowRateUnits())),
+      _contFlowRate(dataIn->contFlowRate.value, dataIn->contFlowRate.units,
+                    dataIn->contFlowRate.timestamp,
+                    dataIn->contFlowRate.units != Terra_UnitsType_Undefined ? 1 : tframe_none),
+      _flowRate(this), _destReservoir(this),
+      _pumpVolumeAccum(0.0f), _pumpTimeStart(0), _pumpTimeAccum(0)
+{
+    _flowRate.setMeasurementUnits(getFlowRateUnits());
+    _destReservoir.initObject(dataIn->destReservoir);
+    _flowRate.initObject(dataIn->flowRateSensor);
+}
+
+void TerraRelayPumpActuator::update(uint32_t now)
+{
+    TerraActuator::update(now);
+
+    _destReservoir.resolve();
+    _flowRate.updateIfNeeded(true);
+
+    if (_pumpTimeStart && _pumpTimeAccum < now) {
+        handlePumpTime(now);
+    }
+}
+
+bool TerraRelayPumpActuator::getCanEnable()
+{
+    if (TerraRelayActuator::getCanEnable()) {
+        if (getDestinationReservoir() && !getDestinationReservoir()->canActivate(this)) { return false; }
+        return true;
+    }
+    return false;
+}
+
+bool TerraRelayPumpActuator::canPump(float volume, Terra_UnitsType volumeUnits)
+{
+    auto sourceReservoir = getSourceReservoir();
+    if (!sourceReservoir || _contFlowRate.value <= FLT_EPSILON || sourceReservoir->isEmpty(true)) { return false; }
+
+    if (sourceReservoir->isWaterPipeClass()) { return true; }
+    if (!sourceReservoir->isWaterClass()) { return false; }
+
+    auto waterReservoir = static_pointer_cast<TerraWaterReservoir>(sourceReservoir);
+    auto waterVolume = waterReservoir->getWaterVolumeSensorAttachment().getMeasurement(true);
+    if (!waterVolume.isSet()) { return false; }
+
+    volumeUnits = definedUnitsElse(volumeUnits, getVolumeUnits());
+    TerraSingleMeasurement requestedVolume(volume, volumeUnits, 0, 1);
+    requestedVolume.toUnits(waterVolume.units);
+    return requestedVolume.isSet() && requestedVolume.value <= waterVolume.value + FLT_EPSILON;
+}
+
+TerraActivationHandle TerraRelayPumpActuator::pump(float volume, Terra_UnitsType volumeUnits)
+{
+    if (getSourceReservoir() && _contFlowRate.value > FLT_EPSILON) {
+        volumeUnits = definedUnitsElse(volumeUnits, getVolumeUnits());
+        if (volumeUnits != getVolumeUnits() && !convertUnits(&volume, &volumeUnits, getVolumeUnits())) {
+            return TerraActivationHandle();
+        }
+        return pump((millis_t)((volume / _contFlowRate.value) * secondsToMillis(SECS_PER_MIN)));
+    }
+    return TerraActivationHandle();
+}
+
+bool TerraRelayPumpActuator::canPump(millis_t time)
+{
+    if (getSourceReservoir() && _contFlowRate.value > FLT_EPSILON) {
+        return canPump(_contFlowRate.value * (time / (float)secondsToMillis(SECS_PER_MIN)), getVolumeUnits());
+    }
+    return false;
+}
+
+TerraActivationHandle TerraRelayPumpActuator::pump(millis_t time)
+{
+    if (getSourceReservoir()) {
+        if (getLogger()) {
+            getLogger()->logStatus(this, SFP(TStr_Log_CalculatedPumping));
+            if (getSourceReservoir()) { getLogger()->logMessage(SFP(TStr_Log_Field_Source_Reservoir), getSourceReservoir()->getId().getDisplayString()); }
+            if (getDestinationReservoir()) { getLogger()->logMessage(SFP(TStr_Log_Field_Destination_Reservoir), getDestinationReservoir()->getId().getDisplayString()); }
+            if (_contFlowRate.value > FLT_EPSILON) {
+                getLogger()->logMessage(SFP(TStr_Log_Field_Vol_Calculated), measurementToString(_contFlowRate.value * (time / (float)secondsToMillis(SECS_PER_MIN)), baseUnits(getFlowRateUnits()), 1));
+            }
+            getLogger()->logMessage(SFP(TStr_Log_Field_Time_Calculated), roundToString(time / 1000.0f, 1), String('s'));
+        }
+        return enableActuator(time);
+    }
+    return TerraActivationHandle();
+}
+
+void TerraRelayPumpActuator::setFlowRateUnits(Terra_UnitsType flowRateUnits)
+{
+    if (_flowRateUnits != flowRateUnits) {
+        _flowRateUnits = flowRateUnits;
+        convertUnits(&_contFlowRate, getFlowRateUnits());
+        _flowRate.setMeasurementUnits(getFlowRateUnits());
+        bumpRevisionIfNeeded();
+    }
+}
+
+TerraAttachment &TerraRelayPumpActuator::getSourceReservoirAttachment()
+{
+    return _parentReservoir;
+}
+
+TerraAttachment &TerraRelayPumpActuator::getDestinationReservoirAttachment()
+{
+    return _destReservoir;
+}
+
+void TerraRelayPumpActuator::setContinuousFlowRate(TerraSingleMeasurement contFlowRate)
+{
+    _contFlowRate = contFlowRate;
+    _contFlowRate.updateFrame(1);
+    convertUnits(&_contFlowRate, getFlowRateUnits());
+    bumpRevisionIfNeeded();
+}
+
+const TerraSingleMeasurement &TerraRelayPumpActuator::getContinuousFlowRate()
+{
+    return _contFlowRate;
+}
+
+TerraSensorAttachment &TerraRelayPumpActuator::getFlowRateSensorAttachment()
+{
+    return _flowRate;
+}
+
+void TerraRelayPumpActuator::saveToData(TerraData *dataOut) const
+{
+    TerraRelayActuator::saveToData(dataOut);
+
+    auto pumpData = (TerraPumpActuatorData *)dataOut;
+    pumpData->flowRateUnits = _flowRateUnits;
+    if (_contFlowRate.isSet()) {
+        pumpData->contFlowRate.value = _contFlowRate.value;
+        pumpData->contFlowRate.units = _contFlowRate.units;
+        pumpData->contFlowRate.timestamp = _contFlowRate.timestamp;
+    }
+    if (_destReservoir.isSet()) {
+        strncpy(pumpData->destReservoir, _destReservoir.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        pumpData->destReservoir[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+    if (_flowRate.isSet()) {
+        strncpy(pumpData->flowRateSensor, _flowRate.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
+        pumpData->flowRateSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+    }
+}
+
+void TerraRelayPumpActuator::handleActivation()
+{
+    millis_t time = nzMillis();
+    TerraActuator::handleActivation();
+
+    if (_enabled) {
+        _pumpVolumeAccum = 0.0f;
+        _pumpTimeStart = _pumpTimeAccum = time;
+    } else if (_pumpTimeStart) {
+        if (_pumpTimeAccum < time) { handlePumpTime(time); }
+        _pumpTimeAccum = 0;
+
+        if (getLogger()) {
+            float duration = time - _pumpTimeStart;
+            getLogger()->logStatus(this, SFP(TStr_Log_MeasuredPumping));
+            if (getSourceReservoir()) { getLogger()->logMessage(SFP(TStr_Log_Field_Source_Reservoir), getSourceReservoir()->getId().getDisplayString()); }
+            if (getDestinationReservoir()) { getLogger()->logMessage(SFP(TStr_Log_Field_Destination_Reservoir), getDestinationReservoir()->getId().getDisplayString()); }
+            getLogger()->logMessage(SFP(TStr_Log_Field_Vol_Measured), measurementToString(_pumpVolumeAccum, baseUnits(getFlowRateUnits()), 1));
+            getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), roundToString(duration / 1000.0f, 1), String('s'));
+        }
+
+        _pumpTimeStart = 0;
+    }
+}
+
+void TerraRelayPumpActuator::handlePumpTime(millis_t time)
+{
+    auto flowRate = getFlowRateSensor(true) ? _flowRate.getMeasurement() : _contFlowRate;
+    if (flowRate.isSet() && flowRate.value > FLT_EPSILON) {
+        flowRate.toUnits(getFlowRateUnits());
+        if (flowRate.isSet()) {
+            auto timeDelta = (time - _pumpTimeAccum) / (float)secondsToMillis(SECS_PER_MIN);
+            _pumpVolumeAccum += flowRate.value * timeDelta;
+        }
+    }
+    _pumpTimeAccum = time;
+}
+
+
+TerraVariableActuator::TerraVariableActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex,
+                                             TerraAnalogPin outputPin, int classTypeIn)
+    : TerraActuator(actuatorType, actuatorIndex, classTypeIn), _outputPin(outputPin), _intensity(0.0f)
+{
+    TERRA_HARD_ASSERT(_outputPin.isValid(), SFP(TStr_Err_InvalidPinOrType));
     _outputPin.init();
     _outputPin.analogWrite(0.0f);
 }
@@ -272,13 +586,17 @@ TerraVariableActuator::TerraVariableActuator(Terra_ActuatorType actuatorType, tp
 TerraVariableActuator::TerraVariableActuator(const TerraActuatorData *dataIn)
     : TerraActuator(dataIn), _outputPin(&dataIn->outputPin), _intensity(0.0f)
 {
+    TERRA_HARD_ASSERT(_outputPin.isValid(), SFP(TStr_Err_InvalidPinOrType));
     _outputPin.init();
     _outputPin.analogWrite(0.0f);
 }
 
 TerraVariableActuator::~TerraVariableActuator()
 {
-    _disableActuator();
+    if (_enabled) {
+        _enabled = false;
+        _outputPin.analogWrite(0.0f);
+    }
 }
 
 bool TerraVariableActuator::getCanEnable()
@@ -286,162 +604,52 @@ bool TerraVariableActuator::getCanEnable()
     return _outputPin.isValid() && TerraActuator::getCanEnable();
 }
 
+float TerraVariableActuator::getDriveIntensity() const
+{
+    return _intensity;
+}
+
+bool TerraVariableActuator::isEnabled(float tolerance) const
+{
+    return _enabled && _intensity >= tolerance - FLT_EPSILON;
+}
+
 void TerraVariableActuator::_enableActuator(float intensity)
 {
-    if (!_outputPin.isValid()) { return; }
-    _intensity = constrain(intensity, 0.0f, 1.0f);
-    _enabled = _intensity > FLT_EPSILON;
-    _outputPin.analogWrite(_intensity);
+    bool wasEnabled = _enabled;
+    intensity = constrain(intensity, 0.0f, 1.0f);
+
+    if (_outputPin.isValid()) {
+        _enabled = true;
+        _outputPin.analogWrite((_intensity = intensity));
+
+        if (!wasEnabled) { handleActivation(); }
+    }
 }
 
 void TerraVariableActuator::_disableActuator()
 {
-    _intensity = 0.0f;
-    _enabled = false;
-    if (_outputPin.isValid()) { _outputPin.analogWrite(0.0f); }
+    bool wasEnabled = _enabled;
+
+    if (_outputPin.isValid()) {
+        _intensity = 0.0f;
+        _enabled = false;
+        _outputPin.analogWrite(0.0f);
+
+        if (wasEnabled) { handleActivation(); }
+    }
 }
 
 void TerraVariableActuator::saveToData(TerraData *dataOut) const
 {
     TerraActuator::saveToData(dataOut);
-    _outputPin.saveToData(&static_cast<TerraActuatorData *>(dataOut)->outputPin);
+    _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
 }
 
-TerraPump::TerraPump(tposi_t actuatorIndex, TerraDigitalPin outputPin,
-                     Terra_ActuatorType actuatorType, int classTypeIn)
-    : TerraRelayActuator(actuatorType, actuatorIndex, outputPin, classTypeIn),
-      _maxContinuousMs(0), _startedAt(0)
-{ ; }
-
-TerraPump::TerraPump(const TerraActuatorData *dataIn)
-    : TerraRelayActuator(dataIn), _maxContinuousMs(dataIn->maxContinuousMs), _startedAt(0)
-{ ; }
-
-void TerraPump::update(uint32_t now)
-{
-    TerraActuator::update(now);
-    if (isEnabled() && !_startedAt) { _startedAt = now; }
-    if (!isEnabled()) { _startedAt = 0; }
-    if (isEnabled() && _maxContinuousMs && _startedAt && (uint32_t)(now - _startedAt) >= _maxContinuousMs) {
-        while (_handles.size()) { _handles.front()->unset(); }
-        setFault(SFP(TStr_MaxContinuousRuntimeExceeded));
-        setNeedsUpdate();
-        TerraActuator::update(now);
-    }
-}
-
-void TerraPump::saveToData(TerraData *dataOut) const
-{
-    TerraRelayActuator::saveToData(dataOut);
-    static_cast<TerraActuatorData *>(dataOut)->maxContinuousMs = _maxContinuousMs;
-}
-
-TerraSumpPump::TerraSumpPump(tposi_t actuatorIndex, TerraDigitalPin outputPin)
-    : TerraPump(actuatorIndex, outputPin, Terra_ActuatorType_SumpPump), _levelSensor(this),
-      _startLevelPercent(TERRA_SUMP_START_LEVEL_PERCENT), _stopLevelPercent(TERRA_SUMP_STOP_LEVEL_PERCENT),
-      _alarmLevelPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT), _lastLevelPercent(0.0f),
-      _levelValid(false), _highWaterAlarm(false)
-{ ; }
-
-TerraSumpPump::TerraSumpPump(const TerraActuatorData *dataIn)
-    : TerraPump(dataIn), _levelSensor(this), _startLevelPercent(dataIn->sumpStartPercent),
-      _stopLevelPercent(dataIn->sumpStopPercent), _alarmLevelPercent(dataIn->sumpAlarmPercent),
-      _lastLevelPercent(0.0f), _levelValid(false), _highWaterAlarm(false)
-{
-    _levelSensor.initObject(dataIn->levelSensor);
-}
-
-bool TerraSumpPump::configureLevels(float startPercent, float stopPercent, float alarmPercent)
-{
-    if (stopPercent < 0.0f || stopPercent >= startPercent || startPercent >= alarmPercent || alarmPercent > 100.0f) { return false; }
-    _startLevelPercent = startPercent;
-    _stopLevelPercent = stopPercent;
-    _alarmLevelPercent = alarmPercent;
-    bumpRevisionIfNeeded();
-    return true;
-}
-
-void TerraSumpPump::update(uint32_t now)
-{
-    if (_levelSensor.isSet()) {
-        TerraSingleMeasurement level = _levelSensor.getMeasurement(now, true);
-        if (!level.isSet() || level.units != Terra_UnitsType_Percentile_100) {
-            _levelValid = false;
-            _highWaterAlarm = false;
-            off();
-            setFault(SFP(TStr_Err_SumpLevelInvalid));
-        } else {
-            if (hasFault() && getFaultMessage() == SFP(TStr_Err_SumpLevelInvalid)) { clearFault(); }
-            _lastLevelPercent = constrain(level.value, 0.0f, 100.0f);
-            _levelValid = true;
-            _highWaterAlarm = _lastLevelPercent >= _alarmLevelPercent;
-            if (isEnabled()) {
-                if (_lastLevelPercent <= _stopLevelPercent) { off(); }
-            } else if (_lastLevelPercent >= _startLevelPercent) {
-                setOutput(1.0f, (millis_t)-1, now);
-            }
-        }
-    }
-    TerraPump::update(now);
-}
-
-void TerraSumpPump::unresolveAny(TerraObject *object)
-{
-    _levelSensor.unresolveAny(object);
-    TerraPump::unresolveAny(object);
-}
-
-void TerraSumpPump::saveToData(TerraData *dataOut) const
-{
-    TerraPump::saveToData(dataOut);
-    auto actuatorData = static_cast<TerraActuatorData *>(dataOut);
-    if (_levelSensor.isSet()) {
-        strncpy(actuatorData->levelSensor, _levelSensor.getKeyString().c_str(), TERRA_NAME_MAXSIZE - 1);
-        actuatorData->levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
-    }
-    actuatorData->sumpStartPercent = _startLevelPercent;
-    actuatorData->sumpStopPercent = _stopLevelPercent;
-    actuatorData->sumpAlarmPercent = _alarmLevelPercent;
-}
-
-TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
-{
-    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Actuator,
-                      SFP(TStr_Err_InvalidParameter));
-    if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Actuator) { return nullptr; }
-
-    switch (dataIn->id.object.classType) {
-        case (tid_t)TerraActuator::Relay:
-            switch ((Terra_ActuatorType)dataIn->id.object.objType) {
-                case Terra_ActuatorType_Valve:
-                    return new TerraValve(dataIn);
-                case Terra_ActuatorType_Diverter:
-                    return new TerraDiverter(dataIn);
-                case Terra_ActuatorType_Heater:
-                    return new TerraHeater(dataIn);
-                default:
-                    return new TerraRelayActuator(dataIn);
-            }
-        case (tid_t)TerraActuator::RelayPump:
-            switch ((Terra_ActuatorType)dataIn->id.object.objType) {
-                case Terra_ActuatorType_SumpPump:
-                    return new TerraSumpPump(dataIn);
-                case Terra_ActuatorType_Circulator:
-                    return new TerraCirculator(dataIn);
-                default:
-                    return new TerraPump(dataIn);
-            }
-        case (tid_t)TerraActuator::Variable:
-            return new TerraVariableActuator(dataIn);
-        default:
-            return nullptr;
-    }
-}
 
 TerraActuatorData::TerraActuatorData()
-    : TerraObjectData(), enableMode(Terra_EnableMode_Highest), outputPin(), maxContinuousMs(0),
-      levelSensor{0}, sumpStartPercent(TERRA_SUMP_START_LEVEL_PERCENT),
-      sumpStopPercent(TERRA_SUMP_STOP_LEVEL_PERCENT), sumpAlarmPercent(TERRA_SUMP_ALARM_LEVEL_PERCENT)
+    : TerraObjectData(), outputPin(), enableMode(Terra_EnableMode_Undefined),
+      contPowerUsage(), railName{0}, reservoirName{0}
 {
     _size = sizeof(*this);
 }
@@ -449,31 +657,66 @@ TerraActuatorData::TerraActuatorData()
 void TerraActuatorData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut[SFP(TStr_Key_EnableMode)] = (int)enableMode;
+
     if (outputPin.isSet()) {
-        JsonObject pinObj = objectOut.createNestedObject(SFP(TStr_Key_OutputPin));
-        outputPin.toJSONObject(pinObj);
+        JsonObject outputPinObj = objectOut.createNestedObject(SFP(TStr_Key_OutputPin));
+        outputPin.toJSONObject(outputPinObj);
     }
-    if (maxContinuousMs) { objectOut[SFP(TStr_Key_MaxContinuousMs)] = maxContinuousMs; }
-    if (levelSensor[0]) { objectOut[SFP(TStr_Key_LevelSensor)] = levelSensor; }
-    objectOut[SFP(TStr_Key_SumpStartPercent)] = sumpStartPercent;
-    objectOut[SFP(TStr_Key_SumpStopPercent)] = sumpStopPercent;
-    objectOut[SFP(TStr_Key_SumpAlarmPercent)] = sumpAlarmPercent;
+    if (enableMode != Terra_EnableMode_Undefined) { objectOut[SFP(TStr_Key_EnableMode)] = terraEnableModeToString(enableMode); }
+    if (contPowerUsage.units != Terra_UnitsType_Undefined) {
+        JsonObject contPowerUsageObj = objectOut.createNestedObject(SFP(TStr_Key_ContinuousPowerUsage));
+        contPowerUsage.toJSONObject(contPowerUsageObj);
+    }
+    if (railName[0]) { objectOut[SFP(TStr_Key_RailName)] = charsToString(railName, TERRA_NAME_MAXSIZE); }
+    if (reservoirName[0]) { objectOut[SFP(TStr_Key_ReservoirName)] = charsToString(reservoirName, TERRA_NAME_MAXSIZE); }
 }
 
 void TerraActuatorData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    enableMode = (Terra_EnableMode)(objectIn[SFP(TStr_Key_EnableMode)] | (int)enableMode);
-    JsonObjectConst pinObj = objectIn[SFP(TStr_Key_OutputPin)].as<JsonObjectConst>();
-    if (!pinObj.isNull()) { outputPin.fromJSONObject(pinObj); }
-    maxContinuousMs = objectIn[SFP(TStr_Key_MaxContinuousMs)] | maxContinuousMs;
-    const char *levelSensorIn = objectIn[SFP(TStr_Key_LevelSensor)] | nullptr;
-    if (levelSensorIn) {
-        strncpy(levelSensor, levelSensorIn, TERRA_NAME_MAXSIZE - 1);
-        levelSensor[TERRA_NAME_MAXSIZE - 1] = '\0';
+
+    JsonObjectConst outputPinObj = objectIn[SFP(TStr_Key_OutputPin)];
+    if (!outputPinObj.isNull()) { outputPin.fromJSONObject(outputPinObj); }
+    const char *enableModeStr = objectIn[SFP(TStr_Key_EnableMode)] | nullptr;
+    if (enableModeStr) { enableMode = terraEnableModeFromString(TerraString(enableModeStr)); }
+    JsonVariantConst contPowerUsageVar = objectIn[SFP(TStr_Key_ContinuousPowerUsage)];
+    if (!contPowerUsageVar.isNull()) { contPowerUsage.fromJSONVariant(contPowerUsageVar); }
+    const char *railNameStr = objectIn[SFP(TStr_Key_RailName)] | nullptr;
+    if (railNameStr && railNameStr[0]) { strncpy(railName, railNameStr, TERRA_NAME_MAXSIZE - 1); railName[TERRA_NAME_MAXSIZE - 1] = '\0'; }
+    const char *reservoirNameStr = objectIn[SFP(TStr_Key_ReservoirName)] | nullptr;
+    if (reservoirNameStr && reservoirNameStr[0]) { strncpy(reservoirName, reservoirNameStr, TERRA_NAME_MAXSIZE - 1); reservoirName[TERRA_NAME_MAXSIZE - 1] = '\0'; }
+}
+
+TerraPumpActuatorData::TerraPumpActuatorData()
+    : TerraActuatorData(), flowRateUnits(Terra_UnitsType_Undefined),
+      contFlowRate(), destReservoir{0}, flowRateSensor{0}
+{
+    _size = sizeof(*this);
+}
+
+void TerraPumpActuatorData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraActuatorData::toJSONObject(objectOut);
+
+    if (flowRateUnits != Terra_UnitsType_Undefined) { objectOut[SFP(TStr_Key_FlowRateUnits)] = terraUnitToString(flowRateUnits); }
+    if (contFlowRate.units != Terra_UnitsType_Undefined) {
+        JsonObject contFlowRateObj = objectOut.createNestedObject(SFP(TStr_Key_ContinuousFlowRate));
+        contFlowRate.toJSONObject(contFlowRateObj);
     }
-    sumpStartPercent = objectIn[SFP(TStr_Key_SumpStartPercent)] | sumpStartPercent;
-    sumpStopPercent = objectIn[SFP(TStr_Key_SumpStopPercent)] | sumpStopPercent;
-    sumpAlarmPercent = objectIn[SFP(TStr_Key_SumpAlarmPercent)] | sumpAlarmPercent;
+    if (destReservoir[0]) { objectOut[SFP(TStr_Key_OutputReservoir)] = charsToString(destReservoir, TERRA_NAME_MAXSIZE); }
+    if (flowRateSensor[0]) { objectOut[SFP(TStr_Key_FlowRateSensor)] = charsToString(flowRateSensor, TERRA_NAME_MAXSIZE); }
+}
+
+void TerraPumpActuatorData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraActuatorData::fromJSONObject(objectIn);
+
+    const char *flowRateUnitsStr = objectIn[SFP(TStr_Key_FlowRateUnits)] | nullptr;
+    if (flowRateUnitsStr) { flowRateUnits = unitsTypeFromSymbol(TerraString(flowRateUnitsStr)); }
+    JsonVariantConst contFlowRateVar = objectIn[SFP(TStr_Key_ContinuousFlowRate)];
+    if (!contFlowRateVar.isNull()) { contFlowRate.fromJSONVariant(contFlowRateVar); }
+    const char *destReservoirStr = objectIn[SFP(TStr_Key_OutputReservoir)] | nullptr;
+    if (destReservoirStr && destReservoirStr[0]) { strncpy(destReservoir, destReservoirStr, TERRA_NAME_MAXSIZE - 1); destReservoir[TERRA_NAME_MAXSIZE - 1] = '\0'; }
+    const char *flowRateSensorStr = objectIn[SFP(TStr_Key_FlowRateSensor)] | nullptr;
+    if (flowRateSensorStr && flowRateSensorStr[0]) { strncpy(flowRateSensor, flowRateSensorStr, TERRA_NAME_MAXSIZE - 1); flowRateSensor[TERRA_NAME_MAXSIZE - 1] = '\0'; }
 }

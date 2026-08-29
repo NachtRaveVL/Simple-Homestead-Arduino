@@ -144,10 +144,10 @@ void TerraActuatorAttachment::setupActivation(float value, millis_t duration, bo
     if (resolve()) {
         value = get()->calibrationInvTransform(value);
 
-        if (get()->isMotorType()) {
+        if (get()->isBidirectionalType()) {
             // Keep direction selection tolerant of floating-point noise around a stopped command.
-            int direction = helioDirectionForOffset(value, FLT_EPSILON);
-            setupActivation(TerraActivation(direction > 0 ? Terra_DirectionMode_Forward : direction < 0 ? Terra_DirectionMode_Reverse : Terra_DirectionMode_Stop,
+            setupActivation(TerraActivation(value > FLT_EPSILON ? Terra_DirectionMode_Forward :
+                                            value < -FLT_EPSILON ? Terra_DirectionMode_Reverse : Terra_DirectionMode_Stop,
                                             fabsf(value), duration, (force ? Terra_ActivationFlags_Forced : Terra_ActivationFlags_None)));
             return;
         }
@@ -247,7 +247,7 @@ void TerraSensorAttachment::setMeasurement(TerraSingleMeasurement measurement)
 {
     auto outUnits = definedUnitsElse(getMeasurementUnits(), measurement.units);
     _measurement = measurement;
-    _measurement.setMinFrame(1);
+    _measurement.updateFrame(1);
 
     convertUnits(&_measurement, outUnits, _convertParam);
     _needsMeasurement = false;

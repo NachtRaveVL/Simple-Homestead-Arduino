@@ -30,7 +30,7 @@ extern TerraReservoir *newReservoirObjectFromData(const TerraReservoirData *data
 // identified, where it lives, what's attached to it, if it is full or empty, and
 // who can activate under it.
 class TerraReservoir : public TerraObject,
-                              TerraReservoirObjectInterface {
+                      public TerraReservoirObjectInterface {
 public:
     const enum : signed char { Water, Thermal, WaterPipe, ThermalPipe, Unknown = -1 } classType; // Reservoir class type (custom RTTI)
     inline bool isWaterClass() const { return classType == Water; }
@@ -45,6 +45,8 @@ public:
                    tposi_t reservoirIndex,
                    int classType = Unknown);
     TerraReservoir(const TerraReservoirData *dataIn);
+
+    virtual bool canActivate(TerraActuator *actuator) override;
 
     inline Terra_ReservoirType getReservoirType() const { return _id.objTypeAs.reservoirType; }
     inline tposi_t getReservoirIndex() const { return _id.posIndex; }

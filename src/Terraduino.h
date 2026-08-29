@@ -359,5 +359,6 @@ extern TerraPublisher *getPublisher();
 extern TerraScheduler *getScheduler();
 
 #include "Terraduino.hpp"
+#include "TerraAttachments.hpp"
 
 #endif // /ifndef Terraduino_H

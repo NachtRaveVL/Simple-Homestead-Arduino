@@ -20,12 +20,8 @@ class TerraLeakSensor;                                      // Terra Leak Sensor
 class TerraRemoteSensor;                                    // Terra Remote Sensor
 class TerraActuator;                                        // Terra Actuator
 class TerraRelayActuator;                                   // Terra Relay Actuator
+class TerraRelayPumpActuator;                               // Terra Relay Pump Actuator
 class TerraVariableActuator;                                // Terra Variable Actuator
-class TerraPump;                                            // Terra Pump
-class TerraSumpPump;                                        // Terra Sump Pump
-class TerraValve;                                           // Terra Valve
-class TerraHeater;                                          // Terra Heater
-class TerraCirculator;                                      // Terra Circulator
 class TerraReservoir;                                       // Terra Reservoir
 class TerraWaterStorage;                                    // Terra Water Storage
 class TerraCistern;                                         // Terra Cistern
@@ -76,21 +72,18 @@ public:
                                                            const TerraString &name = TerraString());
 
     // Pin-backed actuator convenience builders.
-    SharedPtr<TerraPump> addPumpRelay(uint8_t outputPin,
-                                      bool activeLow = false,
-                                      const TerraString &name = TerraString());
-    SharedPtr<TerraSumpPump> addSumpPumpRelay(uint8_t outputPin,
-                                              bool activeLow = false,
-                                              const TerraString &name = TerraString());
-    SharedPtr<TerraCirculator> addCirculatorRelay(uint8_t outputPin,
-                                                  bool activeLow = false,
-                                                  const TerraString &name = TerraString());
-    SharedPtr<TerraValve> addValveRelay(uint8_t outputPin,
-                                        bool activeLow = false,
-                                        const TerraString &name = TerraString());
-    SharedPtr<TerraHeater> addHeaterRelay(uint8_t outputPin,
-                                          bool activeLow = false,
-                                          const TerraString &name = TerraString());
+    SharedPtr<TerraRelayPumpActuator> addPumpRelay(uint8_t outputPin,
+                                                    bool activeLow = false,
+                                                    const TerraString &name = TerraString());
+    SharedPtr<TerraRelayPumpActuator> addCirculatorRelay(uint8_t outputPin,
+                                                          bool activeLow = false,
+                                                          const TerraString &name = TerraString());
+    SharedPtr<TerraRelayPumpActuator> addValveRelay(uint8_t outputPin,
+                                                     bool activeLow = false,
+                                                     const TerraString &name = TerraString());
+    SharedPtr<TerraRelayActuator> addHeaterRelay(uint8_t outputPin,
+                                                 bool activeLow = false,
+                                                 const TerraString &name = TerraString());
 
     // Reservoir and process object builders.
     SharedPtr<TerraReservoir> addReservoir(Terra_ReservoirType reservoirType,

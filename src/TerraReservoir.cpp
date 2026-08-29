@@ -40,6 +40,18 @@ TerraReservoir::TerraReservoir(const TerraReservoirData *dataIn)
       _lowState(Terra_TriggerState_Disabled), _emptyState(Terra_TriggerState_Disabled)
 { ; }
 
+bool TerraReservoir::canActivate(TerraActuator *actuator)
+{
+    if (!actuator) { return false; }
+
+    if (actuator->isPumpType()) {
+        bool doEmptyCheck = actuator->getParentReservoir().get() == this;
+        return doEmptyCheck ? !isEmpty(true) : !isFilled(true);
+    }
+
+    return true;
+}
+
 Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getFilledSignal()
 {
     return _filledSignal;

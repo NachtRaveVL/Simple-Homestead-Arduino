@@ -39,9 +39,11 @@ TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
                 case (tid_t)TerraActuator::Relay:
                     return new TerraActuatorData();
                 case (tid_t)TerraActuator::RelayPump:
-                    return new TerraActuatorData();
+                    return new TerraPumpActuatorData();
                 case (tid_t)TerraActuator::Variable:
                     return new TerraActuatorData();
+                case (tid_t)TerraActuator::VariablePump:
+                    return new TerraPumpActuatorData();
                 default: break;
             }
             break;

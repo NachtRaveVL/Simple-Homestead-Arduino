@@ -106,8 +106,8 @@ SharedPtr<U> TerraAttachment::getObject()
 
 
 template<class ParameterType, int Slots> template<class U>
-TerraSignalAttachment<ParameterType,Slots>::TerraSignalAttachment(TerraObjInterface *parent, Signal<ParameterType,Slots> &(U::*signalGetter)(void))
-    : TerraAttachment(parent), _signalGetter((SignalGetterPtr)signalGetter), _handleSlot(nullptr)
+TerraSignalAttachment<ParameterType,Slots>::TerraSignalAttachment(TerraObjInterface *parent, tposi_t subIndex, Signal<ParameterType,Slots> &(U::*signalGetter)(void))
+    : TerraAttachment(parent, subIndex), _signalGetter((SignalGetterPtr)signalGetter), _handleSlot(nullptr)
 { ; }
 
 template<class ParameterType, int Slots>
@@ -205,9 +205,9 @@ inline Terra_TriggerState TerraTriggerAttachment::getTriggerState(bool poll)
 }
 
 
-inline Terra_BalancingState TerraBalancerAttachment::getBalancingState(bool poll)
+inline Terra_DrivingState TerraDriverAttachment::getDrivingState(bool poll)
 {
-    return resolve() ? get()->getBalancingState(poll) : Terra_BalancingState_Undefined;
+    return resolve() ? get()->getDrivingState(poll) : Terra_DrivingState_Undefined;
 }
 
 #endif // /ifndef TerraAttachments_HPP

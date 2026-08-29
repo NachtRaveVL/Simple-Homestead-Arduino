@@ -214,6 +214,14 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "System uptime";
             return flashStr;
         }
+        case TStr_Log_CalculatedPumping: {
+            static const char flashStr[] PROGMEM = " pumping request:";
+            return flashStr;
+        }
+        case TStr_Log_MeasuredPumping: {
+            static const char flashStr[] PROGMEM = " pumping result:";
+            return flashStr;
+        }
         case TStr_Log_Prefix_Info: {
             static const char flashStr[] PROGMEM = "[INFO] ";
             return flashStr;
@@ -224,6 +232,30 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Log_Prefix_Error: {
             static const char flashStr[] PROGMEM = "[ERROR] ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Destination_Reservoir: {
+            static const char flashStr[] PROGMEM = "  To reservoir: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Source_Reservoir: {
+            static const char flashStr[] PROGMEM = "  From reservoir: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Time_Calculated: {
+            static const char flashStr[] PROGMEM = "  Pump run time: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Time_Measured: {
+            static const char flashStr[] PROGMEM = "  Elapsed time: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Vol_Calculated: {
+            static const char flashStr[] PROGMEM = "  Est. pumped vol.: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Vol_Measured: {
+            static const char flashStr[] PROGMEM = "  Act. pumped vol.: ";
             return flashStr;
         }
         case TStr_System: {
@@ -338,6 +370,14 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "collectionEfficiency";
             return flashStr;
         }
+        case TStr_Key_ContinuousFlowRate: {
+            static const char flashStr[] PROGMEM = "continuousFlowRate";
+            return flashStr;
+        }
+        case TStr_Key_ContinuousPowerUsage: {
+            static const char flashStr[] PROGMEM = "continuousPowerUsage";
+            return flashStr;
+        }
         case TStr_Key_CtrlInMode: {
             static const char flashStr[] PROGMEM = "ctrlInMode";
             return flashStr;
@@ -380,6 +420,14 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Key_FilledTrigger: {
             static const char flashStr[] PROGMEM = "filledTrigger";
+            return flashStr;
+        }
+        case TStr_Key_FlowRateSensor: {
+            static const char flashStr[] PROGMEM = "flowRateSensor";
+            return flashStr;
+        }
+        case TStr_Key_FlowRateUnits: {
+            static const char flashStr[] PROGMEM = "flowRateUnits";
             return flashStr;
         }
         case TStr_Key_FlowSensor: {
@@ -510,6 +558,10 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "outputPin";
             return flashStr;
         }
+        case TStr_Key_OutputReservoir: {
+            static const char flashStr[] PROGMEM = "outputReservoir";
+            return flashStr;
+        }
         case TStr_Key_Pin: {
             static const char flashStr[] PROGMEM = "pin";
             return flashStr;
@@ -546,6 +598,10 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "pump";
             return flashStr;
         }
+        case TStr_Key_RailName: {
+            static const char flashStr[] PROGMEM = "railName";
+            return flashStr;
+        }
         case TStr_Key_RainfallSensor: {
             static const char flashStr[] PROGMEM = "rainfallSensor";
             return flashStr;
@@ -556,6 +612,10 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Key_ReportedType: {
             static const char flashStr[] PROGMEM = "reportedType";
+            return flashStr;
+        }
+        case TStr_Key_ReservoirName: {
+            static const char flashStr[] PROGMEM = "reservoirName";
             return flashStr;
         }
         case TStr_Key_Revision: {
@@ -876,6 +936,10 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Valve: {
             static const char flashStr[] PROGMEM = "Valve";
+            return flashStr;
+        }
+        case TStr_Fan: {
+            static const char flashStr[] PROGMEM = "Fan";
             return flashStr;
         }
         case TStr_Diverter: {
@@ -1375,14 +1439,11 @@ TerraString terraActuatorTypeToString(Terra_ActuatorType value)
 {
     switch (value) {
         case Terra_ActuatorType_Undefined: return SFP(TStr_Undefined);
-        case Terra_ActuatorType_Digital: return SFP(TStr_Digital);
-        case Terra_ActuatorType_Variable: return SFP(TStr_Variable);
         case Terra_ActuatorType_Pump: return SFP(TStr_Pump);
         case Terra_ActuatorType_Valve: return SFP(TStr_Valve);
-        case Terra_ActuatorType_Diverter: return SFP(TStr_Diverter);
+        case Terra_ActuatorType_Fan: return SFP(TStr_Fan);
         case Terra_ActuatorType_Heater: return SFP(TStr_Heater);
         case Terra_ActuatorType_Circulator: return SFP(TStr_Circulator);
-        case Terra_ActuatorType_SumpPump: return SFP(TStr_SumpPump);
     }
     return SFP(TStr_Undefined);
 }
@@ -1756,29 +1817,17 @@ Terra_SensorType terraSensorTypeFromString(const TerraString &value)
 
 Terra_ActuatorType terraActuatorTypeFromString(const TerraString &value)
 {
-    switch (terraTrieChar(value, 4)) {
-        case '\0':
-            return Terra_ActuatorType_Pump;
-        case 'a':
-            return Terra_ActuatorType_Variable;
-        case 'e':
-            switch (terraTrieChar(value, 0)) {
-                case 'h':
-                    return Terra_ActuatorType_Heater;
-                case 'v':
-                    return Terra_ActuatorType_Valve;
-            }
-            return Terra_ActuatorType_Undefined;
-        case 'f':
-            return Terra_ActuatorType_Undefined;
-        case 'p':
-            return Terra_ActuatorType_SumpPump;
-        case 'r':
-            return Terra_ActuatorType_Diverter;
-        case 't':
-            return Terra_ActuatorType_Digital;
-        case 'u':
+    switch (terraTrieChar(value, 0)) {
+        case 'c':
             return Terra_ActuatorType_Circulator;
+        case 'f':
+            return Terra_ActuatorType_Fan;
+        case 'h':
+            return Terra_ActuatorType_Heater;
+        case 'p':
+            return Terra_ActuatorType_Pump;
+        case 'v':
+            return Terra_ActuatorType_Valve;
     }
     return Terra_ActuatorType_Undefined;
 }
