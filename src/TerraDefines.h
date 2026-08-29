@@ -434,12 +434,11 @@ enum Terra_ControlInputMode : signed char {
 // Actuator Type
 // Control actuator type. Specifies the various controllable equipment and their usage.
 enum Terra_ActuatorType : signed char {
-    Terra_ActuatorType_Pump,                                // Water transfer pump
+    Terra_ActuatorType_Pump,                                // Resource transfer pump
     Terra_ActuatorType_Valve,                               // On/off valve
-    Terra_ActuatorType_Diverter,                            // Two-way or proportional diverter
+    Terra_ActuatorType_Fan,                                 // Fan output
     Terra_ActuatorType_Heater,                              // Heater output
-    Terra_ActuatorType_Circulator,                          // Thermal circulation pump
-    Terra_ActuatorType_SumpPump,                            // Level-controlled sump pump
+    Terra_ActuatorType_Circulator,                          // Circulation/equalization pump
 
     Terra_ActuatorType_Count,                               // Placeholder
     Terra_ActuatorType_Undefined = -1                       // Placeholder
