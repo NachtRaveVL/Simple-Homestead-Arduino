@@ -5,7 +5,6 @@
 
 #include "Terraduino.h"
 #include <pins_arduino.h>
-#include <cmath>
 
 bool TerraRTCWrapper<RTC_DS1307>::begin(TwoWire *wireInstance)
 {
@@ -726,7 +725,7 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
             }
             break;
         case Terra_UnitsType_Power_Wattage:
-            if (unitsOut == Terra_UnitsType_Power_Amperage && convertParam != FLT_UNDEF && fabsf(convertParam) > FLT_EPSILON) {
+            if (unitsOut == Terra_UnitsType_Power_Amperage && convertParam != FLT_UNDEF && abs(convertParam) > FLT_EPSILON) {
                 *valueOut = valueIn / convertParam;
                 return true;
             }
@@ -775,23 +774,118 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
             break;
 
         case Terra_UnitsType_Speed_MillimetersPerHour:
-            // TODO: this conversion to others of same category
+            switch (unitsOut) {
+                case Terra_UnitsType_Speed_InchesPerHour:
+                    *valueOut = valueIn / 25.4f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MetersPerSecond:
+                    *valueOut = valueIn / 3600000.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_KilometersPerHour:
+                    *valueOut = valueIn / 1000000.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MilesPerHour:
+                    *valueOut = valueIn / 1609344.0f;
+                    return true;
+
+                default:
+                    break;
+            }
             break;
 
         case Terra_UnitsType_Speed_InchesPerHour:
-            // TODO: this conversion to others of same category
+            switch (unitsOut) {
+                case Terra_UnitsType_Speed_MillimetersPerHour:
+                    *valueOut = valueIn * 25.4f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MetersPerSecond:
+                    *valueOut = valueIn * 0.0254f / 3600.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_KilometersPerHour:
+                    *valueOut = valueIn * 0.0000254f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MilesPerHour:
+                    *valueOut = valueIn / 63360.0f;
+                    return true;
+
+                default:
+                    break;
+            }
             break;
 
         case Terra_UnitsType_Speed_MetersPerSecond:
-            // TODO: this conversion to others of same category
+            switch (unitsOut) {
+                case Terra_UnitsType_Speed_MillimetersPerHour:
+                    *valueOut = valueIn * 3600000.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_InchesPerHour:
+                    *valueOut = valueIn * 3600.0f / 0.0254f;
+                    return true;
+
+                case Terra_UnitsType_Speed_KilometersPerHour:
+                    *valueOut = valueIn * 3.6f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MilesPerHour:
+                    *valueOut = valueIn / 0.44704f;
+                    return true;
+
+                default:
+                    break;
+            }
             break;
 
         case Terra_UnitsType_Speed_KilometersPerHour:
-            // TODO: this conversion to others of same category
+            switch (unitsOut) {
+                case Terra_UnitsType_Speed_MillimetersPerHour:
+                    *valueOut = valueIn * 1000000.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_InchesPerHour:
+                    *valueOut = valueIn / 0.0000254f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MetersPerSecond:
+                    *valueOut = valueIn / 3.6f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MilesPerHour:
+                    *valueOut = valueIn / 1.609344f;
+                    return true;
+
+                default:
+                    break;
+            }
             break;
 
         case Terra_UnitsType_Speed_MilesPerHour:
-            // TODO: this conversion to others of same category
+            switch (unitsOut) {
+                case Terra_UnitsType_Speed_MillimetersPerHour:
+                    *valueOut = valueIn * 1609344.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_InchesPerHour:
+                    *valueOut = valueIn * 63360.0f;
+                    return true;
+
+                case Terra_UnitsType_Speed_MetersPerSecond:
+                    *valueOut = valueIn * 0.44704f;
+                    return true;
+
+                case Terra_UnitsType_Speed_KilometersPerHour:
+                    *valueOut = valueIn * 1.609344f;
+                    return true;
+
+                default:
+                    break;
+            }
             break;
 
         case Terra_UnitsType_Temperature_Celsius:
@@ -891,25 +985,80 @@ Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_Measuremen
     if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
 
     switch (unitsCategory) {
-        // TODO: Fix these to match helio/hydro layout:
         case Terra_UnitsCategory_Angle:
-            return Terra_UnitsType_Angle_Degrees_360;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                case Terra_MeasurementMode_Metric:
+                    return Terra_UnitsType_Angle_Degrees_360;
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_Angle_Radians_2pi;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
+
         case Terra_UnitsCategory_Distance:
-            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Distance_Feet : Terra_UnitsType_Distance_Meters;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                    return Terra_UnitsType_Distance_Feet;
+                case Terra_MeasurementMode_Metric:
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_Distance_Meters;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
+
         case Terra_UnitsCategory_Energy:
             return Terra_UnitsType_Energy_KilowattHours;
+
         case Terra_UnitsCategory_Irradiance:
             return Terra_UnitsType_Irradiance_WattsPerSquareMeter;
+
         case Terra_UnitsCategory_LiqVolume:
-            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_LiqVolume_Gallons : Terra_UnitsType_LiqVolume_Liters;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                    return Terra_UnitsType_LiqVolume_Gallons;
+                case Terra_MeasurementMode_Metric:
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_LiqVolume_Liters;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
+
         case Terra_UnitsCategory_LiqFlowRate:
-            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_LiqFlowRate_GallonsPerMin : Terra_UnitsType_LiqFlowRate_LitersPerMin;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                    return Terra_UnitsType_LiqFlowRate_GallonsPerMin;
+                case Terra_MeasurementMode_Metric:
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_LiqFlowRate_LitersPerMin;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
+
         case Terra_UnitsCategory_Power:
             return Terra_UnitsType_Power_Wattage;
+
         case Terra_UnitsCategory_Pressure:
-            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Pressure_PSI : Terra_UnitsType_Pressure_Kilopascals;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                    return Terra_UnitsType_Pressure_PSI;
+                case Terra_MeasurementMode_Metric:
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_Pressure_Kilopascals;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
+
         case Terra_UnitsCategory_Speed:
-            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Speed_MilesPerHour : Terra_UnitsType_Speed_MetersPerSecond;
+            switch (measureMode) {
+                case Terra_MeasurementMode_Imperial:
+                    return Terra_UnitsType_Speed_MilesPerHour;
+                case Terra_MeasurementMode_Metric:
+                case Terra_MeasurementMode_Scientific:
+                    return Terra_UnitsType_Speed_MetersPerSecond;
+                default:
+                    return Terra_UnitsType_Undefined;
+            }
 
         case Terra_UnitsCategory_Temperature:
             switch (measureMode) {
