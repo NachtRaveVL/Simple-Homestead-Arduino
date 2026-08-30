@@ -400,7 +400,6 @@ void loop()
 #include <Terraduino.h>
 
 Terraduino terraController;
-SharedPtr<TerraRainCatchment> roofCatchment;
 SharedPtr<TerraCistern> rainCistern;
 TerraFirstFlushController firstFlush(20.0f);
 
@@ -409,7 +408,6 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, 0, "Roof Catchment");
     rainCistern = terraController.addCistern(5000.0f, 0, "Rain Cistern");
 
     rainCistern->setThresholds(15.0f, 30.0f, 95.0f);
@@ -448,15 +446,10 @@ void loop()
 #include <Terraduino.h>
 
 Terraduino terraController;
-SharedPtr<TerraEnvironment> weather;
-SharedPtr<TerraWaterSource> rain;
-SharedPtr<TerraCistern> cistern;
-SharedPtr<TerraWaterRoute> fillRoute;
 SharedPtr<TerraPump> transferPump;
 SharedPtr<TerraSensor> collectorTemperature;
 SharedPtr<TerraSensor> storeTemperature;
 SharedPtr<TerraThermalReservoir> thermalStore;
-SharedPtr<TerraThermalLoop> thermalLoop;
 SharedPtr<TerraActuator> circulator;
 SharedPtr<TerraRemoteSensor> barnTemp;
 

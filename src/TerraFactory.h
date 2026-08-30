@@ -27,8 +27,6 @@ class TerraWaterReservoir;                                  // Terra Water Reser
 class TerraThermalReservoir;                                // Terra Thermal Reservoir
 class TerraInfiniteWaterReservoir;                          // Terra Infinite Water Reservoir
 class TerraInfiniteThermalReservoir;                        // Terra Infinite Thermal Reservoir
-class TerraRainCatchment;                                   // Terra Rain Catchment
-class TerraEnvironment;                                     // Terra Environment
 class TerraSimpleRail;                                      // Terra Simple Power Rail
 class TerraRegulatedRail;                                   // Terra Regulated Power Rail
 
@@ -98,10 +96,6 @@ public:
                                                                      const String &name = String());
     SharedPtr<TerraInfiniteThermalReservoir> addInfiniteThermalReservoir(bool alwaysFilled = true,
                                                                          const String &name = String());
-    SharedPtr<TerraRainCatchment> addRainCatchment(float areaSquareMeters,
-                                                   float collectionEfficiency = 0.85f,
-                                                   const String &name = String());
-    SharedPtr<TerraEnvironment> addEnvironment(const String &name = SFP(TStr_Environment));
 
     // Convenience builders for common power rails (shared, nullptr return -> failure).
     SharedPtr<TerraSimpleRail> addSimplePowerRail(Terra_RailType railType,

@@ -100,16 +100,11 @@ inline void Terraduino::notifyRTCTimeUpdated()
 
 inline void Terraduino::broadcastDateChanged()
 {
-    if (getSystemMode() == Terra_SystemMode_Tracking) {
-        for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-            if (iter->second->isPanelType()) {
-                auto panel = static_pointer_cast<TerraPanel>(iter->second);
+    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
+        if (iter->second->isReservoirType()) {
+            auto reservoir = static_pointer_cast<TerraReservoir>(iter->second);
 
-                if (panel && panel->isAnyTrackingClass()) {
-                    auto trackingPanel = static_pointer_cast<TerraTrackingPanel>(iter->second);
-                    trackingPanel->notifyDateChanged();
-                }
-            }
+            if (reservoir) { reservoir->notifyDateChanged(); }
         }
     }
 }

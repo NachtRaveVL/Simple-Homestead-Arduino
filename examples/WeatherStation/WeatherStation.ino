@@ -6,7 +6,6 @@
 #include <Terraduino.h>
 
 Terraduino terraController;
-SharedPtr<TerraEnvironment> weather;
 SharedPtr<TerraRemoteSensor> airTemperature;
 SharedPtr<TerraRemoteSensor> humidity;
 SharedPtr<TerraRemoteSensor> pressure;

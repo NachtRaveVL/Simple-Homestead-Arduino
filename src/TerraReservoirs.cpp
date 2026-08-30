@@ -52,6 +52,9 @@ bool TerraReservoir::canActivate(TerraActuator *actuator)
     return true;
 }
 
+void TerraReservoir::notifyDateChanged()
+{ ; }
+
 Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &TerraReservoir::getFilledSignal()
 {
     return _filledSignal;

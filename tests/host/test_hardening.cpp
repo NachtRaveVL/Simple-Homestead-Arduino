@@ -19,10 +19,6 @@ int main()
     assert(reservoir->getState(false) == Terra_ResourceState_Unknown);
     reservoir->clearFault();
 
-    auto catchment = controller.addRainCatchment(100.0f, 0.8f, "Roof");
-    assert(catchment);
-    assert(isFPEqual(catchment->estimateCaptureLiters(10.0f), 800.0f));
-
     TerraFirstFlushController firstFlush(20.0f);
     assert(isFPEqual(firstFlush.getRemainingLiters(), 20.0f));
     firstFlush.recordFlow(7.5f);

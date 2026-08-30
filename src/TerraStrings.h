@@ -211,7 +211,6 @@ enum Terra_String : uint16_t {
     TStr_Reclaimed,                         ///< "Reclaimed"
     TStr_Stored,                            ///< "Stored"
     TStr_Tank,                              ///< "Tank"
-    TStr_Cistern,                           ///< "Cistern"
     TStr_Reservoir,                         ///< "Reservoir"
     TStr_Binary,                            ///< "Binary"
     TStr_Analog,                            ///< "Analog"

@@ -6,26 +6,37 @@
 #include "Terraduino.h"
 
 TerraScheduler::TerraScheduler()
-    : _needsScheduling(true), _lastDay(-1)
+    : _needsScheduling(false), _lastDay{0}
 { ; }
+
+void TerraScheduler::update()
+{
+    if (hasSchedulerData()) {
+        DateTime currTime = localTime(unixNow());
+
+        if (!(_lastDay[0] == currTime.year()-2000 &&
+              _lastDay[1] == currTime.month() &&
+              _lastDay[2] == currTime.day())) {
+            // only log uptime upon actual day change and if uptime has been at least 1d
+            if (getLogger()->getSystemUptime() >= SECS_PER_DAY) {
+                getLogger()->logSystemUptime();
+            }
+            broadcastDateChange();
+        }
+
+        if (needsScheduling()) { performScheduling(); }
+    }
+}
 
 void TerraScheduler::updateDayTracking()
 {
-#ifdef ARDUINO
-    DateTime localTime = terraLocalNow();
-    int32_t dayNumber = (int32_t)localTime.year() * 512L +
-                        (int32_t)localTime.month() * 32L + localTime.day();
-#else
-    time_t localTimestamp = terraLocalNow();
-    struct tm *localTime = gmtime(&localTimestamp);
-    int32_t dayNumber = localTime ?
-                        (int32_t)(localTime->tm_year + 1900) * 512L +
-                        (int32_t)(localTime->tm_mon + 1) * 32L + localTime->tm_mday : -1;
-#endif
-    if (dayNumber >= 0 && dayNumber != _lastDay) {
-        _lastDay = dayNumber;
-        setNeedsScheduling();
-    }
+    DateTime currTime = localTime(unixNow());
+    _lastDay[0] = currTime.year()-2000;
+    _lastDay[1] = currTime.month();
+    _lastDay[2] = currTime.day();
+
+    setNeedsScheduling();
+    Terraduino::_activeInstance->setNeedsRedraw();
 }
 
 void TerraScheduler::performScheduling()
@@ -36,8 +47,50 @@ void TerraScheduler::performScheduling()
     _needsScheduling = false;
 }
 
-void TerraScheduler::update()
+void TerraScheduler::broadcastDateChange()
 {
     updateDayTracking();
-    if (_needsScheduling) { performScheduling(); }
+
+    #ifdef TERRA_USE_MULTITASKING
+        // these can take a while to complete
+        taskManager.scheduleOnce(0, []{
+            if (getController()) {
+                getController()->broadcastDateChanged();
+            }
+            yield();
+            if (getLogger()) {
+                getLogger()->notifyDateChanged();
+            }
+            yield();
+            if (getPublisher()) {
+                getPublisher()->notifyDateChanged();
+            }
+            yield();
+        });
+    #else
+        if (getController()) {
+            getController()->broadcastDateChanged();
+        }
+        if (getLogger()) {
+            getLogger()->notifyDateChanged();
+        }
+        if (getPublisher()) {
+            getPublisher()->notifyDateChanged();
+        }
+    #endif
+}
+
+
+TerraSchedulerSubData::TerraSchedulerSubData()
+    : TerraSubData(0)
+{ ; }
+
+void TerraSchedulerSubData::toJSONObject(JsonObject &objectOut) const
+{
+    (void)objectOut;
+}
+
+void TerraSchedulerSubData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    (void)objectIn;
 }

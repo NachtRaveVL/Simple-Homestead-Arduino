@@ -7,7 +7,6 @@
 #include <Terraduino.h>
 
 Terraduino terraController;
-SharedPtr<TerraRainCatchment> roofCatchment;
 TerraFirstFlushController firstFlush(20.0f);
 
 void setup()
@@ -15,7 +14,6 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, "Roof Catchment");
     terraController.launch();
 }
 

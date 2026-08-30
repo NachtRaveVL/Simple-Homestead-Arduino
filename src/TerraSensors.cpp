@@ -56,10 +56,9 @@ bool TerraSensor::needsPolling(tframe_t allowance) const
     return getController() ? getController()->isPollingFrameOld(_lastMeasurement.frame, allowance) : !_lastMeasurement.isSet();
 }
 
-void TerraSensor::update(uint32_t now)
+void TerraSensor::update()
 {
     if (needsPolling()) { takeMeasurement(); }
-    (void)now;
 }
 
 void TerraSensor::setMeasurement(float value, Terra_UnitsType units, uint32_t timestamp, bool valid)
@@ -93,15 +92,22 @@ void TerraSensor::setUserCalibrationData(TerraCalibrationData *userCalibrationDa
 
 TerraBinarySensor::TerraBinarySensor(Terra_SensorType sensorType, tposi_t sensorIndex,
                                      TerraDigitalPin inputPin)
-    : TerraSensor(sensorType, sensorIndex, Terra_UnitsType_Raw_1, Binary), _inputPin(inputPin)
+    : TerraSensor(sensorType, sensorIndex, Terra_UnitsType_Raw_1, Binary), _inputPin(inputPin), _usingISR(false)
 {
     _inputPin.init();
 }
 
 TerraBinarySensor::TerraBinarySensor(const TerraSensorData *dataIn)
-    : TerraSensor(dataIn), _inputPin(&dataIn->inputPin)
+    : TerraSensor(dataIn), _inputPin(&dataIn->inputPin), _usingISR(false)
 {
     _inputPin.init();
+}
+
+TerraBinarySensor::~TerraBinarySensor()
+{
+    if (_usingISR) {
+        // TODO: detach ISR from taskManger (not currently possible, maybe in future?)
+    }
 }
 
 bool TerraBinarySensor::takeMeasurement(bool force)
@@ -114,6 +120,17 @@ bool TerraBinarySensor::takeMeasurement(bool force)
     _measurementSignal.fire(&_lastMeasurement);
     if (getPublisher()) { getPublisher()->publishData(getKey(), _lastMeasurement); }
     return true;
+}
+
+bool TerraBinarySensor::tryRegisterISR(bool anyChange)
+{
+    #ifdef TERRA_USE_MULTITASKING
+        if (!_usingISR && _inputPin.isValid() && checkPinCanInterrupt(_inputPin.pin)) {
+            taskManager.addInterrupt(&interruptImpl, _inputPin.pin, !anyChange ? (_inputPin.activeLow ? FALLING : RISING) : CHANGE);
+            _usingISR = true;
+        }
+    #endif
+    return _usingISR;
 }
 
 TerraAnalogSensor::TerraAnalogSensor(Terra_SensorType sensorType, tposi_t sensorIndex,
@@ -163,9 +180,9 @@ bool TerraRemoteSensor::isOnline(uint32_t now) const
     return _hasReport && (!_staleAfterMs || (uint32_t)(now - _lastReportAt) < _staleAfterMs);
 }
 
-void TerraRemoteSensor::update(uint32_t now)
+void TerraRemoteSensor::update()
 {
-    if (!isOnline(now)) { _lastMeasurement.frame = tframe_none; }
+    if (!isOnline(millis())) { _lastMeasurement.frame = tframe_none; }
 }
 
 Signal<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS> &TerraSensor::getMeasurementSignal()

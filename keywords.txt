@@ -61,18 +61,12 @@ TerraCirculator	KEYWORD1
 # Resources, water, environment, and thermal
 TerraReservoir	KEYWORD1
 TerraWaterStorage	KEYWORD1
-TerraCistern	KEYWORD1
 TerraWaterSource	KEYWORD1
 TerraWaterRoute	KEYWORD1
-TerraRainCatchment	KEYWORD1
 TerraFirstFlushController	KEYWORD1
 TerraRainCollectionResult	KEYWORD1
 TerraWeatherSnapshot	KEYWORD1
-TerraEnvironment	KEYWORD1
 TerraThermalReservoir	KEYWORD1
-TerraThermalLoop	KEYWORD1
-TerraWaterBalancer	KEYWORD1
-TerraThermalBalancer	KEYWORD1
 TerraPowerRail	KEYWORD1
 TerraThresholdTrigger	KEYWORD1
 TerraRangeTrigger	KEYWORD1

@@ -210,3 +210,53 @@ void TerraObjectRegistration::updateObjects(uint32_t now)
         if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
     }
 }
+
+
+bool TerraPinHandlers::tryGetPinLock(pintype_t pin, millis_t wait)
+{
+    millis_t start = millis();
+    while (1) {
+        auto iter = _pinLocks.find(pin);
+        if (iter == _pinLocks.end()) {
+            _pinLocks[pin] = true;
+            return (_pinLocks.find(pin) != _pinLocks.end());
+        }
+        else if (millis() - start >= wait) { return false; }
+        else { yield(); }
+    }
+}
+
+void TerraPinHandlers::deactivatePinMuxers()
+{
+    for (auto iter = _pinMuxers.begin(); iter != _pinMuxers.end(); ++iter) {
+        iter->second->deactivate();
+    }
+}
+
+OneWire *TerraPinHandlers::getOneWireForPin(pintype_t pin)
+{
+    auto wireIter = _pinOneWire.find(pin);
+    if (wireIter != _pinOneWire.end()) {
+        return wireIter->second;
+    } else {
+        OneWire *oneWire = new OneWire(pin);
+        if (oneWire) {
+            _pinOneWire[pin] = oneWire;
+            if (_pinOneWire.find(pin) != _pinOneWire.end()) { return oneWire; }
+            else if (oneWire) { delete oneWire; }
+        } else if (oneWire) { delete oneWire; }
+    }
+    return nullptr;
+}
+
+void TerraPinHandlers::dropOneWireForPin(pintype_t pin)
+{
+    auto wireIter = _pinOneWire.find(pin);
+    if (wireIter != _pinOneWire.end()) {
+        if (wireIter->second) {
+            wireIter->second->depower();
+            delete wireIter->second;
+        }
+        _pinOneWire.erase(wireIter);
+    }
+}

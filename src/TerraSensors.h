@@ -26,6 +26,11 @@ class TerraSensor : public TerraObject,
                     public TerraMeasurementUnitsInterfaceStorageSingle {
 public:
     const enum : signed char { Value, Binary, Analog, Remote, Unknown = -1 } classType; // Sensor class type
+    inline bool isValueClass() const { return classType == Value; }
+    inline bool isBinaryClass() const { return classType == Binary; }
+    inline bool isAnalogClass() const { return classType == Analog; }
+    inline bool isRemoteClass() const { return classType == Remote; }
+    inline bool isUnknownClass() const { return classType <= Unknown; }
 
     TerraSensor(Terra_SensorType sensorType,
                 tposi_t sensorIndex,
@@ -37,7 +42,7 @@ public:
     virtual bool takeMeasurement(bool force = false);
     virtual const TerraMeasurement *getMeasurement(bool poll = false);
     virtual bool needsPolling(tframe_t allowance = 0) const;
-    virtual void update(uint32_t now = millis()) override;
+    virtual void update() override;
 
     void setMeasurement(float value, Terra_UnitsType units,
                         uint32_t timestamp = millis(), bool valid = true);
@@ -77,10 +82,20 @@ public:
                       tposi_t sensorIndex,
                       TerraDigitalPin inputPin);
     TerraBinarySensor(const TerraSensorData *dataIn);
+    virtual ~TerraBinarySensor();
 
     virtual bool takeMeasurement(bool force = false) override;
+
+    // ISR registration requires an interruptable pin, i.e. a valid digitalPinToInterrupt(inputPin).
+    // Unless anyChange true, active-low input pins interrupt on falling-edge, while active-high input pins interrupt on rising-edge.
+    // Interrupt routine does little but create an async Task via TaskManager, eliminating majority of race conditions.
+    // Once registered, the ISR cannot be unregistered/changed. It is advised to use a lowered numbered pin # if able ([1-15,18]).
+    bool tryRegisterISR(bool anyChange = false);
+
     inline const TerraDigitalPin &getInputPin() const { return _inputPin; }
     inline bool isActive(bool poll = false) { return getMeasurementValue(getMeasurement(poll)) >= 0.5f; }
+
+    inline void notifyISRTriggered() { takeMeasurement(true); }
 
 #ifndef ARDUINO
     inline void setSimulatedState(bool active) { _inputPin.setSimulatedState(active); }
@@ -88,6 +103,7 @@ public:
 
 protected:
     TerraDigitalPin _inputPin;                              // Digital input pin
+    bool _usingISR;                                         // Using ISR flag
 
     virtual void saveToData(TerraData *dataOut) const override;
 };
@@ -216,7 +232,7 @@ public:
     inline Terra_SensorType getReportedType() const { return _reportedType; }
     inline uint32_t getLastReportTime() const { return _lastReportAt; }
     bool isOnline(uint32_t now = millis()) const;
-    virtual void update(uint32_t now = millis()) override;
+    virtual void update() override;
 
 protected:
     Terra_SensorType _reportedType;                         // Remote reported sensor type

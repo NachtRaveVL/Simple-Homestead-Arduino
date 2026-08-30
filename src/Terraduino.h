@@ -194,7 +194,7 @@ inline time_t unixNow();
 inline DateTime localNow();
 inline millis_t nzMillis();
 extern void handleInterrupt(pintype_t);
-extern hkey_t stringHash(String);
+extern tkey_t stringHash(String);
 extern String addressToString(uintptr_t);
 extern void controlLoop();
 extern void dataLoop();
@@ -231,7 +231,7 @@ extern void miscLoop();
 // Main controller interface for homestead resource and environmental systems. Networking,
 // displays, remote transports, and external services remain optional so normal water,
 // thermal, environmental, scheduling, logging, and control behavior can remain local.
-class Terraduino : public TerraFactory, public TerraCalibrations, public TerraObjectRegistration {
+class Terraduino : public TerraFactory, public TerraCalibrations, public TerraObjectRegistration, public TerraPinHandlers {
 public:
     TerraScheduler scheduler;                                       // Scheduler public instance
     TerraLogger logger;                                             // Logger public instance
@@ -253,7 +253,7 @@ public:
 
     // Initializes default empty system. Typically called near top of setup().
     // See individual enums for more info.
-    void init(Terra_SystemMode systemMode = Terra_SystemMode_Tracking,                  // What mode of panel orientation is performed
+    void init(Terra_SystemMode systemMode = Terra_SystemMode_Automatic,                 // What controller operating mode should be used
               Terra_MeasurementMode measureMode = Terra_MeasurementMode_Default,        // What units of measurement should be used
               Terra_DisplayOutputMode dispOutMode = Terra_DisplayOutputMode_Disabled,   // What display output mode should be used
               Terra_ControlInputMode ctrlInMode = Terra_ControlInputMode_Disabled);     // What control input mode should be used
@@ -426,7 +426,7 @@ public:
 
     // Whenever the system is in operational mode (has been launched), or not
     inline bool inOperationalMode() const { return !_suspend; }
-    // System type mode (default: Tracking)
+    // System type mode (default: Automatic)
     Terra_SystemMode getSystemMode() const;
     // System measurement mode (default: Metric)
     Terra_MeasurementMode getMeasurementMode() const;
@@ -445,9 +445,9 @@ public:
     // System sensor polling interval (time between sensor reads), in milliseconds (default: TERRA_DATA_LOOP_INTERVAL)
     uint16_t getPollingInterval() const;
     // System polling frame number for sensor frame tracking
-    inline hframe_t getPollingFrame() const { return _pollingFrame; }
+    inline tframe_t getPollingFrame() const { return _pollingFrame; }
     // Determines if a given frame # is out of date (true) or current (false), with optional frame # allowance
-    bool isPollingFrameOld(hframe_t frame, hframe_t allowance = 0) const;
+    bool isPollingFrameOld(tframe_t frame, tframe_t allowance = 0) const;
     // Returns if system autosaves are enabled or not
     bool isAutosaveEnabled() const;
     // Returns if system fallback autosaves are enabled or not
@@ -519,7 +519,7 @@ protected:
     taskid_t _miscTaskId;                                   // Misc task Id if created, else TASKMGR_INVALIDID
 #endif
     bool _suspend;                                          // If system is currently suspended from operation
-    hframe_t _pollingFrame;                                 // Current data polling frame # (index 0 reserved for disabled/undef, advanced by publisher)
+    tframe_t _pollingFrame;                                 // Current data polling frame # (index 0 reserved for disabled/undef, advanced by publisher)
     time_t _lastSpaceCheck;                                 // Last date storage media free space was checked, if able (UTC)
     time_t _lastAutosave;                                   // Last date autosave was performed, if able (UTC)
     String _sysConfigFilename;                              // System config filename used in serialization (default: "Terraduino.cfg")

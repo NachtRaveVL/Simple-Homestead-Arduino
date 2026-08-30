@@ -51,6 +51,8 @@ public:
     inline Terra_ReservoirType getReservoirType() const { return _id.objTypeAs.reservoirType; }
     inline tposi_t getReservoirIndex() const { return _id.posIndex; }
 
+    virtual void notifyDateChanged();
+
     Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &getFilledSignal();
     Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &getHighSignal();
     Signal<TerraReservoir *, TERRA_RESERVOIR_SIGNAL_SLOTS> &getLowSignal();

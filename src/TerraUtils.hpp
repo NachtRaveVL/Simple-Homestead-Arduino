@@ -332,4 +332,21 @@ inline bool checkPinIsPWMOutput(pintype_t pin)
     #endif
 }
 
+inline bool checkPinCanInterrupt(pintype_t pin)
+{
+    if (pin >= tpin_virtual) {
+        #ifdef TERRA_USE_MULTITASKING
+            return getController() && getController()->getPinExpander(expanderPosForPinNumber(pin)) &&
+                   getController()->getPinExpander(expanderPosForPinNumber(pin))->getInterruptPin().isValid() &&
+                   isValidPin(digitalPinToInterrupt(getController()->getPinExpander(expanderPosForPinNumber(pin))->getInterruptPin().pin));
+        #else
+            return false;
+        #endif
+    }
+    return (getController() && getController()->getPinMuxer(pin) &&
+            getController()->getPinMuxer(pin)->getInterruptPin().isValid() &&
+            isValidPin(digitalPinToInterrupt(getController()->getPinMuxer(pin)->getInterruptPin().pin)))
+           || isValidPin(digitalPinToInterrupt(pin));
+}
+
 #endif // /ifndef TerraUtils_HPP

@@ -8,7 +8,6 @@
 Terraduino terraController;
 SharedPtr<TerraWaterReservoir> waterTank;
 SharedPtr<TerraRemoteSensor> waterVolume;
-SharedPtr<TerraEnvironment> outside;
 SharedPtr<TerraRemoteSensor> outsideTemperature;
 uint32_t lastReport = 0;
 
