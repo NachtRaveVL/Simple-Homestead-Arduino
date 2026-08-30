@@ -222,6 +222,14 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = " pumping result:";
             return flashStr;
         }
+        case TStr_Log_HasDisabled: {
+            static const char flashStr[] PROGMEM = " has disabled";
+            return flashStr;
+        }
+        case TStr_Log_HasEnabled: {
+            static const char flashStr[] PROGMEM = " has enabled";
+            return flashStr;
+        }
         case TStr_Log_Prefix_Info: {
             static const char flashStr[] PROGMEM = "[INFO] ";
             return flashStr;
@@ -360,6 +368,10 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Key_CalibrationUnits: {
             static const char flashStr[] PROGMEM = "calibrationUnits";
+            return flashStr;
+        }
+        case TStr_Key_Channel: {
+            static const char flashStr[] PROGMEM = "channel";
             return flashStr;
         }
         case TStr_Key_Circulator: {
@@ -527,7 +539,7 @@ const char *pgmAddrForStr(Terra_String strNum)
             return flashStr;
         }
         case TStr_Key_MeasureMode: {
-            static const char flashStr[] PROGMEM = "measurementMode";
+            static const char flashStr[] PROGMEM = "measureMode";
             return flashStr;
         }
         case TStr_Key_MinimumFlowLpm: {
@@ -592,6 +604,14 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Key_Publisher: {
             static const char flashStr[] PROGMEM = "publisher";
+            return flashStr;
+        }
+        case TStr_Key_PWMChannel: {
+            static const char flashStr[] PROGMEM = "pwmChannel";
+            return flashStr;
+        }
+        case TStr_Key_PWMFrequency: {
+            static const char flashStr[] PROGMEM = "pwmFrequency";
             return flashStr;
         }
         case TStr_Key_Pump: {
@@ -834,10 +854,6 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Tank";
             return flashStr;
         }
-        case TStr_Cistern: {
-            static const char flashStr[] PROGMEM = "Cistern";
-            return flashStr;
-        }
         case TStr_Reservoir: {
             static const char flashStr[] PROGMEM = "Reservoir";
             return flashStr;
@@ -1010,64 +1026,176 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Automatic";
             return flashStr;
         }
-        case TStr_Imperial: {
+        case TStr_Enum_Imperial: {
             static const char flashStr[] PROGMEM = "Imperial";
             return flashStr;
         }
-        case TStr_Metric: {
+        case TStr_Enum_Metric: {
             static const char flashStr[] PROGMEM = "Metric";
             return flashStr;
         }
-        case TStr_Scientific: {
+        case TStr_Enum_Scientific: {
             static const char flashStr[] PROGMEM = "Scientific";
             return flashStr;
         }
-        case TStr_Highest: {
+        case TStr_Enum_Highest: {
             static const char flashStr[] PROGMEM = "Highest";
             return flashStr;
         }
-        case TStr_Lowest: {
+        case TStr_Enum_Lowest: {
             static const char flashStr[] PROGMEM = "Lowest";
             return flashStr;
         }
-        case TStr_Average: {
+        case TStr_Enum_Average: {
             static const char flashStr[] PROGMEM = "Average";
             return flashStr;
         }
-        case TStr_Multiply: {
+        case TStr_Enum_Multiply: {
             static const char flashStr[] PROGMEM = "Multiply";
             return flashStr;
         }
-        case TStr_InOrder: {
+        case TStr_Enum_InOrder: {
             static const char flashStr[] PROGMEM = "InOrder";
             return flashStr;
         }
-        case TStr_RevOrder: {
+        case TStr_Enum_RevOrder: {
             static const char flashStr[] PROGMEM = "RevOrder";
             return flashStr;
         }
-        case TStr_DigitalInput: {
+        case TStr_Enum_AscOrder: {
+            static const char flashStr[] PROGMEM = "AscOrder";
+            return flashStr;
+        }
+        case TStr_Enum_DescOrder: {
+            static const char flashStr[] PROGMEM = "DescOrder";
+            return flashStr;
+        }
+        case TStr_Enum_DigitalInput: {
             static const char flashStr[] PROGMEM = "DigitalInput";
             return flashStr;
         }
-        case TStr_DigitalInputPullUp: {
+        case TStr_Enum_DigitalInputPullUp: {
             static const char flashStr[] PROGMEM = "DigitalInputPullUp";
             return flashStr;
         }
-        case TStr_DigitalInputPullDown: {
+        case TStr_Enum_DigitalInputPullDown: {
             static const char flashStr[] PROGMEM = "DigitalInputPullDown";
             return flashStr;
         }
-        case TStr_DigitalOutput: {
+        case TStr_Enum_DigitalOutput: {
             static const char flashStr[] PROGMEM = "DigitalOutput";
             return flashStr;
         }
-        case TStr_AnalogInput: {
+        case TStr_Enum_DigitalOutputPushPull: {
+            static const char flashStr[] PROGMEM = "DigitalOutputPushPull";
+            return flashStr;
+        }
+        case TStr_Enum_AnalogInput: {
             static const char flashStr[] PROGMEM = "AnalogInput";
             return flashStr;
         }
-        case TStr_AnalogOutput: {
+        case TStr_Enum_AnalogOutput: {
             static const char flashStr[] PROGMEM = "AnalogOutput";
+            return flashStr;
+        }
+        case TStr_Enum_AnalogJoystick: {
+            static const char flashStr[] PROGMEM = "AnalogJoystick";
+            return flashStr;
+        }
+        case TStr_Enum_CustomOLED: {
+            static const char flashStr[] PROGMEM = "CustomOLED";
+            return flashStr;
+        }
+        case TStr_Enum_IL3820: {
+            static const char flashStr[] PROGMEM = "IL3820";
+            return flashStr;
+        }
+        case TStr_Enum_IL3820V2: {
+            static const char flashStr[] PROGMEM = "IL3820V2";
+            return flashStr;
+        }
+        case TStr_Enum_ILI9341: {
+            static const char flashStr[] PROGMEM = "ILI9341";
+            return flashStr;
+        }
+        case TStr_Enum_LCD16x2: {
+            static const char flashStr[] PROGMEM = "LCD16x2";
+            return flashStr;
+        }
+        case TStr_Enum_LCD20x4: {
+            static const char flashStr[] PROGMEM = "LCD20x4";
+            return flashStr;
+        }
+        case TStr_Enum_Matrix2x2: {
+            static const char flashStr[] PROGMEM = "Matrix2x2";
+            return flashStr;
+        }
+        case TStr_Enum_Matrix3x4: {
+            static const char flashStr[] PROGMEM = "Matrix3x4";
+            return flashStr;
+        }
+        case TStr_Enum_Matrix4x4: {
+            static const char flashStr[] PROGMEM = "Matrix4x4";
+            return flashStr;
+        }
+        case TStr_Enum_RemoteControl: {
+            static const char flashStr[] PROGMEM = "RemoteControl";
+            return flashStr;
+        }
+        case TStr_Enum_ResistiveTouch: {
+            static const char flashStr[] PROGMEM = "ResistiveTouch";
+            return flashStr;
+        }
+        case TStr_Enum_RotaryEncoder: {
+            static const char flashStr[] PROGMEM = "RotaryEncoder";
+            return flashStr;
+        }
+        case TStr_Enum_SH1106: {
+            static const char flashStr[] PROGMEM = "SH1106";
+            return flashStr;
+        }
+        case TStr_Enum_SSD1305: {
+            static const char flashStr[] PROGMEM = "SSD1305";
+            return flashStr;
+        }
+        case TStr_Enum_SSD1305x32Ada: {
+            static const char flashStr[] PROGMEM = "SSD1305x32Ada";
+            return flashStr;
+        }
+        case TStr_Enum_SSD1305x64Ada: {
+            static const char flashStr[] PROGMEM = "SSD1305x64Ada";
+            return flashStr;
+        }
+        case TStr_Enum_SSD1306: {
+            static const char flashStr[] PROGMEM = "SSD1306";
+            return flashStr;
+        }
+        case TStr_Enum_SSD1607: {
+            static const char flashStr[] PROGMEM = "SSD1607";
+            return flashStr;
+        }
+        case TStr_Enum_ST7735: {
+            static const char flashStr[] PROGMEM = "ST7735";
+            return flashStr;
+        }
+        case TStr_Enum_ST7789: {
+            static const char flashStr[] PROGMEM = "ST7789";
+            return flashStr;
+        }
+        case TStr_Enum_TFTTouch: {
+            static const char flashStr[] PROGMEM = "TFTTouch";
+            return flashStr;
+        }
+        case TStr_Enum_TouchScreen: {
+            static const char flashStr[] PROGMEM = "TouchScreen";
+            return flashStr;
+        }
+        case TStr_Enum_UpDownButtons: {
+            static const char flashStr[] PROGMEM = "UpDownButtons";
+            return flashStr;
+        }
+        case TStr_Enum_UpDownESP32Touch: {
+            static const char flashStr[] PROGMEM = "UpDownESP32Touch";
             return flashStr;
         }
         case TStr_Raw: {
@@ -1126,20 +1254,32 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Custom";
             return flashStr;
         }
-        case TStr_DC3V3: {
+        case TStr_Enum_AC110V: {
+            static const char flashStr[] PROGMEM = "AC110V";
+            return flashStr;
+        }
+        case TStr_Enum_AC220V: {
+            static const char flashStr[] PROGMEM = "AC220V";
+            return flashStr;
+        }
+        case TStr_Enum_DC3V3: {
             static const char flashStr[] PROGMEM = "DC3V3";
             return flashStr;
         }
-        case TStr_DC5V: {
+        case TStr_Enum_DC5V: {
             static const char flashStr[] PROGMEM = "DC5V";
             return flashStr;
         }
-        case TStr_DC12V: {
+        case TStr_Enum_DC12V: {
             static const char flashStr[] PROGMEM = "DC12V";
             return flashStr;
         }
-        case TStr_DC24V: {
+        case TStr_Enum_DC24V: {
             static const char flashStr[] PROGMEM = "DC24V";
+            return flashStr;
+        }
+        case TStr_Enum_DC48V: {
+            static const char flashStr[] PROGMEM = "DC48V";
             return flashStr;
         }
         case TStr_Idle: {
@@ -1407,9 +1547,9 @@ String terraActuatorTypeToString(Terra_ActuatorType value)
 String terraMeasurementModeToString(Terra_MeasurementMode value)
 {
     switch (value) {
-        case Terra_MeasurementMode_Imperial: return SFP(TStr_Imperial);
-        case Terra_MeasurementMode_Metric: return SFP(TStr_Metric);
-        case Terra_MeasurementMode_Scientific: return SFP(TStr_Scientific);
+        case Terra_MeasurementMode_Imperial: return SFP(TStr_Enum_Imperial);
+        case Terra_MeasurementMode_Metric: return SFP(TStr_Enum_Metric);
+        case Terra_MeasurementMode_Scientific: return SFP(TStr_Enum_Scientific);
         case Terra_MeasurementMode_Count: return SFP(TStr_CountLabel);
         case Terra_MeasurementMode_Undefined: return SFP(TStr_Undefined);
     }
@@ -1419,14 +1559,14 @@ String terraMeasurementModeToString(Terra_MeasurementMode value)
 String terraEnableModeToString(Terra_EnableMode value)
 {
     switch (value) {
-        case Terra_EnableMode_Highest: return SFP(TStr_Highest);
-        case Terra_EnableMode_Lowest: return SFP(TStr_Lowest);
-        case Terra_EnableMode_Average: return SFP(TStr_Average);
-        case Terra_EnableMode_Multiply: return SFP(TStr_Multiply);
-        case Terra_EnableMode_InOrder: return SFP(TStr_InOrder);
-        case Terra_EnableMode_RevOrder: return SFP(TStr_RevOrder);
-        case Terra_EnableMode_DescOrder: return String("DescOrder");
-        case Terra_EnableMode_AscOrder: return String("AscOrder");
+        case Terra_EnableMode_Highest: return SFP(TStr_Enum_Highest);
+        case Terra_EnableMode_Lowest: return SFP(TStr_Enum_Lowest);
+        case Terra_EnableMode_Average: return SFP(TStr_Enum_Average);
+        case Terra_EnableMode_Multiply: return SFP(TStr_Enum_Multiply);
+        case Terra_EnableMode_InOrder: return SFP(TStr_Enum_InOrder);
+        case Terra_EnableMode_RevOrder: return SFP(TStr_Enum_RevOrder);
+        case Terra_EnableMode_DescOrder: return SFP(TStr_Enum_DescOrder);
+        case Terra_EnableMode_AscOrder: return SFP(TStr_Enum_AscOrder);
         case Terra_EnableMode_Count: return SFP(TStr_CountLabel);
         case Terra_EnableMode_Undefined: return SFP(TStr_Undefined);
     }
@@ -1437,12 +1577,12 @@ String terraPinModeToString(Terra_PinMode value)
 {
     switch (value) {
         case Terra_PinMode_Digital_Input_Floating: return String("DigitalInputFloating");
-        case Terra_PinMode_Digital_Input_PullUp: return SFP(TStr_DigitalInputPullUp);
-        case Terra_PinMode_Digital_Input_PullDown: return SFP(TStr_DigitalInputPullDown);
+        case Terra_PinMode_Digital_Input_PullUp: return SFP(TStr_Enum_DigitalInputPullUp);
+        case Terra_PinMode_Digital_Input_PullDown: return SFP(TStr_Enum_DigitalInputPullDown);
         case Terra_PinMode_Digital_Output_OpenDrain: return String("DigitalOutputOpenDrain");
-        case Terra_PinMode_Digital_Output_PushPull: return String("DigitalOutputPushPull");
-        case Terra_PinMode_Analog_Input: return SFP(TStr_AnalogInput);
-        case Terra_PinMode_Analog_Output: return SFP(TStr_AnalogOutput);
+        case Terra_PinMode_Digital_Output_PushPull: return SFP(TStr_Enum_DigitalOutputPushPull);
+        case Terra_PinMode_Analog_Input: return SFP(TStr_Enum_AnalogInput);
+        case Terra_PinMode_Analog_Output: return SFP(TStr_Enum_AnalogOutput);
         case Terra_PinMode_Count: return SFP(TStr_CountLabel);
         case Terra_PinMode_Undefined: return SFP(TStr_Undefined);
     }
@@ -1452,13 +1592,13 @@ String terraPinModeToString(Terra_PinMode value)
 String terraRailTypeToString(Terra_RailType value)
 {
     switch (value) {
-        case Terra_RailType_AC110V: return String("AC110V");
-        case Terra_RailType_AC220V: return String("AC220V");
-        case Terra_RailType_DC3V3: return SFP(TStr_DC3V3);
-        case Terra_RailType_DC5V: return SFP(TStr_DC5V);
-        case Terra_RailType_DC12V: return SFP(TStr_DC12V);
-        case Terra_RailType_DC24V: return SFP(TStr_DC24V);
-        case Terra_RailType_DC48V: return String("DC48V");
+        case Terra_RailType_AC110V: return SFP(TStr_Enum_AC110V);
+        case Terra_RailType_AC220V: return SFP(TStr_Enum_AC220V);
+        case Terra_RailType_DC3V3: return SFP(TStr_Enum_DC3V3);
+        case Terra_RailType_DC5V: return SFP(TStr_Enum_DC5V);
+        case Terra_RailType_DC12V: return SFP(TStr_Enum_DC12V);
+        case Terra_RailType_DC24V: return SFP(TStr_Enum_DC24V);
+        case Terra_RailType_DC48V: return SFP(TStr_Enum_DC48V);
         case Terra_RailType_Count: return SFP(TStr_CountLabel);
         case Terra_RailType_Undefined: return SFP(TStr_Undefined);
     }
@@ -1756,4 +1896,3 @@ Terra_SystemMode terraSystemModeFromString(const String &value)
     }
     return Terra_SystemMode_Undefined;
 }
-

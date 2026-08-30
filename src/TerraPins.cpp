@@ -477,7 +477,7 @@ void TerraPinData::toJSONObject(JsonObject &objectOut) const
 
     if (isValidPin(pin)) { objectOut[SFP(TStr_Key_Pin)] = pin; }
     if (mode != Terra_PinMode_Undefined) { objectOut[SFP(TStr_Key_Mode)] = pinModeToString(mode); }
-    if (isValidChannel(channel)) { objectOut[F("channel")] = channel; }
+    if (isValidChannel(channel)) { objectOut[SFP(TStr_Key_Channel)] = channel; }
 
     if (mode != Terra_PinMode_Undefined) {
         if (!(mode == Terra_PinMode_Analog_Input || mode == Terra_PinMode_Analog_Output)) {
@@ -485,10 +485,10 @@ void TerraPinData::toJSONObject(JsonObject &objectOut) const
         } else {
             objectOut[SFP(TStr_Key_BitRes)] = dataAs.analogPin.bitRes;
             #ifdef ESP32
-                objectOut[F("pwmChannel")] = dataAs.analogPin.pwmChannel;
+                objectOut[SFP(TStr_Key_PWMChannel)] = dataAs.analogPin.pwmChannel;
             #endif
             #ifdef ESP_PLATFORM
-                objectOut[F("pwmFrequency")] = dataAs.analogPin.pwmFrequency;
+                objectOut[SFP(TStr_Key_PWMFrequency)] = dataAs.analogPin.pwmFrequency;
             #endif
         }
     }
@@ -500,7 +500,7 @@ void TerraPinData::fromJSONObject(JsonObjectConst &objectIn)
 
     pin = objectIn[SFP(TStr_Key_Pin)] | pin;
     mode = pinModeFromString(objectIn[SFP(TStr_Key_Mode)]);
-    channel = objectIn[F("channel")] | channel;
+    channel = objectIn[SFP(TStr_Key_Channel)] | channel;
 
     if (mode != Terra_PinMode_Undefined) {
         if (!(mode == Terra_PinMode_Analog_Input || mode == Terra_PinMode_Analog_Output)) {
@@ -510,10 +510,10 @@ void TerraPinData::fromJSONObject(JsonObjectConst &objectIn)
             type = (int8_t)TerraPin::Analog;
             dataAs.analogPin.bitRes = objectIn[SFP(TStr_Key_BitRes)] | dataAs.analogPin.bitRes;
             #ifdef ESP32
-                dataAs.analogPin.pwmChannel = objectIn[F("pwmChannel")] | dataAs.analogPin.pwmChannel;
+                dataAs.analogPin.pwmChannel = objectIn[SFP(TStr_Key_PWMChannel)] | dataAs.analogPin.pwmChannel;
             #endif
             #ifdef ESP_PLATFORM
-                dataAs.analogPin.pwmFrequency = objectIn[F("pwmFrequency")] | dataAs.analogPin.pwmFrequency;
+                dataAs.analogPin.pwmFrequency = objectIn[SFP(TStr_Key_PWMFrequency)] | dataAs.analogPin.pwmFrequency;
             #endif
         }
     } else {
