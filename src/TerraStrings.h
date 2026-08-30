@@ -194,15 +194,8 @@ enum Terra_String : uint16_t {
     TStr_Unknown,                           ///< "Unknown"
     TStr_Sensor,                            ///< "Sensor"
     TStr_Actuator,                          ///< "Actuator"
-    TStr_Resource,                          ///< "Resource"
-    TStr_WaterStorage,                      ///< "WaterStorage"
-    TStr_WaterSource,                       ///< "WaterSource"
-    TStr_WaterRoute,                        ///< "WaterRoute"
-    TStr_RainCatchment,                     ///< "RainCatchment"
     TStr_WaterReservoir,                    ///< "WaterReservoir"
     TStr_ThermalReservoir,                  ///< "ThermalReservoir"
-    TStr_ThermalLoop,                       ///< "ThermalLoop"
-    TStr_Environment,                       ///< "Environment"
     TStr_PowerRail,                         ///< "PowerRail"
     TStr_Water,                             ///< "Water"
     TStr_Thermal,                           ///< "Thermal"
@@ -339,16 +332,18 @@ enum Terra_String : uint16_t {
     TStr_V,                                 ///< "V"
     TStr_A,                                 ///< "A"
     TStr_inPerH,                            ///< "in/h"
+    TStr_rad,                               ///< "rad"
+    TStr_min,                               ///< "min"
 
     TStr_Count
 };
 
 extern const char *TStr_Blank;
 
-typedef bool (*TerraStringProvider)(void *context, Terra_String stringId, TerraString *valueOut);
-void setTerraStringProvider(TerraStringProvider provider, void *context = nullptr);
-TerraString stringFromPGM(Terra_String strNum);
-TerraString stringFromPGMAddr(const char *flashStr);
+typedef bool (*StringProvider)(void *context, Terra_String stringId, String *valueOut);
+void setStringProvider(StringProvider provider, void *context = nullptr);
+String stringFromPGM(Terra_String strNum);
+String stringFromPGMAddr(const char *flashStr);
 #define SFP(strNum) stringFromPGM((strNum))
 
 #ifndef TERRA_DISABLE_BUILTIN_DATA
@@ -358,44 +353,30 @@ const char *pgmAddrForStr(Terra_String strNum);
 #define CFP(strNum) SFP(strNum).c_str()
 #endif
 
-bool terraStringIdEqualsIgnoreCase(const TerraString &value, Terra_String stringId);
+bool terraStringIdEqualsIgnoreCase(const String &value, Terra_String stringId);
 
-TerraString terraObjectTypeToString(Terra_ObjectType value);
-TerraString TerraReservoirTypeToString(Terra_ReservoirType value);
-TerraString TerraReservoirStateToString(Terra_ResourceState value);
-TerraString terraWaterSourceTypeToString(Terra_WaterSourceType value);
-TerraString terraWaterStorageTypeToString(Terra_WaterStorageType value);
-TerraString terraSensorTypeToString(Terra_SensorType value);
-TerraString terraActuatorTypeToString(Terra_ActuatorType value);
-TerraString terraMeasurementModeToString(Terra_MeasurementMode value);
-TerraString terraEnableModeToString(Terra_EnableMode value);
-TerraString terraPinModeToString(Terra_PinMode value);
-TerraString terraRailTypeToString(Terra_RailType value);
-TerraString terraComparisonToString(Terra_Comparison value);
-TerraString terraTriggerStateToString(Terra_TriggerState value);
-TerraString terraLogLevelToString(Terra_LogLevel value);
-TerraString terraModuleTypeToString(Terra_ModuleType value);
-TerraString terraControlModeToString(Terra_ControlMode value);
-TerraString terraRouteStateToString(Terra_RouteState value);
-TerraString terraAttachmentRoleToString(Terra_AttachmentRole value);
+String terraObjectTypeToString(Terra_ObjectType value);
+String TerraReservoirTypeToString(Terra_ReservoirType value);
+String TerraReservoirStateToString(Terra_ResourceState value);
+String terraSensorTypeToString(Terra_SensorType value);
+String terraActuatorTypeToString(Terra_ActuatorType value);
+String terraMeasurementModeToString(Terra_MeasurementMode value);
+String terraEnableModeToString(Terra_EnableMode value);
+String terraPinModeToString(Terra_PinMode value);
+String terraRailTypeToString(Terra_RailType value);
+String terraTriggerStateToString(Terra_TriggerState value);
+String terraSystemModeToString(Terra_SystemMode value);
 
-Terra_ObjectType terraObjectTypeFromString(const TerraString &value);
-Terra_ReservoirType TerraReservoirTypeFromString(const TerraString &value);
-Terra_ResourceState TerraReservoirStateFromString(const TerraString &value);
-Terra_WaterSourceType terraWaterSourceTypeFromString(const TerraString &value);
-Terra_WaterStorageType terraWaterStorageTypeFromString(const TerraString &value);
-Terra_SensorType terraSensorTypeFromString(const TerraString &value);
-Terra_ActuatorType terraActuatorTypeFromString(const TerraString &value);
-Terra_MeasurementMode terraMeasurementModeFromString(const TerraString &value);
-Terra_EnableMode terraEnableModeFromString(const TerraString &value);
-Terra_PinMode terraPinModeFromString(const TerraString &value);
-Terra_RailType terraRailTypeFromString(const TerraString &value);
-Terra_Comparison terraComparisonFromString(const TerraString &value);
-Terra_TriggerState terraTriggerStateFromString(const TerraString &value);
-Terra_LogLevel terraLogLevelFromString(const TerraString &value);
-Terra_ModuleType terraModuleTypeFromString(const TerraString &value);
-Terra_ControlMode terraControlModeFromString(const TerraString &value);
-Terra_RouteState terraRouteStateFromString(const TerraString &value);
-Terra_AttachmentRole terraAttachmentRoleFromString(const TerraString &value);
+Terra_ObjectType terraObjectTypeFromString(const String &value);
+Terra_ReservoirType TerraReservoirTypeFromString(const String &value);
+Terra_ResourceState TerraReservoirStateFromString(const String &value);
+Terra_SensorType terraSensorTypeFromString(const String &value);
+Terra_ActuatorType terraActuatorTypeFromString(const String &value);
+Terra_MeasurementMode terraMeasurementModeFromString(const String &value);
+Terra_EnableMode terraEnableModeFromString(const String &value);
+Terra_PinMode terraPinModeFromString(const String &value);
+Terra_RailType terraRailTypeFromString(const String &value);
+Terra_TriggerState terraTriggerStateFromString(const String &value);
+Terra_SystemMode terraSystemModeFromString(const String &value);
 
 #endif // /ifndef TerraStrings_H

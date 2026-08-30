@@ -6,8 +6,10 @@
 #include <Terraduino.h>
 
 Terraduino terraController;
-SharedPtr<TerraCistern> cistern;
+SharedPtr<TerraWaterReservoir> waterTank;
+SharedPtr<TerraRemoteSensor> waterVolume;
 SharedPtr<TerraEnvironment> outside;
+SharedPtr<TerraRemoteSensor> outsideTemperature;
 uint32_t lastReport = 0;
 
 void setup()
@@ -15,23 +17,32 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    cistern = terraController.addCistern(5000.0f, 1001, "Main Cistern");
-    outside = terraController.addEnvironment(1002, "Outside");
-    cistern->setThresholds(15.0f, 30.0f, 95.0f);
-    cistern->configureFillBand(35.0f, 90.0f, 99.0f);
-    cistern->setStoredLiters(3200.0f);
-    outside->setAirTemperature(4.0f);
+    waterTank = terraController.addWaterReservoir(5000.0f, "Main Water Tank");
+    waterVolume = terraController.addRemoteSensor(Terra_SensorType_Level,
+                                                  Terra_UnitsType_LiqVolume_Liters,
+                                                  "Water Volume");
+    outside = terraController.addEnvironment("Outside");
+    outsideTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
+                                                         Terra_UnitsType_Temperature_Celsius,
+                                                         "Outside Temperature");
+
+    waterTank->getWaterVolumeSensorAttachment().setObject(waterVolume);
+    outside->setAirTemperatureSensor(outsideTemperature);
     terraController.launch();
 }
 
 void loop()
 {
+    // Replace these sample reports with installed sensor hardware.
+    waterVolume->receiveReport(3200.0f, Terra_UnitsType_LiqVolume_Liters);
+    outsideTemperature->receiveReport(4.0f, Terra_UnitsType_Temperature_Celsius);
+
     terraController.update();
 
-    uint32_t now = terraMillis();
-    if (!lastReport || terraElapsed(now, lastReport, 5000)) {
-        Serial.print(F("Cistern: "));
-        Serial.print(cistern->getLevel(), 1);
+    uint32_t now = millis();
+    if (!lastReport || now - lastReport >= 5000UL) {
+        Serial.print(F("Water tank: "));
+        Serial.print(waterTank->getLevel(), 1);
         Serial.print(F("%  Outside: "));
         Serial.print(outside->getAirTemperature(), 1);
         Serial.println(F(" C"));

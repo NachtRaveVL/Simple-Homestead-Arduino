@@ -95,7 +95,7 @@ Terra_Comparison	KEYWORD1
 Terra_TriggerState	KEYWORD1
 Terra_LogLevel	KEYWORD1
 Terra_ModuleType	KEYWORD1
-Terra_ControlMode	KEYWORD1
+Terra_SystemMode	KEYWORD1
 Terra_RouteState	KEYWORD1
 Terra_AttachmentRole	KEYWORD1
 

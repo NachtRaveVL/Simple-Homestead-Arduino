@@ -48,42 +48,21 @@ inline bool terraUpdateStableBinaryState(bool acceptedState, bool sampledState, 
     return acceptedState;
 }
 
-// Classifies a normalized resource level against reserve/low/high thresholds.
-inline Terra_ResourceState terraClassifyResourceState(float level, float reserveLevel,
-                                                       float lowLevel, float highLevel,
-                                                       bool fault = false)
+// Resolves a measured value as too low, balanced, or too high around the target range.
+inline int terraBalancingStateForValue(float value, float targetSetpoint, float targetRange)
 {
-    if (fault) { return Terra_ResourceState_Fault; }
-    if (level <= reserveLevel) { return Terra_ResourceState_Reserve; }
-    if (level <= lowLevel) { return Terra_ResourceState_Low; }
-    if (level >= highLevel) { return Terra_ResourceState_High; }
-    return Terra_ResourceState_Normal;
+    const float halfTargetRange = fabsf(targetRange) * 0.5f;
+    if (value < targetSetpoint - halfTargetRange) { return 0; }
+    if (value > targetSetpoint + halfTargetRange) { return 2; }
+    return 1;
 }
 
-// Returns the amount that can be transferred while respecting source reserve and destination target.
-inline float terraCisternTransferLiters(float sourceStoredLiters,
-                                        float sourceReserveLiters,
-                                        float destinationStoredLiters,
-                                        float destinationTargetLiters,
-                                        float requestedLiters)
+// Converts a balancing state into positive, neutral, or negative correction direction.
+inline int terraBalancingCorrectionForState(int balancingState)
 {
-    if (requestedLiters <= 0.0f) { return 0.0f; }
-    const float sourceAvailable = sourceStoredLiters > sourceReserveLiters ? sourceStoredLiters - sourceReserveLiters : 0.0f;
-    const float destinationRoom = destinationTargetLiters > destinationStoredLiters ? destinationTargetLiters - destinationStoredLiters : 0.0f;
-    const float sourceLimited = sourceAvailable < requestedLiters ? sourceAvailable : requestedLiters;
-    return destinationRoom < sourceLimited ? destinationRoom : sourceLimited;
-}
-
-inline bool terraFreezeRisk(float temperatureC, float thresholdC = 0.0f)
-{
-    return temperatureC <= thresholdC;
-}
-
-inline bool terraFlowFault(bool commandedOn, float flowRate, float minimumFlow, float maximumFlow = 0.0f)
-{
-    if (!commandedOn) { return flowRate > minimumFlow; }
-    if (flowRate < minimumFlow) { return true; }
-    return maximumFlow > 0.0f && flowRate > maximumFlow;
+    if (balancingState == 0) { return 1; }
+    if (balancingState == 2) { return -1; }
+    return 0;
 }
 
 // Binary record copy/skip plan used for append-only serialized data migrations.

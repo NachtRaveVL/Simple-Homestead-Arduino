@@ -64,48 +64,14 @@ TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
 
         case (tid_t)Terra_ObjectType_Reservoir:
             switch (classType) {
-                case (tid_t)TerraReservoir::Base:
-                    return new TerraReservoirData();
-                case (tid_t)TerraReservoir::WaterStorage:
-                    return new TerraWaterStorageData();
-                case (tid_t)TerraReservoir::Cistern:
-                    return new TerraCisternData();
-                case (tid_t)TerraReservoir::WaterSource:
-                    return new TerraWaterSourceData();
-                case (tid_t)TerraReservoir::ThermalReservoir:
+                case (tid_t)TerraReservoir::Water:
+                    return new TerraWaterReservoirData();
+                case (tid_t)TerraReservoir::Thermal:
                     return new TerraThermalReservoirData();
-                default: break;
-            }
-            break;
-
-        case (tid_t)Terra_ObjectType_WaterRoute:
-            switch (classType) {
-                case (tid_t)TerraWaterRoute::Route:
-                    return new TerraWaterRouteData();
-                default: break;
-            }
-            break;
-
-        case (tid_t)Terra_ObjectType_RainCatchment:
-            switch (classType) {
-                case (tid_t)TerraRainCatchment::Catchment:
-                    return new TerraRainCatchmentData();
-                default: break;
-            }
-            break;
-
-        case (tid_t)Terra_ObjectType_ThermalLoop:
-            switch (classType) {
-                case (tid_t)TerraThermalLoop::Loop:
-                    return new TerraThermalLoopData();
-                default: break;
-            }
-            break;
-
-        case (tid_t)Terra_ObjectType_Environment:
-            switch (classType) {
-                case (tid_t)TerraEnvironment::Standard:
-                    return new TerraEnvironmentData();
+                case (tid_t)TerraReservoir::WaterPipe:
+                    return new TerraInfiniteWaterReservoirData();
+                case (tid_t)TerraReservoir::ThermalPipe:
+                    return new TerraInfiniteThermalReservoirData();
                 default: break;
             }
             break;
@@ -126,9 +92,38 @@ TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
     return nullptr;
 }
 
+TerraObjectData::TerraObjectData()
+    : TerraData(), name{0}, enabled(true)
+{
+    _size = sizeof(*this);
+}
+
+TerraObjectData::TerraObjectData(const TerraIdentity &idIn, tid_t classType)
+    : TerraData(idIn), name{0}, enabled(true)
+{
+    id.object.classType = classType;
+    _size = sizeof(*this);
+}
+
+void TerraObjectData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraData::toJSONObject(objectOut);
+    if (name[0]) { objectOut["name"] = name; }
+    if (!enabled) { objectOut["enabled"] = false; }
+}
+
+void TerraObjectData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraData::fromJSONObject(objectIn);
+    const char *nameStr = objectIn["name"] | nullptr;
+    if (nameStr && nameStr[0]) { strncpy(name, nameStr, TERRA_NAME_MAXSIZE); }
+    enabled = objectIn["enabled"] | enabled;
+}
+
+
 TerraSystemData::TerraSystemData()
     : TerraData('T','S','Y','S', 1),
-      systemMode(Terra_SystemMode_Undefined), measureMode(Terra_MeasurementMode_Undefined),
+      systemMode(Terra_SystemMode_Undefined), measurementMode(Terra_MeasurementMode_Undefined),
       dispOutMode(Terra_DisplayOutputMode_Undefined), ctrlInMode(Terra_ControlInputMode_Undefined),
       systemName{0}, timeZoneOffset(0), pollingInterval(TERRA_DATA_LOOP_INTERVAL),
       autosaveEnabled(Terra_Autosave_Disabled), autosaveFallback(Terra_Autosave_Disabled), autosaveInterval(TERRA_SYS_AUTOSAVE_INTERVAL),
@@ -146,7 +141,7 @@ void TerraSystemData::toJSONObject(JsonObject &objectOut) const
     TerraData::toJSONObject(objectOut);
 
     objectOut[SFP(TStr_Key_SystemMode)] = systemModeToString(systemMode);
-    objectOut[SFP(TStr_Key_MeasureMode)] = measurementModeToString(measureMode);
+    objectOut[SFP(TStr_Key_MeasureMode)] = measurementModeToString(measurementMode);
     #ifdef TERRA_USE_GUI
         objectOut[SFP(TStr_Key_DispOutMode)] = displayOutputModeToString(dispOutMode);
         objectOut[SFP(TStr_Key_CtrlInMode)] = controlInputModeToString(ctrlInMode);
@@ -193,7 +188,7 @@ void TerraSystemData::fromJSONObject(JsonObjectConst &objectIn)
     TerraData::fromJSONObject(objectIn);
 
     systemMode = systemModeFromString(objectIn[SFP(TStr_Key_SystemMode)]);
-    measureMode = measurementModeFromString(objectIn[SFP(TStr_Key_MeasureMode)]);
+    measurementMode = measurementModeFromString(objectIn[SFP(TStr_Key_MeasureMode)]);
     #ifdef TERRA_USE_GUI
         dispOutMode = displayOutputModeFromString(objectIn[SFP(TStr_Key_DispOutMode)]);
         ctrlInMode = controlInputModeFromString(objectIn[SFP(TStr_Key_CtrlInMode)]);
@@ -212,7 +207,7 @@ void TerraSystemData::fromJSONObject(JsonObjectConst &objectIn)
     if (wifiSSIDStr && wifiSSIDStr[0]) { strncpy(wifiSSID, wifiSSIDStr, TERRA_NAME_MAXSIZE); }
     const char *wifiPasswordStr = objectIn[SFP(TStr_Key_WiFiPassword)];
     wifiPasswordSeed = objectIn[SFP(TStr_Key_WiFiPasswordSeed)] | wifiPasswordSeed;
-    if (wifiPasswordStr && wifiPasswordSeed) { hexStringToBytes(String(wifiPasswordStr), wifiPassword, TERRA_NAME_MAXSIZE); }
+    if (wifiPasswordStr && wifiPasswordSeed) { hexStringToBytes(wifiPasswordStr, wifiPassword, TERRA_NAME_MAXSIZE); }
     else if (wifiPasswordStr && wifiPasswordStr[0]) { strncpy((char *)wifiPassword, wifiPasswordStr, TERRA_NAME_MAXSIZE); wifiPasswordSeed = 0; }
     JsonVariantConst macAddressVar = objectIn[SFP(TStr_Key_MACAddress)];
     commaStringToArray(macAddressVar, macAddress, 6);

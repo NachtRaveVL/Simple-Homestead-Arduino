@@ -7,16 +7,13 @@
 #include "TerraUtils.h"
 #include "TerraSensors.h"
 #include "TerraActuators.h"
-#include "TerraReservoir.h"
-#include "TerraWater.h"
-#include "TerraThermal.h"
-#include "TerraEnvironment.h"
+#include "TerraReservoirs.h"
 #include "TerraRails.h"
 
-SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_UnitsType unit, const TerraString &name)
+SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_UnitsType unit, const String &name)
 {
     if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Remote));
+    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(reportedType));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraRemoteSensor>(new TerraRemoteSensor(reportedType, positionIndex, unit));
@@ -27,7 +24,7 @@ SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType repo
     return nullptr;
 }
 
-SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(uint8_t inputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(uint8_t inputPin, bool activeLow, const String &name)
 {
     if (!getController() || inputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Leak));
@@ -45,7 +42,7 @@ SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(uint8_t inputPin, bool
 SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(uint8_t inputPin,
                                                                float rawMinimum, float rawMaximum,
                                                                float levelMinimum, float levelMaximum,
-                                                               const TerraString &name)
+                                                               const String &name)
 {
     if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Level));
@@ -68,7 +65,7 @@ SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(uint8_t inputPin,
 SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(uint8_t inputPin,
                                                                            float rawMinimum, float rawMaximum,
                                                                            float temperatureMinimum, float temperatureMaximum,
-                                                                           Terra_UnitsType unit, const TerraString &name)
+                                                                           Terra_UnitsType unit, const String &name)
 {
     if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Temperature));
@@ -92,7 +89,7 @@ SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(uint8
 SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(uint8_t inputPin,
                                                                      float rawMinimum, float rawMaximum,
                                                                      float pressureMinimum, float pressureMaximum,
-                                                                     Terra_UnitsType unit, const TerraString &name)
+                                                                     Terra_UnitsType unit, const String &name)
 {
     if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Pressure));
@@ -112,7 +109,7 @@ SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(uint8_t inp
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Pump));
@@ -127,12 +124,12 @@ SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(uint8_t outputPin, 
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addSumpPumpRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addSumpPumpRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     return addPumpRelay(outputPin, activeLow, name);
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Circulator));
@@ -147,7 +144,7 @@ SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(uint8_t outpu
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Valve));
@@ -162,7 +159,7 @@ SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(uint8_t outputPin,
     return nullptr;
 }
 
-SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Fan));
@@ -177,7 +174,7 @@ SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(uint8_t outputPin, bool 
     return nullptr;
 }
 
-SharedPtr<TerraRelayActuator> TerraFactory::addHeaterRelay(uint8_t outputPin, bool activeLow, const TerraString &name)
+SharedPtr<TerraRelayActuator> TerraFactory::addHeaterRelay(uint8_t outputPin, bool activeLow, const String &name)
 {
     if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Heater));
@@ -192,121 +189,57 @@ SharedPtr<TerraRelayActuator> TerraFactory::addHeaterRelay(uint8_t outputPin, bo
     return nullptr;
 }
 
-SharedPtr<TerraReservoir> TerraFactory::addReservoir(Terra_ReservoirType reservoirType, const TerraString &name)
-{
-    if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(reservoirType));
-
-    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraReservoir>(new TerraReservoir(reservoirType, positionIndex, name));
-        if (getController()->registerObject(reservoir)) { return reservoir; }
-    }
-
-    return nullptr;
-}
-
-SharedPtr<TerraWaterStorage> TerraFactory::addWaterStorage(float capacityLiters, const TerraString &name)
+SharedPtr<TerraWaterReservoir> TerraFactory::addWaterReservoir(float maxVolume, const String &name)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraWaterStorage>(new TerraWaterStorage(capacityLiters, positionIndex, name));
+        auto reservoir = SharedPtr<TerraWaterReservoir>(new TerraWaterReservoir(positionIndex, maxVolume));
+        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraCistern> TerraFactory::addCistern(float capacityLiters, const TerraString &name)
-{
-    if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
-
-    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraCistern>(new TerraCistern(capacityLiters, positionIndex, name));
-        if (getController()->registerObject(reservoir)) { return reservoir; }
-    }
-
-    return nullptr;
-}
-
-SharedPtr<TerraWaterSource> TerraFactory::addWaterSource(uint8_t priority, const TerraString &name)
-{
-    if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
-
-    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraWaterSource>(new TerraWaterSource(priority, positionIndex, name));
-        if (getController()->registerObject(reservoir)) { return reservoir; }
-    }
-
-    return nullptr;
-}
-
-SharedPtr<TerraWaterRoute> TerraFactory::addWaterRoute(const TerraString &name)
-{
-    if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ObjectType_WaterRoute));
-
-    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto route = SharedPtr<TerraWaterRoute>(new TerraWaterRoute(positionIndex, name));
-        if (getController()->registerObject(route)) { return route; }
-    }
-
-    return nullptr;
-}
-
-SharedPtr<TerraRainCatchment> TerraFactory::addRainCatchment(float areaSquareMeters,
-                                                             float collectionEfficiency,
-                                                             const TerraString &name)
-{
-    if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ObjectType_RainCatchment));
-
-    if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto catchment = SharedPtr<TerraRainCatchment>(new TerraRainCatchment(
-            areaSquareMeters, collectionEfficiency, positionIndex, name));
-        if (getController()->registerObject(catchment)) { return catchment; }
-    }
-
-    return nullptr;
-}
-
-SharedPtr<TerraThermalReservoir> TerraFactory::addThermalReservoir(const TerraString &name)
+SharedPtr<TerraThermalReservoir> TerraFactory::addThermalReservoir(float maxTemperature, const String &name)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Thermal));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto reservoir = SharedPtr<TerraThermalReservoir>(new TerraThermalReservoir(positionIndex, name));
+        auto reservoir = SharedPtr<TerraThermalReservoir>(new TerraThermalReservoir(positionIndex, maxTemperature));
+        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraThermalLoop> TerraFactory::addThermalLoop(const TerraString &name)
+SharedPtr<TerraInfiniteWaterReservoir> TerraFactory::addInfiniteWaterReservoir(bool alwaysFilled, const String &name)
 {
     if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ObjectType_ThermalLoop));
+    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto loop = SharedPtr<TerraThermalLoop>(new TerraThermalLoop(positionIndex, name));
-        if (getController()->registerObject(loop)) { return loop; }
+        auto reservoir = SharedPtr<TerraInfiniteWaterReservoir>(new TerraInfiniteWaterReservoir(positionIndex, alwaysFilled));
+        if (name.length()) { reservoir->setName(name); }
+        if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraEnvironment> TerraFactory::addEnvironment(const TerraString &name)
+SharedPtr<TerraInfiniteThermalReservoir> TerraFactory::addInfiniteThermalReservoir(bool alwaysFilled, const String &name)
 {
     if (!getController()) { return nullptr; }
-    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ObjectType_Environment));
+    tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Thermal));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
-        auto environment = SharedPtr<TerraEnvironment>(new TerraEnvironment(positionIndex, name));
-        if (getController()->registerObject(environment)) { return environment; }
+        auto reservoir = SharedPtr<TerraInfiniteThermalReservoir>(new TerraInfiniteThermalReservoir(positionIndex, alwaysFilled));
+        if (name.length()) { reservoir->setName(name); }
+        if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
@@ -349,18 +282,6 @@ TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
             return newSensorObjectFromData(static_cast<const TerraSensorData *>(dataIn));
         case Terra_ObjectType_Reservoir:
             return newReservoirObjectFromData(static_cast<const TerraReservoirData *>(dataIn));
-        case Terra_ObjectType_WaterRoute:
-            return dataIn->id.object.classType == (tid_t)TerraWaterRoute::Route
-                ? new TerraWaterRoute(static_cast<const TerraWaterRouteData *>(dataIn)) : nullptr;
-        case Terra_ObjectType_RainCatchment:
-            return dataIn->id.object.classType == (tid_t)TerraRainCatchment::Catchment
-                ? new TerraRainCatchment(static_cast<const TerraRainCatchmentData *>(dataIn)) : nullptr;
-        case Terra_ObjectType_ThermalLoop:
-            return dataIn->id.object.classType == (tid_t)TerraThermalLoop::Loop
-                ? new TerraThermalLoop(static_cast<const TerraThermalLoopData *>(dataIn)) : nullptr;
-        case Terra_ObjectType_Environment:
-            return dataIn->id.object.classType == (tid_t)TerraEnvironment::Standard
-                ? new TerraEnvironment(static_cast<const TerraEnvironmentData *>(dataIn)) : nullptr;
         case Terra_ObjectType_Rail:
             return newRailObjectFromData(static_cast<const TerraRailData *>(dataIn));
         default:

@@ -1,60 +1,31 @@
 #include "Terraduino.h"
 #include <cassert>
-#include <cmath>
 #include <iostream>
-
-static int logEvents = 0;
-static void handleLogEvent(const TerraLogEvent event)
-{
-    ++logEvents;
-    assert(event.level == Terra_LogLevel_Info);
-}
-
-static int publishEvents = 0;
-static void handlePublishEvent(Pair<uint8_t, const TerraDataColumn *> event)
-{
-    ++publishEvents;
-    assert(event.first == 1);
-    assert(event.second != nullptr);
-    assert(event.second[0].measurement.isSet());
-}
 
 int main()
 {
     Terraduino controller;
     controller.init();
 
-    auto first = controller.addCistern(1000.0f, "First");
-    auto second = controller.addCistern(1000.0f, "Second");
+    auto first = controller.addWaterReservoir(1000.0f, "First");
+    auto second = controller.addWaterReservoir(1000.0f, "Second");
     assert(first && second);
-    assert(first->getId().type == Terra_ObjectType_WaterStorage);
-    assert(first->getId().objTypeAs.waterStorageType == Terra_WaterStorageType_Cistern);
+    assert(first->getId().type == Terra_ObjectType_Reservoir);
+    assert(first->getId().objTypeAs.reservoirType == Terra_ReservoirType_Water);
     assert(first->getId().posIndex != second->getId().posIndex);
     assert(first->getKey() != second->getKey());
 
-    TerraSingleMeasurement celsius(20.0f, Terra_UnitsType_Celsius, 100, 1);
-    TerraSingleMeasurement fahrenheit = celsius.asUnits(Terra_UnitsType_Fahrenheit);
+    TerraSingleMeasurement celsius(20.0f, Terra_UnitsType_Temperature_Celsius, 100, 1);
+    TerraSingleMeasurement fahrenheit = celsius.asUnits(Terra_UnitsType_Temperature_Fahrenheit);
     assert(fahrenheit.isSet());
     assert(isFPEqual(fahrenheit.value, 68.0f));
 
-    auto level = controller.addAnalogLevelSensor(6, 0.1f, 0.9f, 0.0f, 100.0f, "Level");
+    auto level = controller.addRemoteSensor(Terra_SensorType_Level, Terra_UnitsType_LiqVolume_Liters, "Level");
     assert(level);
-    level->setSimulatedValue(512);
-    assert(level->takeMeasurement(true));
+    level->receiveReport(500.0f, Terra_UnitsType_LiqVolume_Liters, 200, true);
     const TerraMeasurement *measurement = level->getMeasurement(false);
     assert(measurement && measurement->isSingleType());
-    assert(getMeasurementUnits(measurement) == Terra_UnitsType_Percent);
-
-    FunctionSlot<const TerraLogEvent> logSlot(handleLogEvent);
-    controller.getLogger().getLogSignal().attach(logSlot);
-    controller.getLogger().info("test", "signal");
-    assert(logEvents == 1);
-
-    FunctionSlot<Pair<uint8_t, const TerraDataColumn *>> publishSlot(handlePublishEvent);
-    controller.getPublisher().getPublishSignal().attach(publishSlot);
-    assert(controller.getPublisher().addColumn(level->getKey()));
-    level->setMeasurement(50.0f, Terra_UnitsType_Percent, 200, true);
-    assert(publishEvents == 1);
+    assert(getMeasurementUnits(measurement) == Terra_UnitsType_LiqVolume_Liters);
 
     TerraObjectData *saved = first->newSaveData();
     assert(saved && saved->isObjectData());

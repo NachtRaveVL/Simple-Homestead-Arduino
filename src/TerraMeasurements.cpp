@@ -112,7 +112,7 @@ void TerraMeasurementData::fromJSONObject(JsonObjectConst &objectIn)
     measurementRow = objectIn[SFP(TStr_Key_MeasurementRow)] | measurementRow;
     value = objectIn[SFP(TStr_Key_Value)] | value;
     const char *unitsString = objectIn[SFP(TStr_Key_Units)] | nullptr;
-    if (unitsString) { units = unitsTypeFromSymbol(TerraString(unitsString)); }
+    if (unitsString) { units = unitsTypeFromSymbol(unitsString); }
     timestamp = objectIn[SFP(TStr_Key_Timestamp)] | timestamp;
 }
 

@@ -147,7 +147,7 @@ class TerraFlowSensor : public TerraAnalogSensor {
 public:
     TerraFlowSensor(tposi_t sensorIndex,
                     TerraAnalogPin inputPin = TerraAnalogPin())
-        : TerraAnalogSensor(Terra_SensorType_Flow, sensorIndex, inputPin, Terra_UnitsType_LitersPerMinute) { ; }
+        : TerraAnalogSensor(Terra_SensorType_Flow, sensorIndex, inputPin, Terra_UnitsType_LiqFlowRate_LitersPerMin) { ; }
 };
 
 class TerraRainfallSensor : public TerraAnalogSensor {
@@ -191,7 +191,7 @@ class TerraCurrentSensor : public TerraAnalogSensor {
 public:
     TerraCurrentSensor(tposi_t sensorIndex,
                        TerraAnalogPin inputPin = TerraAnalogPin())
-        : TerraAnalogSensor(Terra_SensorType_Current, sensorIndex, inputPin, Terra_UnitsType_Current_Amperage) { ; }
+        : TerraAnalogSensor(Terra_SensorType_Current, sensorIndex, inputPin, Terra_UnitsType_Power_Amperage) { ; }
 };
 
 class TerraLeakSensor : public TerraBinarySensor {

@@ -54,7 +54,7 @@ template<typename ParameterType, int Slots>
 taskid_t scheduleSignalFireOnce(SharedPtr<TerraObjInterface> object, Signal<ParameterType,Slots> &signal, ParameterType fireParam)
 {
     SignalFireTask<ParameterType,Slots> *fireTask = object ? new SignalFireTask<ParameterType,Slots>(object, signal, fireParam) : nullptr;
-    TERRA_SOFT_ASSERT(!object || fireTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(!object || fireTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = fireTask ? taskManager.scheduleOnce(0, fireTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (fireTask ? (fireTask->taskId = retVal) : retVal);
 }
@@ -63,7 +63,7 @@ template<typename ParameterType, int Slots>
 taskid_t scheduleSignalFireOnce(Signal<ParameterType,Slots> &signal, ParameterType fireParam)
 {
     SignalFireTask<ParameterType,Slots> *fireTask = new SignalFireTask<ParameterType,Slots>(nullptr, signal, fireParam);
-    TERRA_SOFT_ASSERT(fireTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(fireTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = fireTask ? taskManager.scheduleOnce(0, fireTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (fireTask ? (fireTask->taskId = retVal) : retVal);
 }
@@ -72,7 +72,7 @@ template<class ObjectType, typename ParameterType>
 taskid_t scheduleObjectMethodCallOnce(SharedPtr<ObjectType> object, void (ObjectType::*method)(ParameterType), ParameterType callParam)
 {
     MethodSlotCallTask<ObjectType,ParameterType> *callTask = object ? new MethodSlotCallTask<ObjectType,ParameterType>(object, method, callParam) : nullptr;
-    TERRA_SOFT_ASSERT(!object || callTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(!object || callTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = callTask ? taskManager.scheduleOnce(0, callTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (callTask ? (callTask->taskId = retVal) : retVal);
 }
@@ -81,7 +81,7 @@ template<class ObjectType, typename ParameterType>
 taskid_t scheduleObjectMethodCallOnce(ObjectType *object, void (ObjectType::*method)(ParameterType), ParameterType callParam)
 {
     MethodSlotCallTask<ObjectType,ParameterType> *callTask = object ? new MethodSlotCallTask<ObjectType,ParameterType>(object, method, callParam) : nullptr;
-    TERRA_SOFT_ASSERT(!object || callTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(!object || callTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = callTask ? taskManager.scheduleOnce(0, callTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (callTask ? (callTask->taskId = retVal) : retVal);
 }
@@ -90,7 +90,7 @@ template<class ObjectType>
 taskid_t scheduleObjectMethodCallWithTaskIdOnce(SharedPtr<ObjectType> object, void (ObjectType::*method)(taskid_t))
 {
     MethodSlotCallTask<ObjectType,taskid_t> *callTask = object ? new MethodSlotCallTask<ObjectType,taskid_t>(object, method, (taskid_t)0) : nullptr;
-    TERRA_SOFT_ASSERT(!object || callTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(!object || callTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = callTask ? taskManager.scheduleOnce(0, callTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (callTask ? (callTask->taskId = (callTask->_callParam = retVal)) : retVal);
 }
@@ -99,7 +99,7 @@ template<class ObjectType>
 taskid_t scheduleObjectMethodCallWithTaskIdOnce(ObjectType *object, void (ObjectType::*method)(taskid_t))
 {
     MethodSlotCallTask<ObjectType,taskid_t> *callTask = object ? new MethodSlotCallTask<ObjectType,taskid_t>(object, method, (taskid_t)0) : nullptr;
-    TERRA_SOFT_ASSERT(!object || callTask, SFP(HStr_Err_AllocationFailure));
+    TERRA_SOFT_ASSERT(!object || callTask, SFP(TStr_Err_AllocationFailure));
     taskid_t retVal = callTask ? taskManager.scheduleOnce(0, callTask, TIME_MILLIS, true) : TASKMGR_INVALIDID;
     return (callTask ? (callTask->taskId = (callTask->_callParam = retVal)) : retVal);
 }
@@ -124,19 +124,19 @@ void MethodSlotCallTask<ObjectType,ParameterType>::exec()
 template<typename T>
 String commaStringFromArray(const T *arrayIn, size_t length)
 {
-    if (!arrayIn || !length) { return String(SFP(HStr_null)); }
+    if (!arrayIn || !length) { return String(SFP(TStr_null)); }
     String retVal; retVal.reserve(length << 1 + length >> 1 + 1);
     for (size_t index = 0; index < length; ++index) {
         if (retVal.length()) { retVal.concat(','); }
         retVal += String(arrayIn[index]);
     }
-    return retVal.length() ? retVal : String(SFP(HStr_null));
+    return retVal.length() ? retVal : String(SFP(TStr_null));
 }
 
 template<typename T>
 void commaStringToArray(String stringIn, T *arrayOut, size_t length)
 {
-    if (!stringIn.length() || !length || stringIn.equalsIgnoreCase(SFP(HStr_null))) { return; }
+    if (!stringIn.length() || !length || stringIn.equalsIgnoreCase(SFP(TStr_null))) { return; }
     int lastSepPos = -1;
     for (size_t index = 0; index < length; ++index) {
         int nextSepPos = stringIn.indexOf(',', lastSepPos+1);
@@ -214,7 +214,7 @@ Vector<TerraObject *, N> linksFilterActuators(Pair<uint8_t, Pair<TerraObject *, 
     Vector<TerraObject *, N> retVal;
 
     for (tposi_t linksIndex = 0; linksIndex < links.first && links.second[linksIndex].first; ++linksIndex) {
-        if (links.second[linksIndex].first->isActuatorType()) {
+        if (links.second[linksIndex].first->getObjectType() == Terra_ObjectType_Actuator) {
             retVal.push_back(links.second[linksIndex].first);
         }
     }
@@ -227,7 +227,7 @@ void linksResolveActuatorsByType(Vector<TerraObject *, N> &actuatorsIn, Vector<T
 {
     for (auto actIter = actuatorsIn.begin(); actIter != actuatorsIn.end(); ++actIter) {
         auto actuator = getSharedPtr<TerraActuator>(*actIter);
-        TERRA_HARD_ASSERT(actuator, SFP(HStr_Err_OperationFailure));
+        TERRA_HARD_ASSERT(actuator, SFP(TStr_Err_OperationFailure));
         if (actuator->getActuatorType() == actuatorType) {
             activationsOut.push_back(TerraActuatorAttachment());
             activationsOut.back().setObject(actuator);
@@ -240,7 +240,7 @@ void linksResolveActuatorsToAttachments(Vector<TerraObject *, N> &actuatorsIn, T
 {
     for (auto actIter = actuatorsIn.begin(); actIter != actuatorsIn.end(); ++actIter) {
         auto actuator = getSharedPtr<TerraActuator>(*actIter);
-        TERRA_HARD_ASSERT(actuator, SFP(HStr_Err_OperationFailure));
+        TERRA_HARD_ASSERT(actuator, SFP(TStr_Err_OperationFailure));
 
         activationsOut.push_back(TerraActuatorAttachment());
         activationsOut.back().setParent(parent, subIndex);
@@ -330,23 +330,6 @@ inline bool checkPinIsPWMOutput(pintype_t pin)
     #else
         return checkPinIsDigital(pin); // all digital pins are PWM capable
     #endif
-}
-
-inline bool checkPinCanInterrupt(pintype_t pin)
-{
-    if (pin >= tpin_virtual) {
-        #ifdef TERRA_USE_MULTITASKING
-            return getController() && getController()->getPinExpander(expanderPosForPinNumber(pin)) &&
-                   getController()->getPinExpander(expanderPosForPinNumber(pin))->getInterruptPin().isValid() &&
-                   isValidPin(digitalPinToInterrupt(getController()->getPinExpander(expanderPosForPinNumber(pin))->getInterruptPin().pin));
-        #else
-            return false;
-        #endif
-    }
-    return (getController() && getController()->getPinMuxer(pin) &&
-            getController()->getPinMuxer(pin)->getInterruptPin().isValid() &&
-            isValidPin(digitalPinToInterrupt(getController()->getPinMuxer(pin)->getInterruptPin().pin)))
-           || isValidPin(digitalPinToInterrupt(pin));
 }
 
 #endif // /ifndef TerraUtils_HPP

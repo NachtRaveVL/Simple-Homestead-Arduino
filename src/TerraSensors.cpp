@@ -147,7 +147,7 @@ bool TerraAnalogSensor::takeMeasurement(bool force)
 
 TerraRemoteSensor::TerraRemoteSensor(Terra_SensorType reportedType, tposi_t sensorIndex,
                                      Terra_UnitsType units)
-    : TerraSensor(Terra_SensorType_Remote, sensorIndex, units, Remote), _reportedType(reportedType),
+    : TerraSensor(reportedType, sensorIndex, units, Remote), _reportedType(reportedType),
       _staleAfterMs(TERRA_DEFAULT_REMOTE_STALE_MS), _lastReportAt(0), _hasReport(false)
 { ; }
 

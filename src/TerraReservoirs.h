@@ -3,8 +3,8 @@
     Terraduino Reservoirs
 */
 
-#ifndef TerraReservoir_H
-#define TerraReservoir_H
+#ifndef TerraReservoirs_H
+#define TerraReservoirs_H
 
 class TerraReservoir;
 class TerraWaterReservoir;
@@ -299,4 +299,4 @@ struct TerraInfiniteThermalReservoirData : public TerraThermalReservoirData {
     virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
-#endif // /ifndef TerraReservoir_H
+#endif // /ifndef TerraReservoirs_H

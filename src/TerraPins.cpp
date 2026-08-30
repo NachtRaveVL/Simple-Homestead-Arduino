@@ -155,7 +155,7 @@ void TerraPinData::fromJSONObject(JsonObjectConst &objectIn)
     TerraSubData::fromJSONObject(objectIn);
     pin = objectIn[SFP(TStr_Key_Pin)] | pin;
     const char *modeString = objectIn[SFP(TStr_Key_Mode)] | nullptr;
-    if (modeString) { mode = terraPinModeFromString(TerraString(modeString)); }
+    if (modeString) { mode = terraPinModeFromString(modeString); }
     activeLow = objectIn[SFP(TStr_Key_ActiveLow)] | activeLow;
     bitRes = objectIn[SFP(TStr_Key_BitRes)] | bitRes;
 }

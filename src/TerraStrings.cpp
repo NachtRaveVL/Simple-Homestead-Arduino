@@ -7,7 +7,7 @@
 #include "TerraUtils.h"
 #include <ctype.h>
 
-static size_t terraStringLength(const TerraString &value)
+static size_t terraStringLength(const String &value)
 {
 #if defined(ARDUINO)
     return value.length();
@@ -16,7 +16,7 @@ static size_t terraStringLength(const TerraString &value)
 #endif
 }
 
-static char terraTrieChar(const TerraString &value, size_t index)
+static char terraTrieChar(const String &value, size_t index)
 {
     if (index >= terraStringLength(value)) { return '\0'; }
     return (char)tolower((unsigned char)value[index]);
@@ -26,35 +26,35 @@ static char terraTrieChar(const TerraString &value, size_t index)
 static char _terraBlank = '\0';
 const char *TStr_Blank = &_terraBlank;
 
-static TerraStringProvider _terraStringProvider = nullptr;
+static StringProvider _terraStringProvider = nullptr;
 static void *_terraStringProviderContext = nullptr;
 
-void setTerraStringProvider(TerraStringProvider provider, void *context)
+void setStringProvider(StringProvider provider, void *context)
 {
     _terraStringProvider = provider;
     _terraStringProviderContext = context;
 }
 
-TerraString stringFromPGM(Terra_String strNum)
+String stringFromPGM(Terra_String strNum)
 {
 #ifndef TERRA_DISABLE_BUILTIN_DATA
     return stringFromPGMAddr(pgmAddrForStr(strNum));
 #else
-    TerraString value;
-    return _terraStringProvider && _terraStringProvider(_terraStringProviderContext, strNum, &value) ? value : TerraString();
+    String value;
+    return _terraStringProvider && _terraStringProvider(_terraStringProviderContext, strNum, &value) ? value : String();
 #endif
 }
 
-TerraString stringFromPGMAddr(const char *flashStr)
+String stringFromPGMAddr(const char *flashStr)
 {
-    if (!flashStr) { return TerraString(); }
+    if (!flashStr) { return String(); }
 #if defined(ARDUINO)
-    TerraString value;
+    String value;
     char ch;
     while ((ch = (char)pgm_read_byte(flashStr++)) != '\0') { value += ch; }
     return value;
 #else
-    return TerraString(flashStr);
+    return String(flashStr);
 #endif
 }
 
@@ -527,7 +527,7 @@ const char *pgmAddrForStr(Terra_String strNum)
             return flashStr;
         }
         case TStr_Key_MeasureMode: {
-            static const char flashStr[] PROGMEM = "measureMode";
+            static const char flashStr[] PROGMEM = "measurementMode";
             return flashStr;
         }
         case TStr_Key_MinimumFlowLpm: {
@@ -766,40 +766,12 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Actuator";
             return flashStr;
         }
-        case TStr_Resource: {
-            static const char flashStr[] PROGMEM = "Resource";
-            return flashStr;
-        }
-        case TStr_WaterStorage: {
-            static const char flashStr[] PROGMEM = "WaterStorage";
-            return flashStr;
-        }
-        case TStr_WaterSource: {
-            static const char flashStr[] PROGMEM = "WaterSource";
-            return flashStr;
-        }
-        case TStr_WaterRoute: {
-            static const char flashStr[] PROGMEM = "WaterRoute";
-            return flashStr;
-        }
-        case TStr_RainCatchment: {
-            static const char flashStr[] PROGMEM = "RainCatchment";
-            return flashStr;
-        }
         case TStr_WaterReservoir: {
             static const char flashStr[] PROGMEM = "WaterReservoir";
             return flashStr;
         }
         case TStr_ThermalReservoir: {
             static const char flashStr[] PROGMEM = "ThermalReservoir";
-            return flashStr;
-        }
-        case TStr_ThermalLoop: {
-            static const char flashStr[] PROGMEM = "ThermalLoop";
-            return flashStr;
-        }
-        case TStr_Environment: {
-            static const char flashStr[] PROGMEM = "Environment";
             return flashStr;
         }
         case TStr_PowerRail: {
@@ -1342,90 +1314,64 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "in/h";
             return flashStr;
         }
+        case TStr_rad: {
+            static const char flashStr[] PROGMEM = "rad";
+            return flashStr;
+        }
+        case TStr_min: {
+            static const char flashStr[] PROGMEM = "min";
+            return flashStr;
+        }
         case TStr_Count: break;
     }
     return TStr_Blank;
 }
 #endif
 
-bool terraStringIdEqualsIgnoreCase(const TerraString &value, Terra_String stringId)
+bool terraStringIdEqualsIgnoreCase(const String &value, Terra_String stringId)
 {
     return terraStringEqualsIgnoreCase(value, SFP(stringId));
 }
 
-TerraString terraObjectTypeToString(Terra_ObjectType value)
+String terraObjectTypeToString(Terra_ObjectType value)
 {
     switch (value) {
-        case Terra_ObjectType_Undefined: return SFP(TStr_Undefined);
-        case Terra_ObjectType_Sensor: return SFP(TStr_Sensor);
         case Terra_ObjectType_Actuator: return SFP(TStr_Actuator);
-        case Terra_ObjectType_Resource: return SFP(TStr_Resource);
-        case Terra_ObjectType_WaterStorage: return SFP(TStr_WaterStorage);
-        case Terra_ObjectType_WaterSource: return SFP(TStr_WaterSource);
-        case Terra_ObjectType_WaterRoute: return SFP(TStr_WaterRoute);
-        case Terra_ObjectType_RainCatchment: return SFP(TStr_RainCatchment);
-        case Terra_ObjectType_ThermalReservoir: return SFP(TStr_ThermalReservoir);
-        case Terra_ObjectType_ThermalLoop: return SFP(TStr_ThermalLoop);
-        case Terra_ObjectType_Environment: return SFP(TStr_Environment);
-        case Terra_ObjectType_PowerRail: return SFP(TStr_PowerRail);
+        case Terra_ObjectType_Sensor: return SFP(TStr_Sensor);
+        case Terra_ObjectType_Reservoir: return SFP(TStr_Reservoir);
+        case Terra_ObjectType_Rail: return String("Rail");
+        case Terra_ObjectType_Count: return SFP(TStr_CountLabel);
+        case Terra_ObjectType_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString TerraReservoirTypeToString(Terra_ReservoirType value)
+String TerraReservoirTypeToString(Terra_ReservoirType value)
 {
     switch (value) {
-        case Terra_ReservoirType_Undefined: return SFP(TStr_Undefined);
         case Terra_ReservoirType_Water: return SFP(TStr_Water);
         case Terra_ReservoirType_Thermal: return SFP(TStr_Thermal);
+        case Terra_ReservoirType_Count: return SFP(TStr_CountLabel);
+        case Terra_ReservoirType_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString TerraReservoirStateToString(Terra_ResourceState value)
+String TerraReservoirStateToString(Terra_ResourceState value)
 {
     switch (value) {
-        case Terra_ResourceState_Unknown: return SFP(TStr_Unknown);
         case Terra_ResourceState_Normal: return SFP(TStr_Normal);
         case Terra_ResourceState_Low: return SFP(TStr_Low);
-        case Terra_ResourceState_Reserve: return SFP(TStr_Reserve);
         case Terra_ResourceState_High: return SFP(TStr_High);
-        case Terra_ResourceState_Fault: return SFP(TStr_Fault);
+        case Terra_ResourceState_Count: return SFP(TStr_CountLabel);
+        case Terra_ResourceState_Unknown: return SFP(TStr_Unknown);
     }
     return SFP(TStr_Unknown);
 }
 
-TerraString terraWaterSourceTypeToString(Terra_WaterSourceType value)
+String terraSensorTypeToString(Terra_SensorType value)
 {
     switch (value) {
-        case Terra_WaterSourceType_Undefined: return SFP(TStr_Undefined);
-        case Terra_WaterSourceType_Rainwater: return SFP(TStr_Rainwater);
-        case Terra_WaterSourceType_Well: return SFP(TStr_Well);
-        case Terra_WaterSourceType_Municipal: return SFP(TStr_Municipal);
-        case Terra_WaterSourceType_Surface: return SFP(TStr_Surface);
-        case Terra_WaterSourceType_Reclaimed: return SFP(TStr_Reclaimed);
-        case Terra_WaterSourceType_Stored: return SFP(TStr_Stored);
-    }
-    return SFP(TStr_Undefined);
-}
-
-TerraString terraWaterStorageTypeToString(Terra_WaterStorageType value)
-{
-    switch (value) {
-        case Terra_WaterStorageType_Undefined: return SFP(TStr_Undefined);
-        case Terra_WaterStorageType_Tank: return SFP(TStr_Tank);
-        case Terra_WaterStorageType_Cistern: return SFP(TStr_Cistern);
-        case Terra_WaterStorageType_Reservoir: return SFP(TStr_Reservoir);
-    }
-    return SFP(TStr_Undefined);
-}
-
-TerraString terraSensorTypeToString(Terra_SensorType value)
-{
-    switch (value) {
-        case Terra_SensorType_Undefined: return SFP(TStr_Undefined);
-        case Terra_SensorType_Binary: return SFP(TStr_Binary);
-        case Terra_SensorType_Analog: return SFP(TStr_Analog);
         case Terra_SensorType_Temperature: return SFP(TStr_Temperature);
         case Terra_SensorType_Humidity: return SFP(TStr_Humidity);
         case Terra_SensorType_Pressure: return SFP(TStr_Pressure);
@@ -1438,25 +1384,27 @@ TerraString terraSensorTypeToString(Terra_SensorType value)
         case Terra_SensorType_Voltage: return SFP(TStr_Voltage);
         case Terra_SensorType_Current: return SFP(TStr_Current);
         case Terra_SensorType_Leak: return SFP(TStr_Leak);
-        case Terra_SensorType_Remote: return SFP(TStr_Remote);
+        case Terra_SensorType_Count: return SFP(TStr_CountLabel);
+        case Terra_SensorType_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraActuatorTypeToString(Terra_ActuatorType value)
+String terraActuatorTypeToString(Terra_ActuatorType value)
 {
     switch (value) {
-        case Terra_ActuatorType_Undefined: return SFP(TStr_Undefined);
         case Terra_ActuatorType_Pump: return SFP(TStr_Pump);
         case Terra_ActuatorType_Valve: return SFP(TStr_Valve);
         case Terra_ActuatorType_Fan: return SFP(TStr_Fan);
         case Terra_ActuatorType_Heater: return SFP(TStr_Heater);
         case Terra_ActuatorType_Circulator: return SFP(TStr_Circulator);
+        case Terra_ActuatorType_Count: return SFP(TStr_CountLabel);
+        case Terra_ActuatorType_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraMeasurementModeToString(Terra_MeasurementMode value)
+String terraMeasurementModeToString(Terra_MeasurementMode value)
 {
     switch (value) {
         case Terra_MeasurementMode_Imperial: return SFP(TStr_Imperial);
@@ -1468,7 +1416,7 @@ TerraString terraMeasurementModeToString(Terra_MeasurementMode value)
     return SFP(TStr_Undefined);
 }
 
-TerraString terraEnableModeToString(Terra_EnableMode value)
+String terraEnableModeToString(Terra_EnableMode value)
 {
     switch (value) {
         case Terra_EnableMode_Highest: return SFP(TStr_Highest);
@@ -1477,19 +1425,22 @@ TerraString terraEnableModeToString(Terra_EnableMode value)
         case Terra_EnableMode_Multiply: return SFP(TStr_Multiply);
         case Terra_EnableMode_InOrder: return SFP(TStr_InOrder);
         case Terra_EnableMode_RevOrder: return SFP(TStr_RevOrder);
+        case Terra_EnableMode_DescOrder: return String("DescOrder");
+        case Terra_EnableMode_AscOrder: return String("AscOrder");
         case Terra_EnableMode_Count: return SFP(TStr_CountLabel);
         case Terra_EnableMode_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraPinModeToString(Terra_PinMode value)
+String terraPinModeToString(Terra_PinMode value)
 {
     switch (value) {
-        case Terra_PinMode_Digital_Input: return SFP(TStr_DigitalInput);
+        case Terra_PinMode_Digital_Input_Floating: return String("DigitalInputFloating");
         case Terra_PinMode_Digital_Input_PullUp: return SFP(TStr_DigitalInputPullUp);
         case Terra_PinMode_Digital_Input_PullDown: return SFP(TStr_DigitalInputPullDown);
-        case Terra_PinMode_Digital_Output: return SFP(TStr_DigitalOutput);
+        case Terra_PinMode_Digital_Output_OpenDrain: return String("DigitalOutputOpenDrain");
+        case Terra_PinMode_Digital_Output_PushPull: return String("DigitalOutputPushPull");
         case Terra_PinMode_Analog_Input: return SFP(TStr_AnalogInput);
         case Terra_PinMode_Analog_Output: return SFP(TStr_AnalogOutput);
         case Terra_PinMode_Count: return SFP(TStr_CountLabel);
@@ -1498,162 +1449,76 @@ TerraString terraPinModeToString(Terra_PinMode value)
     return SFP(TStr_Undefined);
 }
 
-TerraString terraRailTypeToString(Terra_RailType value)
+String terraRailTypeToString(Terra_RailType value)
 {
     switch (value) {
-        case Terra_RailType_Custom: return SFP(TStr_Custom);
+        case Terra_RailType_AC110V: return String("AC110V");
+        case Terra_RailType_AC220V: return String("AC220V");
         case Terra_RailType_DC3V3: return SFP(TStr_DC3V3);
         case Terra_RailType_DC5V: return SFP(TStr_DC5V);
         case Terra_RailType_DC12V: return SFP(TStr_DC12V);
         case Terra_RailType_DC24V: return SFP(TStr_DC24V);
+        case Terra_RailType_DC48V: return String("DC48V");
         case Terra_RailType_Count: return SFP(TStr_CountLabel);
         case Terra_RailType_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraComparisonToString(Terra_Comparison value)
+String terraTriggerStateToString(Terra_TriggerState value)
 {
     switch (value) {
-        case Terra_Comparison_LessThan: return SFP(TStr_LessThan);
-        case Terra_Comparison_LessOrEqual: return SFP(TStr_LessOrEqual);
-        case Terra_Comparison_GreaterThan: return SFP(TStr_GreaterThan);
-        case Terra_Comparison_GreaterOrEqual: return SFP(TStr_GreaterOrEqual);
-        case Terra_Comparison_Equal: return SFP(TStr_Equal);
-        case Terra_Comparison_NotEqual: return SFP(TStr_NotEqual);
-    }
-    return SFP(TStr_GreaterOrEqual);
-}
-
-TerraString terraTriggerStateToString(Terra_TriggerState value)
-{
-    switch (value) {
-        case Terra_TriggerState_Inactive: return SFP(TStr_Inactive);
-        case Terra_TriggerState_Active: return SFP(TStr_Active);
-        case Terra_TriggerState_Fault: return SFP(TStr_Fault);
-    }
-    return SFP(TStr_Fault);
-}
-
-TerraString terraLogLevelToString(Terra_LogLevel value)
-{
-    switch (value) {
-        case Terra_LogLevel_Debug: return SFP(TStr_DEBUG);
-        case Terra_LogLevel_Info: return SFP(TStr_INFO);
-        case Terra_LogLevel_Warning: return SFP(TStr_WARN);
-        case Terra_LogLevel_Error: return SFP(TStr_ERROR);
-    }
-    return SFP(TStr_INFO);
-}
-
-TerraString terraModuleTypeToString(Terra_ModuleType value)
-{
-    switch (value) {
-        case Terra_ModuleType_Undefined: return SFP(TStr_Undefined);
-        case Terra_ModuleType_RTC: return SFP(TStr_RTC);
-        case Terra_ModuleType_Storage: return SFP(TStr_Storage);
-        case Terra_ModuleType_Display: return SFP(TStr_Display);
-        case Terra_ModuleType_Network: return SFP(TStr_Network);
-        case Terra_ModuleType_Radio: return SFP(TStr_Radio);
-        case Terra_ModuleType_IOExpander: return SFP(TStr_IOExpander);
+        case Terra_TriggerState_Disabled: return SFP(TStr_Disabled);
+        case Terra_TriggerState_NotTriggered: return String("NotTriggered");
+        case Terra_TriggerState_Triggered: return String("Triggered");
+        case Terra_TriggerState_Count: return SFP(TStr_CountLabel);
+        case Terra_TriggerState_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-TerraString terraControlModeToString(Terra_ControlMode value)
+String terraSystemModeToString(Terra_SystemMode value)
 {
     switch (value) {
-        case Terra_ControlMode_Manual: return SFP(TStr_Manual);
-        case Terra_ControlMode_Automatic: return SFP(TStr_Automatic);
-        case Terra_ControlMode_Disabled: return SFP(TStr_Disabled);
-    }
-    return SFP(TStr_Disabled);
-}
-
-TerraString terraRouteStateToString(Terra_RouteState value)
-{
-    switch (value) {
-        case Terra_RouteState_Idle: return SFP(TStr_Idle);
-        case Terra_RouteState_Requested: return SFP(TStr_Requested);
-        case Terra_RouteState_Active: return SFP(TStr_Active);
-        case Terra_RouteState_Complete: return SFP(TStr_Complete);
-        case Terra_RouteState_Fault: return SFP(TStr_Fault);
-    }
-    return SFP(TStr_Idle);
-}
-
-TerraString terraAttachmentRoleToString(Terra_AttachmentRole value)
-{
-    switch (value) {
-        case Terra_AttachmentRole_Undefined: return SFP(TStr_Undefined);
-        case Terra_AttachmentRole_PrimarySensor: return SFP(TStr_PrimarySensor);
-        case Terra_AttachmentRole_SecondarySensor: return SFP(TStr_SecondarySensor);
-        case Terra_AttachmentRole_LevelSensor: return SFP(TStr_LevelSensor);
-        case Terra_AttachmentRole_FlowSensor: return SFP(TStr_FlowSensor);
-        case Terra_AttachmentRole_TemperatureSensor: return SFP(TStr_TemperatureSensor);
-        case Terra_AttachmentRole_HumiditySensor: return SFP(TStr_HumiditySensor);
-        case Terra_AttachmentRole_PressureSensor: return SFP(TStr_PressureSensor);
-        case Terra_AttachmentRole_RainfallSensor: return SFP(TStr_RainfallSensor);
-        case Terra_AttachmentRole_RainRateSensor: return SFP(TStr_RainRateSensor);
-        case Terra_AttachmentRole_WindSpeedSensor: return SFP(TStr_WindSpeedSensor);
-        case Terra_AttachmentRole_WindDirectionSensor: return SFP(TStr_WindDirectionSensor);
-        case Terra_AttachmentRole_SolarRadiationSensor: return SFP(TStr_SolarRadiationSensor);
-        case Terra_AttachmentRole_LeakSensor: return SFP(TStr_LeakSensor);
-        case Terra_AttachmentRole_Storage: return SFP(TStr_Storage);
-        case Terra_AttachmentRole_Pump: return SFP(TStr_Pump);
-        case Terra_AttachmentRole_Valve: return SFP(TStr_Valve);
-        case Terra_AttachmentRole_Diverter: return SFP(TStr_Diverter);
-        case Terra_AttachmentRole_Heater: return SFP(TStr_Heater);
-        case Terra_AttachmentRole_Circulator: return SFP(TStr_Circulator);
+        case Terra_SystemMode_Manual: return SFP(TStr_Manual);
+        case Terra_SystemMode_Automatic: return SFP(TStr_Automatic);
+        case Terra_SystemMode_Disabled: return SFP(TStr_Disabled);
+        case Terra_SystemMode_Count: return SFP(TStr_CountLabel);
+        case Terra_SystemMode_Undefined: return SFP(TStr_Undefined);
     }
     return SFP(TStr_Undefined);
 }
 
-
-// All remaining methods generated from minimum spanning trie
-
-Terra_ObjectType terraObjectTypeFromString(const TerraString &value)
+Terra_ObjectType terraObjectTypeFromString(const String &value)
 {
     switch (terraTrieChar(value, 2)) {
         case 'd':
             return Terra_ObjectType_Undefined;
-        case 'e':
-            switch (terraTrieChar(value, 7)) {
-                case 'l':
-                    return Terra_ObjectType_ThermalLoop;
-                case 's':
-                    return Terra_ObjectType_ThermalReservoir;
-            }
-            return Terra_ObjectType_Undefined;
         case 'i':
-            return Terra_ObjectType_RainCatchment;
+            switch (terraTrieChar(value, 3)) {
+                case 'l':
+                    return Terra_ObjectType_Rail;
+            }
+            break;
         case 'n':
             return Terra_ObjectType_Sensor;
         case 's':
-            return Terra_ObjectType_Resource;
+            return Terra_ObjectType_Reservoir;
         case 't':
-            switch (terraTrieChar(value, 9)) {
-                case '\0':
-                    return Terra_ObjectType_Actuator;
-                case 'a':
-                    return Terra_ObjectType_WaterStorage;
-                case 'c':
-                    return Terra_ObjectType_WaterSource;
-                case 'e':
-                    return Terra_ObjectType_WaterRoute;
-            }
-            return Terra_ObjectType_Undefined;
+            return Terra_ObjectType_Actuator;
+        case 'u':
+            return Terra_ObjectType_Count;
         case 'v':
             return Terra_ObjectType_Environment;
-        case 'w':
-            return Terra_ObjectType_PowerRail;
     }
     return Terra_ObjectType_Undefined;
 }
 
-Terra_ReservoirType TerraReservoirTypeFromString(const TerraString &value)
+Terra_ReservoirType TerraReservoirTypeFromString(const String &value)
 {
     switch (terraTrieChar(value, 0)) {
+        case 'c':
+            return Terra_ReservoirType_Count;
         case 't':
             return Terra_ReservoirType_Thermal;
         case 'u':
@@ -1664,126 +1529,91 @@ Terra_ReservoirType TerraReservoirTypeFromString(const TerraString &value)
     return Terra_ReservoirType_Undefined;
 }
 
-Terra_ResourceState TerraReservoirStateFromString(const TerraString &value)
+Terra_ResourceState TerraReservoirStateFromString(const String &value)
 {
     switch (terraTrieChar(value, 0)) {
-        case 'f':
-            return Terra_ResourceState_Fault;
+        case 'c':
+            return Terra_ResourceState_Count;
         case 'h':
             return Terra_ResourceState_High;
         case 'l':
             return Terra_ResourceState_Low;
         case 'n':
             return Terra_ResourceState_Normal;
-        case 'r':
-            return Terra_ResourceState_Reserve;
         case 'u':
             return Terra_ResourceState_Unknown;
     }
     return Terra_ResourceState_Unknown;
 }
 
-Terra_WaterSourceType terraWaterSourceTypeFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 2)) {
-        case 'c':
-            return Terra_WaterSourceType_Reclaimed;
-        case 'd':
-            return Terra_WaterSourceType_Undefined;
-        case 'i':
-            return Terra_WaterSourceType_Rainwater;
-        case 'l':
-            return Terra_WaterSourceType_Well;
-        case 'n':
-            return Terra_WaterSourceType_Municipal;
-        case 'o':
-            return Terra_WaterSourceType_Stored;
-        case 'r':
-            return Terra_WaterSourceType_Surface;
-    }
-    return Terra_WaterSourceType_Undefined;
-}
-
-Terra_WaterStorageType terraWaterStorageTypeFromString(const TerraString &value)
+Terra_SensorType terraSensorTypeFromString(const String &value)
 {
     switch (terraTrieChar(value, 0)) {
         case 'c':
-            return Terra_WaterStorageType_Cistern;
-        case 'r':
-            return Terra_WaterStorageType_Reservoir;
-        case 't':
-            return Terra_WaterStorageType_Tank;
-        case 'u':
-            return Terra_WaterStorageType_Undefined;
-    }
-    return Terra_WaterStorageType_Undefined;
-}
-
-Terra_SensorType terraSensorTypeFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 8)) {
-        case '\0':
-            switch (terraTrieChar(value, 3)) {
-                case 'a':
-                    return Terra_SensorType_Binary;
-                case 'e':
-                    return Terra_SensorType_Level;
-                case 'i':
-                    return Terra_SensorType_Humidity;
-                case 'k':
-                    return Terra_SensorType_Leak;
-                case 'l':
-                    return Terra_SensorType_Analog;
-                case 'n':
-                    return Terra_SensorType_Rainfall;
+            switch (terraTrieChar(value, 1)) {
                 case 'o':
-                    return Terra_SensorType_Remote;
-                case 'r':
-                    return Terra_SensorType_Current;
-                case 's':
-                    return Terra_SensorType_Pressure;
-                case 't':
-                    return Terra_SensorType_Voltage;
-                case 'w':
-                    return Terra_SensorType_Flow;
-            }
-            return Terra_SensorType_Undefined;
-        case 'c':
-            return Terra_SensorType_WindDirection;
-        case 'd':
-            switch (terraTrieChar(value, 0)) {
+                    return Terra_SensorType_Count;
                 case 'u':
-                    return Terra_SensorType_Undefined;
-                case 'w':
+                    return Terra_SensorType_Current;
+            }
+            break;
+        case 'f':
+            return Terra_SensorType_Flow;
+        case 'h':
+            return Terra_SensorType_Humidity;
+        case 'l':
+            switch (terraTrieChar(value, 2)) {
+                case 'a':
+                    return Terra_SensorType_Leak;
+                case 'v':
+                    return Terra_SensorType_Level;
+            }
+            break;
+        case 'p':
+            return Terra_SensorType_Pressure;
+        case 'r':
+            return Terra_SensorType_Rainfall;
+        case 's':
+            return Terra_SensorType_SolarRadiation;
+        case 't':
+            return Terra_SensorType_Temperature;
+        case 'u':
+            return Terra_SensorType_Undefined;
+        case 'v':
+            return Terra_SensorType_Voltage;
+        case 'w':
+            switch (terraTrieChar(value, 4)) {
+                case 'd':
+                    return Terra_SensorType_WindDirection;
+                case 's':
                     return Terra_SensorType_WindSpeed;
             }
-            return Terra_SensorType_Undefined;
-        case 'i':
-            return Terra_SensorType_SolarRadiation;
-        case 'u':
-            return Terra_SensorType_Temperature;
     }
     return Terra_SensorType_Undefined;
 }
 
-Terra_ActuatorType terraActuatorTypeFromString(const TerraString &value)
+Terra_ActuatorType terraActuatorTypeFromString(const String &value)
 {
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            return Terra_ActuatorType_Circulator;
-        case 'f':
-            return Terra_ActuatorType_Fan;
-        case 'h':
+    switch (terraTrieChar(value, 2)) {
+        case 'a':
             return Terra_ActuatorType_Heater;
-        case 'p':
-            return Terra_ActuatorType_Pump;
-        case 'v':
+        case 'd':
+            return Terra_ActuatorType_Undefined;
+        case 'l':
             return Terra_ActuatorType_Valve;
+        case 'm':
+            return Terra_ActuatorType_Pump;
+        case 'n':
+            return Terra_ActuatorType_Fan;
+        case 'r':
+            return Terra_ActuatorType_Circulator;
+        case 'u':
+            return Terra_ActuatorType_Count;
     }
     return Terra_ActuatorType_Undefined;
 }
 
-Terra_MeasurementMode terraMeasurementModeFromString(const TerraString &value)
+Terra_MeasurementMode terraMeasurementModeFromString(const String &value)
 {
     switch (terraTrieChar(value, 0)) {
         case 'c':
@@ -1800,195 +1630,130 @@ Terra_MeasurementMode terraMeasurementModeFromString(const TerraString &value)
     return Terra_MeasurementMode_Undefined;
 }
 
-Terra_EnableMode terraEnableModeFromString(const TerraString &value)
+Terra_EnableMode terraEnableModeFromString(const String &value)
 {
-    switch (terraTrieChar(value, 0)) {
-        case 'a':
-            return Terra_EnableMode_Average;
+    switch (terraTrieChar(value, 2)) {
         case 'c':
-            return Terra_EnableMode_Count;
-        case 'h':
-            return Terra_EnableMode_Highest;
-        case 'i':
-            return Terra_EnableMode_InOrder;
-        case 'l':
-            return Terra_EnableMode_Lowest;
-        case 'm':
-            return Terra_EnableMode_Multiply;
-        case 'r':
-            return Terra_EnableMode_RevOrder;
-        case 'u':
+            return Terra_EnableMode_AscOrder;
+        case 'd':
             return Terra_EnableMode_Undefined;
+        case 'e':
+            return Terra_EnableMode_Average;
+        case 'g':
+            return Terra_EnableMode_Highest;
+        case 'l':
+            return Terra_EnableMode_Multiply;
+        case 'o':
+            return Terra_EnableMode_InOrder;
+        case 's':
+            return Terra_EnableMode_DescOrder;
+        case 'u':
+            return Terra_EnableMode_Count;
+        case 'v':
+            return Terra_EnableMode_RevOrder;
+        case 'w':
+            return Terra_EnableMode_Lowest;
     }
     return Terra_EnableMode_Undefined;
 }
 
-Terra_PinMode terraPinModeFromString(const TerraString &value)
+Terra_PinMode terraPinModeFromString(const String &value)
 {
     switch (terraTrieChar(value, 7)) {
-        case '\0':
+        case '\000':
             return Terra_PinMode_Count;
         case 'e':
             return Terra_PinMode_Undefined;
         case 'i':
             switch (terraTrieChar(value, 16)) {
-                case '\0':
-                    return Terra_PinMode_Digital_Input;
                 case 'd':
                     return Terra_PinMode_Digital_Input_PullDown;
+                case 't':
+                    return Terra_PinMode_Digital_Input_Floating;
                 case 'u':
                     return Terra_PinMode_Digital_Input_PullUp;
             }
-            return Terra_PinMode_Undefined;
+            break;
         case 'n':
             return Terra_PinMode_Analog_Input;
         case 'o':
-            return Terra_PinMode_Digital_Output;
+            switch (terraTrieChar(value, 13)) {
+                case 'o':
+                    return Terra_PinMode_Digital_Output_OpenDrain;
+                case 'p':
+                    return Terra_PinMode_Digital_Output_PushPull;
+            }
+            break;
         case 'u':
             return Terra_PinMode_Analog_Output;
     }
     return Terra_PinMode_Undefined;
 }
 
-Terra_RailType terraRailTypeFromString(const TerraString &value)
+Terra_RailType terraRailTypeFromString(const String &value)
 {
     switch (terraTrieChar(value, 2)) {
         case '1':
-            return Terra_RailType_DC12V;
+            switch (terraTrieChar(value, 0)) {
+                case 'a':
+                    return Terra_RailType_AC110V;
+                case 'd':
+                    return Terra_RailType_DC12V;
+            }
+            break;
         case '2':
-            return Terra_RailType_DC24V;
+            switch (terraTrieChar(value, 0)) {
+                case 'a':
+                    return Terra_RailType_AC220V;
+                case 'd':
+                    return Terra_RailType_DC24V;
+            }
+            break;
         case '3':
             return Terra_RailType_DC3V3;
+        case '4':
+            return Terra_RailType_DC48V;
         case '5':
             return Terra_RailType_DC5V;
         case 'd':
             return Terra_RailType_Undefined;
-        case 's':
-            return Terra_RailType_Custom;
         case 'u':
             return Terra_RailType_Count;
     }
     return Terra_RailType_Undefined;
 }
 
-Terra_Comparison terraComparisonFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 7)) {
-        case '\0':
-            return Terra_Comparison_Equal;
-        case 'l':
-            return Terra_Comparison_NotEqual;
-        case 'n':
-            return Terra_Comparison_LessThan;
-        case 'o':
-            return Terra_Comparison_GreaterOrEqual;
-        case 'q':
-            return Terra_Comparison_LessOrEqual;
-        case 't':
-            return Terra_Comparison_GreaterThan;
-    }
-    return Terra_Comparison_GreaterOrEqual;
-}
-
-Terra_TriggerState terraTriggerStateFromString(const TerraString &value)
+Terra_TriggerState terraTriggerStateFromString(const String &value)
 {
     switch (terraTrieChar(value, 0)) {
-        case 'a':
-            return Terra_TriggerState_Active;
-        case 'f':
-            return Terra_TriggerState_Fault;
-        case 'i':
-            return Terra_TriggerState_Inactive;
-    }
-    return Terra_TriggerState_Fault;
-}
-
-Terra_LogLevel terraLogLevelFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'd':
-            return Terra_LogLevel_Debug;
-        case 'e':
-            return Terra_LogLevel_Error;
-        case 'i':
-            return Terra_LogLevel_Info;
-        case 'w':
-            return Terra_LogLevel_Warning;
-    }
-    return Terra_LogLevel_Info;
-}
-
-Terra_ModuleType terraModuleTypeFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 3)) {
-        case '\0':
-            return Terra_ModuleType_RTC;
-        case 'e':
-            return Terra_ModuleType_Undefined;
-        case 'i':
-            return Terra_ModuleType_Radio;
-        case 'p':
-            return Terra_ModuleType_Display;
-        case 'r':
-            return Terra_ModuleType_Storage;
-        case 'w':
-            return Terra_ModuleType_Network;
-        case 'x':
-            return Terra_ModuleType_IOExpander;
-    }
-    return Terra_ModuleType_Undefined;
-}
-
-Terra_ControlMode terraControlModeFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'a':
-            return Terra_ControlMode_Automatic;
-        case 'd':
-            return Terra_ControlMode_Disabled;
-        case 'm':
-            return Terra_ControlMode_Manual;
-    }
-    return Terra_ControlMode_Disabled;
-}
-
-Terra_RouteState terraRouteStateFromString(const TerraString &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'a':
-            return Terra_RouteState_Active;
         case 'c':
-            return Terra_RouteState_Complete;
-        case 'f':
-            return Terra_RouteState_Fault;
-        case 'i':
-            return Terra_RouteState_Idle;
-        case 'r':
-            return Terra_RouteState_Requested;
+            return Terra_TriggerState_Count;
+        case 'd':
+            return Terra_TriggerState_Disabled;
+        case 'n':
+            return Terra_TriggerState_NotTriggered;
+        case 't':
+            return Terra_TriggerState_Triggered;
+        case 'u':
+            return Terra_TriggerState_Undefined;
     }
-    return Terra_RouteState_Idle;
+    return Terra_TriggerState_Undefined;
 }
 
-Terra_AttachmentRole terraAttachmentRoleFromString(const TerraString &value)
+Terra_SystemMode terraSystemModeFromString(const String &value)
 {
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_PrimarySensor))) return Terra_AttachmentRole_PrimarySensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_SecondarySensor))) return Terra_AttachmentRole_SecondarySensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_LevelSensor))) return Terra_AttachmentRole_LevelSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_FlowSensor))) return Terra_AttachmentRole_FlowSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_TemperatureSensor))) return Terra_AttachmentRole_TemperatureSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_HumiditySensor))) return Terra_AttachmentRole_HumiditySensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_PressureSensor))) return Terra_AttachmentRole_PressureSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_RainfallSensor))) return Terra_AttachmentRole_RainfallSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_RainRateSensor))) return Terra_AttachmentRole_RainRateSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_WindSpeedSensor))) return Terra_AttachmentRole_WindSpeedSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_WindDirectionSensor))) return Terra_AttachmentRole_WindDirectionSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_SolarRadiationSensor))) return Terra_AttachmentRole_SolarRadiationSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_LeakSensor))) return Terra_AttachmentRole_LeakSensor;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Storage))) return Terra_AttachmentRole_Storage;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Pump))) return Terra_AttachmentRole_Pump;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Valve))) return Terra_AttachmentRole_Valve;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Diverter))) return Terra_AttachmentRole_Diverter;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Heater))) return Terra_AttachmentRole_Heater;
-    if (terraStringEqualsIgnoreCase(value, SFP(TStr_Circulator))) return Terra_AttachmentRole_Circulator;
-    return Terra_AttachmentRole_Undefined;
+    switch (terraTrieChar(value, 0)) {
+        case 'a':
+            return Terra_SystemMode_Automatic;
+        case 'c':
+            return Terra_SystemMode_Count;
+        case 'd':
+            return Terra_SystemMode_Disabled;
+        case 'm':
+            return Terra_SystemMode_Manual;
+        case 'u':
+            return Terra_SystemMode_Undefined;
+    }
+    return Terra_SystemMode_Undefined;
 }
+

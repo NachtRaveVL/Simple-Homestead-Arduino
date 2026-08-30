@@ -23,13 +23,11 @@ class TerraRelayActuator;                                   // Terra Relay Actua
 class TerraRelayPumpActuator;                               // Terra Relay Pump Actuator
 class TerraVariableActuator;                                // Terra Variable Actuator
 class TerraReservoir;                                       // Terra Reservoir
-class TerraWaterStorage;                                    // Terra Water Storage
-class TerraCistern;                                         // Terra Cistern
-class TerraWaterSource;                                     // Terra Water Source
-class TerraWaterRoute;                                      // Terra Water Route
+class TerraWaterReservoir;                                  // Terra Water Reservoir
+class TerraThermalReservoir;                                // Terra Thermal Reservoir
+class TerraInfiniteWaterReservoir;                          // Terra Infinite Water Reservoir
+class TerraInfiniteThermalReservoir;                        // Terra Infinite Thermal Reservoir
 class TerraRainCatchment;                                   // Terra Rain Catchment
-class TerraThermalReservoir;                                    // Terra Thermal Store
-class TerraThermalLoop;                                     // Terra Thermal Loop
 class TerraEnvironment;                                     // Terra Environment
 class TerraSimpleRail;                                      // Terra Simple Power Rail
 class TerraRegulatedRail;                                   // Terra Regulated Power Rail
@@ -44,69 +42,66 @@ public:
     // Convenience builders for common sensors (shared, nullptr return -> failure).
     SharedPtr<TerraRemoteSensor> addRemoteSensor(Terra_SensorType reportedType,
                                                  Terra_UnitsType unit = Terra_UnitsType_Raw_1,
-                                                 const TerraString &name = TerraString());
+                                                 const String &name = String());
 
     // Pin-backed sensor convenience builders.
     SharedPtr<TerraLeakSensor> addLeakIndicator(uint8_t inputPin,
                                                 bool activeLow = true,
-                                                const TerraString &name = TerraString());
+                                                const String &name = String());
     SharedPtr<TerraLevelSensor> addAnalogLevelSensor(uint8_t inputPin,
                                                      float rawMinimum = 0.0f,
                                                      float rawMaximum = 1.0f,
                                                      float levelMinimum = 0.0f,
                                                      float levelMaximum = 100.0f,
-                                                     const TerraString &name = TerraString());
+                                                     const String &name = String());
     SharedPtr<TerraTemperatureSensor> addAnalogTemperatureSensor(uint8_t inputPin,
                                                                  float rawMinimum,
                                                                  float rawMaximum,
                                                                  float temperatureMinimum,
                                                                  float temperatureMaximum,
                                                                  Terra_UnitsType unit = Terra_UnitsType_Temperature_Celsius,
-                                                                 const TerraString &name = TerraString());
+                                                                 const String &name = String());
     SharedPtr<TerraPressureSensor> addAnalogPressureSensor(uint8_t inputPin,
                                                            float rawMinimum,
                                                            float rawMaximum,
                                                            float pressureMinimum,
                                                            float pressureMaximum,
                                                            Terra_UnitsType unit = Terra_UnitsType_Pressure_Kilopascals,
-                                                           const TerraString &name = TerraString());
+                                                           const String &name = String());
 
     // Pin-backed actuator convenience builders.
     SharedPtr<TerraRelayPumpActuator> addPumpRelay(uint8_t outputPin,
                                                     bool activeLow = false,
-                                                    const TerraString &name = TerraString());
+                                                    const String &name = String());
     SharedPtr<TerraRelayPumpActuator> addSumpPumpRelay(uint8_t outputPin,
                                                         bool activeLow = false,
-                                                        const TerraString &name = TerraString());
+                                                        const String &name = String());
     SharedPtr<TerraRelayPumpActuator> addCirculatorRelay(uint8_t outputPin,
                                                           bool activeLow = false,
-                                                          const TerraString &name = TerraString());
+                                                          const String &name = String());
     SharedPtr<TerraRelayPumpActuator> addValveRelay(uint8_t outputPin,
                                                      bool activeLow = false,
-                                                     const TerraString &name = TerraString());
+                                                     const String &name = String());
     SharedPtr<TerraRelayActuator> addFanRelay(uint8_t outputPin,
                                               bool activeLow = false,
-                                              const TerraString &name = TerraString());
+                                              const String &name = String());
     SharedPtr<TerraRelayActuator> addHeaterRelay(uint8_t outputPin,
                                                  bool activeLow = false,
-                                                 const TerraString &name = TerraString());
+                                                 const String &name = String());
 
     // Reservoir and process object builders.
-    SharedPtr<TerraReservoir> addReservoir(Terra_ReservoirType reservoirType,
-                                           const TerraString &name = TerraString());
-    SharedPtr<TerraWaterStorage> addWaterStorage(float capacityLiters,
-                                                 const TerraString &name = TerraString());
-    SharedPtr<TerraCistern> addCistern(float capacityLiters,
-                                       const TerraString &name = TerraString());
-    SharedPtr<TerraWaterSource> addWaterSource(uint8_t priority = 0,
-                                               const TerraString &name = TerraString());
-    SharedPtr<TerraWaterRoute> addWaterRoute(const TerraString &name = TerraString());
+    SharedPtr<TerraWaterReservoir> addWaterReservoir(float maxVolume,
+                                                     const String &name = String());
+    SharedPtr<TerraThermalReservoir> addThermalReservoir(float maxTemperature,
+                                                         const String &name = String());
+    SharedPtr<TerraInfiniteWaterReservoir> addInfiniteWaterReservoir(bool alwaysFilled = true,
+                                                                     const String &name = String());
+    SharedPtr<TerraInfiniteThermalReservoir> addInfiniteThermalReservoir(bool alwaysFilled = true,
+                                                                         const String &name = String());
     SharedPtr<TerraRainCatchment> addRainCatchment(float areaSquareMeters,
                                                    float collectionEfficiency = 0.85f,
-                                                   const TerraString &name = TerraString());
-    SharedPtr<TerraThermalReservoir> addThermalReservoir(const TerraString &name = TerraString());
-    SharedPtr<TerraThermalLoop> addThermalLoop(const TerraString &name = TerraString());
-    SharedPtr<TerraEnvironment> addEnvironment(const TerraString &name = SFP(TStr_Environment));
+                                                   const String &name = String());
+    SharedPtr<TerraEnvironment> addEnvironment(const String &name = SFP(TStr_Environment));
 
     // Convenience builders for common power rails (shared, nullptr return -> failure).
     SharedPtr<TerraSimpleRail> addSimplePowerRail(Terra_RailType railType,

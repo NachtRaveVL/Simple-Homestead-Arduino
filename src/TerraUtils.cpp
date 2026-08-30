@@ -5,6 +5,7 @@
 
 #include "Terraduino.h"
 #include <pins_arduino.h>
+#include <cmath>
 
 bool TerraRTCWrapper<RTC_DS1307>::begin(TwoWire *wireInstance)
 {
@@ -265,7 +266,7 @@ extern String measurementToString(float value, Terra_UnitsType units, unsigned i
     String retVal; retVal.reserve(15 + 1);
     retVal.concat(roundToString(value, additionalDecPlaces));
 
-    String unitsSym = unitsTypeToSymbol(units, true);
+    String unitsSym = unitsTypeToSymbol(units, true); // also excludes dimensionless, e.g. pH
     if (unitsSym.length()) {
         retVal.concat(' ');
         retVal.concat(unitsSym);
@@ -530,6 +531,14 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
                     *valueOut = wrapBy360(valueIn * 360.0);
                     return true;
 
+                case Terra_UnitsType_Angle_Radians_2pi:
+                    *valueOut = wrapBy2Pi(valueIn * TWO_PI);
+                    return true;
+
+                case Terra_UnitsType_Angle_Minutes_24hr:
+                    *valueOut = wrapBy24Hr(valueIn * MIN_PER_DAY);
+                    return true;
+
                 default:
                     if (convertParam != FLT_UNDEF) {
                         *valueOut = valueIn * convertParam;
@@ -552,6 +561,14 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
 
         case Terra_UnitsType_Angle_Degrees_360:
             switch (unitsOut) {
+                case Terra_UnitsType_Angle_Radians_2pi:
+                    *valueOut = wrapBy2Pi(valueIn * (TWO_PI / 360.0));
+                    return true;
+
+                case Terra_UnitsType_Angle_Minutes_24hr:
+                    *valueOut = wrapBy24Hr(valueIn * (MIN_PER_DAY / 360.0));
+                    return true;
+
                 case Terra_UnitsType_Raw_1:
                     *valueOut = valueIn / 360.0;
                     return true;
@@ -561,33 +578,39 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
             }
             break;
 
-        case Terra_UnitsType_Distance_Feet:
+        case Terra_UnitsType_Angle_Radians_2pi:
             switch (unitsOut) {
-                case Terra_UnitsType_Distance_Meters:
-                    *valueOut = valueIn * 0.3048;
+                case Terra_UnitsType_Angle_Degrees_360:
+                    *valueOut = wrapBy360(valueIn * (360.0 / TWO_PI));
                     return true;
-                case Terra_UnitsType_Distance_Millimeters:
-                    *valueOut = valueIn * 304.8;
+
+                case Terra_UnitsType_Angle_Minutes_24hr:
+                    *valueOut = wrapBy24Hr(valueIn * (MIN_PER_DAY / TWO_PI));
                     return true;
-                case Terra_UnitsType_Distance_Inches:
-                    *valueOut = valueIn * 12.0;
+
+                case Terra_UnitsType_Raw_1:
+                    *valueOut = valueIn / TWO_PI;
                     return true;
+
                 default:
                     break;
             }
             break;
 
-        case Terra_UnitsType_Distance_Meters:
+        case Terra_UnitsType_Angle_Minutes_24hr:
             switch (unitsOut) {
-                case Terra_UnitsType_Distance_Feet:
-                    *valueOut = valueIn * 3.28084;
+                case Terra_UnitsType_Angle_Degrees_360:
+                    *valueOut = wrapBy360(valueIn * (360.0 / MIN_PER_DAY));
                     return true;
-                case Terra_UnitsType_Distance_Millimeters:
-                    *valueOut = valueIn * 1000.0;
+
+                case Terra_UnitsType_Angle_Radians_2pi:
+                    *valueOut = wrapBy2Pi(valueIn * (TWO_PI / MIN_PER_DAY));
                     return true;
-                case Terra_UnitsType_Distance_Inches:
-                    *valueOut = valueIn * 39.3701;
+
+                case Terra_UnitsType_Raw_1:
+                    *valueOut = valueIn / TWO_PI;
                     return true;
+
                 default:
                     break;
             }
@@ -595,15 +618,18 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
 
         case Terra_UnitsType_Distance_Millimeters:
             switch (unitsOut) {
-                case Terra_UnitsType_Distance_Feet:
-                    *valueOut = valueIn / 304.8;
-                    return true;
-                case Terra_UnitsType_Distance_Meters:
-                    *valueOut = valueIn / 1000.0;
-                    return true;
                 case Terra_UnitsType_Distance_Inches:
-                    *valueOut = valueIn / 25.4;
+                    *valueOut = valueIn / 25.4f;
                     return true;
+
+                case Terra_UnitsType_Distance_Feet:
+                    *valueOut = valueIn / 304.8f;
+                    return true;
+
+                case Terra_UnitsType_Distance_Meters:
+                    *valueOut = valueIn / 1000.0f;
+                    return true;
+
                 default:
                     break;
             }
@@ -611,133 +637,111 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
 
         case Terra_UnitsType_Distance_Inches:
             switch (unitsOut) {
-                case Terra_UnitsType_Distance_Feet:
-                    *valueOut = valueIn / 12.0;
-                    return true;
-                case Terra_UnitsType_Distance_Meters:
-                    *valueOut = valueIn * 0.0254;
-                    return true;
                 case Terra_UnitsType_Distance_Millimeters:
-                    *valueOut = valueIn * 25.4;
+                    *valueOut = valueIn * 25.4f;
                     return true;
+
+                case Terra_UnitsType_Distance_Feet:
+                    *valueOut = valueIn / 12.0f;
+                    return true;
+
+                    case Terra_UnitsType_Distance_Meters:
+                    *valueOut = valueIn * 0.0254f;
+                    return true;
+
+                default:
+                    break;
+            }
+            break;
+        case Terra_UnitsType_Distance_Feet:
+            switch (unitsOut) {
+                case Terra_UnitsType_Distance_Millimeters:
+                    *valueOut = valueIn * 304.8f;
+                    return true;
+
+                case Terra_UnitsType_Distance_Inches:
+                    *valueOut = valueIn * 12.0f;
+                    return true;
+
+                case Terra_UnitsType_Distance_Meters:
+                    *valueOut = valueIn * 0.3048f;
+                    return true;
+
+                default:
+                    break;
+            }
+            break;
+
+        case Terra_UnitsType_Distance_Meters:
+            switch (unitsOut) {
+                case Terra_UnitsType_Distance_Millimeters:
+                    *valueOut = valueIn * 1000.0f;
+                    return true;
+
+                case Terra_UnitsType_Distance_Inches:
+                    *valueOut = valueIn / 0.0254f;
+                    return true;
+
+                case Terra_UnitsType_Distance_Feet:
+                    *valueOut = valueIn / 0.3048f;
+                    return true;
+
                 default:
                     break;
             }
             break;
 
         case Terra_UnitsType_LiqVolume_Gallons:
-            switch (unitsOut) {
-                case Terra_UnitsType_LiqVolume_Liters:
-                    *valueOut = valueIn * 3.78541;
-                    return true;
-                default:
-                    break;
+            if (unitsOut == Terra_UnitsType_LiqVolume_Liters) {
+                *valueOut = valueIn * 3.78541f;
+                return true;
             }
             break;
 
         case Terra_UnitsType_LiqVolume_Liters:
-            switch (unitsOut) {
-                case Terra_UnitsType_LiqVolume_Gallons:
-                    *valueOut = valueIn * 0.264172;
-                    return true;
-                default:
-                    break;
+            if (unitsOut == Terra_UnitsType_LiqVolume_Gallons) {
+                *valueOut = valueIn / 3.78541f;
+                return true;
             }
             break;
 
         case Terra_UnitsType_LiqFlowRate_GallonsPerMin:
-            switch (unitsOut) {
-                case Terra_UnitsType_LiqFlowRate_LitersPerMin:
-                    *valueOut = valueIn * 3.78541;
-                    return true;
-                default:
-                    break;
+            if (unitsOut == Terra_UnitsType_LiqFlowRate_LitersPerMin) {
+                *valueOut = valueIn * 3.78541f;
+                return true;
             }
             break;
 
         case Terra_UnitsType_LiqFlowRate_LitersPerMin:
-            switch (unitsOut) {
-                case Terra_UnitsType_LiqFlowRate_GallonsPerMin:
-                    *valueOut = valueIn * 0.264172;
-                    return true;
-                default:
-                    break;
+            if (unitsOut == Terra_UnitsType_LiqFlowRate_GallonsPerMin) {
+                *valueOut = valueIn / 3.78541f;
+                return true;
             }
             break;
 
-        case Terra_UnitsType_Current_Amperage:
-            switch (unitsOut) {
-                case Terra_UnitsType_Power_Wattage:
-                    if (convertParam != FLT_UNDEF) { // convertParam = rail voltage
-                        *valueOut = valueIn * convertParam;
-                        return true;
-                    }
-                    break;
-                default:
-                    break;
+        case Terra_UnitsType_Power_Amperage:
+            if (unitsOut == Terra_UnitsType_Power_Wattage && convertParam != FLT_UNDEF) {
+                *valueOut = valueIn * convertParam;
+                return true;
             }
             break;
-
         case Terra_UnitsType_Power_Wattage:
-            switch (unitsOut) {
-                case Terra_UnitsType_Current_Amperage:
-                    if (convertParam != FLT_UNDEF) { // convertParam = rail voltage
-                        *valueOut = valueIn / convertParam;
-                        return true;
-                    }
-                    break;
-                default:
-                    break;
-            }
-            break;
-
-        case Terra_UnitsType_Temperature_Celsius:
-            switch (unitsOut) {
-                case Terra_UnitsType_Temperature_Fahrenheit:
-                    *valueOut = valueIn * 1.8 + 32.0;
-                    return true;
-                case Terra_UnitsType_Temperature_Kelvin:
-                    *valueOut = valueIn + 273.15;
-                    return true;
-                default:
-                    break;
-            }
-            break;
-
-        case Terra_UnitsType_Temperature_Fahrenheit:
-            switch (unitsOut) {
-                case Terra_UnitsType_Temperature_Celsius:
-                    *valueOut = (valueIn - 32.0) / 1.8;
-                    return true;
-                case Terra_UnitsType_Temperature_Kelvin:
-                    *valueOut = ((valueIn + 459.67) * 5.0) / 9.0;
-                    return true;
-                default:
-                    break;
-            }
-            break;
-
-        case Terra_UnitsType_Temperature_Kelvin:
-            switch (unitsOut) {
-                case Terra_UnitsType_Temperature_Celsius:
-                    *valueOut = valueIn - 273.15;
-                    return true;
-                case Terra_UnitsType_Temperature_Fahrenheit:
-                    *valueOut = ((valueIn * 9.0) / 5.0) - 459.67;
-                    return true;
-                default:
-                    break;
+            if (unitsOut == Terra_UnitsType_Power_Amperage && convertParam != FLT_UNDEF && fabsf(convertParam) > FLT_EPSILON) {
+                *valueOut = valueIn / convertParam;
+                return true;
             }
             break;
 
         case Terra_UnitsType_Pressure_Kilopascals:
             switch (unitsOut) {
                 case Terra_UnitsType_Pressure_PSI:
-                    *valueOut = valueIn / 6.894757293;
+                    *valueOut = valueIn / 6.894757293f;
                     return true;
+
                 case Terra_UnitsType_Pressure_Hectopascals:
-                    *valueOut = valueIn * 10.0;
+                    *valueOut = valueIn * 10.0f;
                     return true;
+
                 default:
                     break;
             }
@@ -746,84 +750,91 @@ bool tryConvertUnits(float valueIn, Terra_UnitsType unitsIn, float *valueOut, Te
         case Terra_UnitsType_Pressure_PSI:
             switch (unitsOut) {
                 case Terra_UnitsType_Pressure_Kilopascals:
-                    *valueOut = valueIn * 6.894757293;
+                    *valueOut = valueIn * 6.894757293f;
                     return true;
+
                 case Terra_UnitsType_Pressure_Hectopascals:
-                    *valueOut = valueIn * 68.94757293;
+                    *valueOut = valueIn * 68.94757293f;
                     return true;
+
                 default:
                     break;
             }
             break;
-
         case Terra_UnitsType_Pressure_Hectopascals:
             switch (unitsOut) {
                 case Terra_UnitsType_Pressure_Kilopascals:
-                    *valueOut = valueIn / 10.0;
-                    return true;
+                    *valueOut = valueIn / 10.0f; return true;
+
                 case Terra_UnitsType_Pressure_PSI:
-                    *valueOut = valueIn / 68.94757293;
-                    return true;
+                    *valueOut = valueIn / 68.94757293f; return true;
+
                 default:
                     break;
             }
             break;
 
         case Terra_UnitsType_Speed_MillimetersPerHour:
-            switch (unitsOut) {
-                case Terra_UnitsType_Speed_InchesPerHour:
-                    *valueOut = valueIn / 25.4;
-                    return true;
-                default:
-                    break;
-            }
+            // TODO: this conversion to others of same category
             break;
 
         case Terra_UnitsType_Speed_InchesPerHour:
-            switch (unitsOut) {
-                case Terra_UnitsType_Speed_MillimetersPerHour:
-                    *valueOut = valueIn * 25.4;
-                    return true;
-                default:
-                    break;
-            }
+            // TODO: this conversion to others of same category
             break;
 
         case Terra_UnitsType_Speed_MetersPerSecond:
-            switch (unitsOut) {
-                case Terra_UnitsType_Speed_KilometersPerHour:
-                    *valueOut = valueIn * 3.6;
-                    return true;
-                case Terra_UnitsType_Speed_MilesPerHour:
-                    *valueOut = valueIn / 0.44704;
-                    return true;
-                default:
-                    break;
-            }
+            // TODO: this conversion to others of same category
             break;
 
         case Terra_UnitsType_Speed_KilometersPerHour:
+            // TODO: this conversion to others of same category
+            break;
+
+        case Terra_UnitsType_Speed_MilesPerHour:
+            // TODO: this conversion to others of same category
+            break;
+
+        case Terra_UnitsType_Temperature_Celsius:
             switch (unitsOut) {
-                case Terra_UnitsType_Speed_MetersPerSecond:
-                    *valueOut = valueIn / 3.6;
+                case Terra_UnitsType_Temperature_Fahrenheit:
+                    *valueOut = valueIn * 1.8f + 32.0f;
                     return true;
-                case Terra_UnitsType_Speed_MilesPerHour:
-                    *valueOut = valueIn * 0.621371;
+
+                case Terra_UnitsType_Temperature_Kelvin:
+                    *valueOut = valueIn + 273.15f;
                     return true;
+
                 default:
                     break;
             }
             break;
 
-        case Terra_UnitsType_Speed_MilesPerHour:
+        case Terra_UnitsType_Temperature_Fahrenheit:
             switch (unitsOut) {
-                case Terra_UnitsType_Speed_MetersPerSecond:
-                    *valueOut = valueIn * 0.44704;
+                case Terra_UnitsType_Temperature_Celsius:
+                    *valueOut = (valueIn - 32.0f) / 1.8f;
                     return true;
-                case Terra_UnitsType_Speed_KilometersPerHour:
-                    *valueOut = valueIn * 1.609344;
+
+                case Terra_UnitsType_Temperature_Kelvin:
+                    *valueOut = (valueIn + 459.67f) * 5.0f / 9.0f;
                     return true;
+
                 default:
+                    break;
+            }
+            break;
+
+        case Terra_UnitsType_Temperature_Kelvin:
+            switch (unitsOut) {
+                case Terra_UnitsType_Temperature_Celsius:
+                    *valueOut = valueIn - 273.15f;
+                    return true;
+
+                case Terra_UnitsType_Temperature_Fahrenheit: 
+                    *valueOut = valueIn * 9.0f / 5.0f - 459.67f; 
+                    return true;
+
+                default: 
                     break;
             }
             break;
@@ -846,6 +857,12 @@ Terra_UnitsType baseUnits(Terra_UnitsType units)
             return Terra_UnitsType_LiqVolume_Liters;
         case Terra_UnitsType_LiqFlowRate_GallonsPerMin:
             return Terra_UnitsType_LiqVolume_Gallons;
+        case Terra_UnitsType_Speed_MillimetersPerHour:
+            return Terra_UnitsType_Distance_Millimeters;
+        case Terra_UnitsType_Speed_InchesPerHour:
+            return Terra_UnitsType_Distance_Inches;
+        case Terra_UnitsType_Speed_MetersPerSecond:
+            return Terra_UnitsType_Distance_Meters;
         default:
             return Terra_UnitsType_Undefined;
     }
@@ -858,21 +875,41 @@ Terra_UnitsType rateUnits(Terra_UnitsType units)
             return Terra_UnitsType_LiqFlowRate_LitersPerMin;
         case Terra_UnitsType_LiqVolume_Gallons:
             return Terra_UnitsType_LiqFlowRate_GallonsPerMin;
-        default:
-            return Terra_UnitsType_Undefined;
+        case Terra_UnitsType_Distance_Millimeters:
+            return Terra_UnitsType_Speed_MillimetersPerHour;
+        case Terra_UnitsType_Distance_Inches:
+            return Terra_UnitsType_Speed_InchesPerHour;
+        case Terra_UnitsType_Distance_Meters:
+            return Terra_UnitsType_Speed_MetersPerSecond;
+        default: return Terra_UnitsType_Undefined;
     }
 }
 
 Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_MeasurementMode measureMode)
 {
     measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
+    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
 
     switch (unitsCategory) {
-        case Terra_UnitsCategory_Raw:
-            return Terra_UnitsType_Raw_1;
-
-        case Terra_UnitsCategory_Percentile:
-            return Terra_UnitsType_Percentile_100;
+        // TODO: Fix these to match helio/hydro layout:
+        case Terra_UnitsCategory_Angle:
+            return Terra_UnitsType_Angle_Degrees_360;
+        case Terra_UnitsCategory_Distance:
+            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Distance_Feet : Terra_UnitsType_Distance_Meters;
+        case Terra_UnitsCategory_Energy:
+            return Terra_UnitsType_Energy_KilowattHours;
+        case Terra_UnitsCategory_Irradiance:
+            return Terra_UnitsType_Irradiance_WattsPerSquareMeter;
+        case Terra_UnitsCategory_LiqVolume:
+            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_LiqVolume_Gallons : Terra_UnitsType_LiqVolume_Liters;
+        case Terra_UnitsCategory_LiqFlowRate:
+            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_LiqFlowRate_GallonsPerMin : Terra_UnitsType_LiqFlowRate_LitersPerMin;
+        case Terra_UnitsCategory_Power:
+            return Terra_UnitsType_Power_Wattage;
+        case Terra_UnitsCategory_Pressure:
+            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Pressure_PSI : Terra_UnitsType_Pressure_Kilopascals;
+        case Terra_UnitsCategory_Speed:
+            return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Speed_MilesPerHour : Terra_UnitsType_Speed_MetersPerSecond;
 
         case Terra_UnitsCategory_Temperature:
             switch (measureMode) {
@@ -885,90 +922,6 @@ Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_Measuremen
                 default:
                     return Terra_UnitsType_Undefined;
             }
-
-        case Terra_UnitsCategory_LiqVolume:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_LiqVolume_Gallons;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_LiqVolume_Liters;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_LiqFlowRate:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_LiqFlowRate_GallonsPerMin;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_LiqFlowRate_LitersPerMin;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_Pressure:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_Pressure_PSI;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_Pressure_Kilopascals;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_Distance:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_Distance_Feet;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_Distance_Meters;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_RainRate:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_Speed_InchesPerHour;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_Speed_MillimetersPerHour;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_Power:
-            return Terra_UnitsType_Power_Wattage;
-
-        case Terra_UnitsCategory_Irradiance:
-            return Terra_UnitsType_Irradiance_WattsPerSquareMeter;
-
-        case Terra_UnitsCategory_Energy:
-            return Terra_UnitsType_Energy_KilowattHours;
-
-        case Terra_UnitsCategory_Speed:
-            switch (measureMode) {
-                case Terra_MeasurementMode_Imperial:
-                    return Terra_UnitsType_Speed_MilesPerHour;
-                case Terra_MeasurementMode_Metric:
-                case Terra_MeasurementMode_Scientific:
-                    return Terra_UnitsType_Speed_MetersPerSecond;
-                default:
-                    return Terra_UnitsType_Undefined;
-            }
-
-        case Terra_UnitsCategory_Angle:
-            return Terra_UnitsType_Angle_Degrees_360;
-
-        case Terra_UnitsCategory_Voltage:
-            return Terra_UnitsType_Power_Volts;
-
-        case Terra_UnitsCategory_Current:
-            return Terra_UnitsType_Current_Amperage;
 
         case Terra_UnitsCategory_Count:
             switch (measureMode) {
@@ -984,21 +937,6 @@ Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_Measuremen
     return Terra_UnitsType_Undefined;
 }
 
-
-int linksCountTrackableTargets(Pair<uint8_t, Pair<TerraObject *, int8_t> *> links)
-{
-    int retVal = 0;
-
-    for (tposi_t linksIndex = 0; linksIndex < links.first && links.second[linksIndex].first; ++linksIndex) {
-        if (links.second[linksIndex].first->isTargetType()) {
-            auto target = static_cast<TerraTarget *>(links.second[linksIndex].first);
-
-            // TODO: See if object is trackable.
-        }
-    }
-
-    return retVal;
-}
 
 int linksCountActuatorsByReservoirAndType(Pair<uint8_t, Pair<TerraObject *, int8_t> *> links, TerraReservoir *srcReservoir, Terra_ActuatorType actuatorType)
 {
@@ -1176,12 +1114,14 @@ bool checkPinIsAnalogOutput(pintype_t pin)
 String systemModeToString(Terra_SystemMode systemMode, bool excludeSpecial)
 {
     switch (systemMode) {
-        case Terra_SystemMode_Recycling:
-            return SFP(TStr_Enum_Recycling);
-        case Terra_SystemMode_DrainToWaste:
-            return SFP(TStr_Enum_DrainToWaste);
+        case Terra_SystemMode_Manual:
+            return SFP(TStr_Manual);
+        case Terra_SystemMode_Automatic:
+            return SFP(TStr_Automatic);
+        case Terra_SystemMode_Disabled:
+            return SFP(TStr_Disabled);
         case Terra_SystemMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+           return !excludeSpecial ? SFP(TStr_Count) : String();
         case Terra_SystemMode_Undefined:
             break;
     }
@@ -1375,22 +1315,18 @@ String controlInputModeToString(Terra_ControlInputMode controlInMode, bool exclu
 String actuatorTypeToString(Terra_ActuatorType actuatorType, bool excludeSpecial)
 {
     switch (actuatorType) {
-        case Terra_ActuatorType_FanExhaust:
-            return SFP(TStr_Enum_FanExhaust);
-        case Terra_ActuatorType_GrowLights:
-            return SFP(TStr_Enum_GrowLights);
-        case Terra_ActuatorType_PeristalticPump:
-            return SFP(TStr_Enum_PeristalticPump);
-        case Terra_ActuatorType_WaterAerator:
-            return SFP(TStr_Enum_WaterAerator);
-        case Terra_ActuatorType_WaterHeater:
-            return SFP(TStr_Enum_WaterHeater);
-        case Terra_ActuatorType_WaterPump:
-            return SFP(TStr_Enum_WaterPump);
-        case Terra_ActuatorType_WaterSprayer:
-            return SFP(TStr_Enum_WaterSprayer);
+        case Terra_ActuatorType_Pump:
+            return SFP(TStr_Pump);
+        case Terra_ActuatorType_Valve:
+            return SFP(TStr_Valve);
+        case Terra_ActuatorType_Fan:
+            return SFP(TStr_Fan);
+        case Terra_ActuatorType_Heater:
+            return SFP(TStr_Heater);
+        case Terra_ActuatorType_Circulator:
+            return SFP(TStr_Circulator);
         case Terra_ActuatorType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Undefined) : String();
         case Terra_ActuatorType_Undefined:
             break;
     }
@@ -1400,227 +1336,33 @@ String actuatorTypeToString(Terra_ActuatorType actuatorType, bool excludeSpecial
 String sensorTypeToString(Terra_SensorType sensorType, bool excludeSpecial)
 {
     switch (sensorType) {
-        case Terra_SensorType_AirCarbonDioxide:
-            return SFP(TStr_Enum_AirCarbonDioxide);
-        case Terra_SensorType_AirTempHumidity:
-            return SFP(TStr_Enum_AirTemperatureHumidity);
-        case Terra_SensorType_PotentialTerragen:
-            return SFP(TStr_Enum_WaterPH);
-        case Terra_SensorType_PowerLevel:
-            return SFP(TStr_Enum_PowerLevel);
-        case Terra_SensorType_PumpFlow:
-            return SFP(TStr_Enum_PumpFlow);
-        case Terra_SensorType_SoilMoisture:
-            return SFP(TStr_Enum_SoilMoisture);
-        case Terra_SensorType_TotalDissolvedSolids:
-            return SFP(TStr_Enum_WaterTDS);
-        case Terra_SensorType_WaterHeight:
-            return SFP(TStr_Enum_WaterHeight);
-        case Terra_SensorType_WaterLevel:
-            return SFP(TStr_Enum_WaterLevel);
-        case Terra_SensorType_WaterTemperature:
-            return SFP(TStr_Enum_WaterTemperature);
+        case Terra_SensorType_Temperature:
+            return SFP(TStr_Temperature);
+        case Terra_SensorType_Humidity:
+            return SFP(TStr_Humidity);
+        case Terra_SensorType_Pressure:
+            return SFP(TStr_Pressure);
+        case Terra_SensorType_Rainfall:
+            return SFP(TStr_Rainfall);
+        case Terra_SensorType_Flow:
+            return SFP(TStr_Flow);
+        case Terra_SensorType_Level:
+            return SFP(TStr_Level);
+        case Terra_SensorType_WindSpeed:
+            return SFP(TStr_WindSpeed);
+        case Terra_SensorType_WindDirection:
+            return SFP(TStr_WindDirection);
+        case Terra_SensorType_SolarRadiation:
+            return SFP(TStr_SolarRadiation);
+        case Terra_SensorType_Voltage:
+            return SFP(TStr_Voltage);
+        case Terra_SensorType_Current:
+            return SFP(TStr_Current);
+        case Terra_SensorType_Leak:
+            return SFP(TStr_Leak);
         case Terra_SensorType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Undefined) : String();
         case Terra_SensorType_Undefined:
-            break;
-    }
-    return !excludeSpecial ? SFP(TStr_Undefined) : String();
-}
-
-String targetTypeToString(Terra_TargetType targetType, bool excludeSpecial)
-{
-    switch (targetType) {
-        case Terra_TargetType_AloeVera:
-            return SFP(TStr_Enum_AloeVera);
-        case Terra_TargetType_Anise:
-            return SFP(TStr_Enum_Anise);
-        case Terra_TargetType_Artichoke:
-            return SFP(TStr_Enum_Artichoke);
-        case Terra_TargetType_Arugula:
-            return SFP(TStr_Enum_Arugula);
-        case Terra_TargetType_Asparagus:
-            return SFP(TStr_Enum_Asparagus);
-        case Terra_TargetType_Basil:
-            return SFP(TStr_Enum_Basil);
-        case Terra_TargetType_Bean:
-            return SFP(TStr_Enum_Bean);
-        case Terra_TargetType_BeanBroad:
-            return SFP(TStr_Enum_BeanBroad);
-        case Terra_TargetType_Beetroot:
-            return SFP(TStr_Enum_Beetroot);
-        case Terra_TargetType_BlackCurrant:
-            return SFP(TStr_Enum_BlackCurrant);
-        case Terra_TargetType_Blueberry:
-            return SFP(TStr_Enum_Blueberry);
-        case Terra_TargetType_BokChoi:
-            return SFP(TStr_Enum_BokChoi);
-        case Terra_TargetType_Broccoli:
-            return SFP(TStr_Enum_Broccoli);
-        case Terra_TargetType_BrusselsSprout:
-            return SFP(TStr_Enum_BrusselsSprout);
-        case Terra_TargetType_Cabbage:
-            return SFP(TStr_Enum_Cabbage);
-        case Terra_TargetType_Cannabis:
-            return SFP(TStr_Enum_Cannabis);
-        case Terra_TargetType_Capsicum:
-            return SFP(TStr_Enum_Capsicum);
-        case Terra_TargetType_Carrots:
-            return SFP(TStr_Enum_Carrots);
-        case Terra_TargetType_Catnip:
-            return SFP(TStr_Enum_Catnip);
-        case Terra_TargetType_Cauliflower:
-            return SFP(TStr_Enum_Cauliflower);
-        case Terra_TargetType_Celery:
-            return SFP(TStr_Enum_Celery);
-        case Terra_TargetType_Chamomile:
-            return SFP(TStr_Enum_Chamomile);
-        case Terra_TargetType_Chicory:
-            return SFP(TStr_Enum_Chicory);
-        case Terra_TargetType_Chives:
-            return SFP(TStr_Enum_Chives);
-        case Terra_TargetType_Cilantro:
-            return SFP(TStr_Enum_Cilantro);
-        case Terra_TargetType_Coriander:
-            return SFP(TStr_Enum_Coriander);
-        case Terra_TargetType_CornSweet:
-            return SFP(TStr_Enum_CornSweet);
-        case Terra_TargetType_Cucumber:
-            return SFP(TStr_Enum_Cucumber);
-        case Terra_TargetType_Dill:
-            return SFP(TStr_Enum_Dill);
-        case Terra_TargetType_Eggplant:
-            return SFP(TStr_Enum_Eggplant);
-        case Terra_TargetType_Endive:
-            return SFP(TStr_Enum_Endive);
-        case Terra_TargetType_Fennel:
-            return SFP(TStr_Enum_Fennel);
-        case Terra_TargetType_Fodder:
-            return SFP(TStr_Enum_Fodder);
-        case Terra_TargetType_Flowers:
-            return SFP(TStr_Enum_Flowers);
-        case Terra_TargetType_Garlic:
-            return SFP(TStr_Enum_Garlic);
-        case Terra_TargetType_Ginger:
-            return SFP(TStr_Enum_Ginger);
-        case Terra_TargetType_Kale:
-            return SFP(TStr_Enum_Kale);
-        case Terra_TargetType_Lavender:
-            return SFP(TStr_Enum_Lavender);
-        case Terra_TargetType_Leek:
-            return SFP(TStr_Enum_Leek);
-        case Terra_TargetType_LemonBalm:
-            return SFP(TStr_Enum_LemonBalm);
-        case Terra_TargetType_Lettuce:
-            return SFP(TStr_Enum_Lettuce);
-        case Terra_TargetType_Marrow:
-            return SFP(TStr_Enum_Marrow);
-        case Terra_TargetType_Melon:
-            return SFP(TStr_Enum_Melon);
-        case Terra_TargetType_Mint:
-            return SFP(TStr_Enum_Mint);
-        case Terra_TargetType_MustardCress:
-            return SFP(TStr_Enum_MustardCress);
-        case Terra_TargetType_Okra:
-            return SFP(TStr_Enum_Okra);
-        case Terra_TargetType_Onions:
-            return SFP(TStr_Enum_Onions);
-        case Terra_TargetType_Oregano:
-            return SFP(TStr_Enum_Oregano);
-        case Terra_TargetType_PakChoi:
-            return SFP(TStr_Enum_PakChoi);
-        case Terra_TargetType_Parsley:
-            return SFP(TStr_Enum_Parsley);
-        case Terra_TargetType_Parsnip:
-            return SFP(TStr_Enum_Parsnip);
-        case Terra_TargetType_Pea:
-            return SFP(TStr_Enum_Pea);
-        case Terra_TargetType_PeaSugar:
-            return SFP(TStr_Enum_PeaSugar);
-        case Terra_TargetType_Pepino:
-            return SFP(TStr_Enum_Pepino);
-        case Terra_TargetType_PeppersBell:
-            return SFP(TStr_Enum_PeppersBell);
-        case Terra_TargetType_PeppersHot:
-            return SFP(TStr_Enum_PeppersHot);
-        case Terra_TargetType_Potato:
-            return SFP(TStr_Enum_Potato);
-        case Terra_TargetType_PotatoSweet:
-            return SFP(TStr_Enum_PotatoSweet);
-        case Terra_TargetType_Pumpkin:
-            return SFP(TStr_Enum_Pumpkin);
-        case Terra_TargetType_Radish:
-            return SFP(TStr_Enum_Radish);
-        case Terra_TargetType_Rhubarb:
-            return SFP(TStr_Enum_Rhubarb);
-        case Terra_TargetType_Rosemary:
-            return SFP(TStr_Enum_Rosemary);
-        case Terra_TargetType_Sage:
-            return SFP(TStr_Enum_Sage);
-        case Terra_TargetType_Silverbeet:
-            return SFP(TStr_Enum_Silverbeet);
-        case Terra_TargetType_Spinach:
-            return SFP(TStr_Enum_Spinach);
-        case Terra_TargetType_Squash:
-            return SFP(TStr_Enum_Squash);
-        case Terra_TargetType_Sunflower:
-            return SFP(TStr_Enum_Sunflower);
-        case Terra_TargetType_Strawberries:
-            return SFP(TStr_Enum_Strawberries);
-        case Terra_TargetType_SwissChard:
-            return SFP(TStr_Enum_SwissChard);
-        case Terra_TargetType_Taro:
-            return SFP(TStr_Enum_Taro);
-        case Terra_TargetType_Tarragon:
-            return SFP(TStr_Enum_Tarragon);
-        case Terra_TargetType_Thyme:
-            return SFP(TStr_Enum_Thyme);
-        case Terra_TargetType_Tomato:
-            return SFP(TStr_Enum_Tomato);
-        case Terra_TargetType_Turnip:
-            return SFP(TStr_Enum_Turnip);
-        case Terra_TargetType_Watercress:
-            return SFP(TStr_Enum_Watercress);
-        case Terra_TargetType_Watermelon:
-            return SFP(TStr_Enum_Watermelon);
-        case Terra_TargetType_Zucchini:
-            return SFP(TStr_Enum_Zucchini);
-        case Terra_TargetType_CustomTarget1:
-            return SFP(TStr_Enum_CustomTarget1);
-        case Terra_TargetType_CustomTarget2:
-            return SFP(TStr_Enum_CustomTarget2);
-        case Terra_TargetType_CustomTarget3:
-            return SFP(TStr_Enum_CustomTarget3);
-        case Terra_TargetType_CustomTarget4:
-            return SFP(TStr_Enum_CustomTarget4);
-        case Terra_TargetType_CustomTarget5:
-            return SFP(TStr_Enum_CustomTarget5);
-        case Terra_TargetType_CustomTarget6:
-            return SFP(TStr_Enum_CustomTarget6);
-        case Terra_TargetType_CustomTarget7:
-            return SFP(TStr_Enum_CustomTarget7);
-        case Terra_TargetType_CustomTarget8:
-            return SFP(TStr_Enum_CustomTarget8);
-        case Terra_TargetType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
-        case Terra_TargetType_Undefined:
-            break;
-    }
-    return !excludeSpecial ? SFP(TStr_Undefined) : String();
-}
-
-String substrateTypeToString(Terra_SubstrateType substrateType, bool excludeSpecial)
-{
-    switch (substrateType) {
-        case Terra_SubstrateType_ClayPebbles:
-            return SFP(TStr_Enum_ClayPebbles);
-        case Terra_SubstrateType_CoconutCoir:
-            return SFP(TStr_Enum_CoconutCoir);
-        case Terra_SubstrateType_Rockwool:
-            return SFP(TStr_Enum_Rockwool);
-        case Terra_SubstrateType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
-        case Terra_SubstrateType_Undefined:
             break;
     }
     return !excludeSpecial ? SFP(TStr_Undefined) : String();
@@ -1629,52 +1371,12 @@ String substrateTypeToString(Terra_SubstrateType substrateType, bool excludeSpec
 String reservoirTypeToString(Terra_ReservoirType reservoirType, bool excludeSpecial)
 {
     switch (reservoirType) {
-        case Terra_ReservoirType_FeedWater:
-            return SFP(TStr_Enum_FeedWater);
-        case Terra_ReservoirType_DrainageWater:
-            return SFP(TStr_Enum_DrainageWater);
-        case Terra_ReservoirType_NutrientPremix:
-            return SFP(TStr_Enum_NutrientPremix);
-        case Terra_ReservoirType_FreshWater:
-            return SFP(TStr_Enum_FreshWater);
-        case Terra_ReservoirType_PhUpSolution:
-            return SFP(TStr_Enum_PhUpSolution);
-        case Terra_ReservoirType_PhDownSolution:
-            return SFP(TStr_Enum_PhDownSolution);
-        case Terra_ReservoirType_CustomAdditive1:
-            return SFP(TStr_Enum_CustomAdditive1);
-        case Terra_ReservoirType_CustomAdditive2:
-            return SFP(TStr_Enum_CustomAdditive2);
-        case Terra_ReservoirType_CustomAdditive3:
-            return SFP(TStr_Enum_CustomAdditive3);
-        case Terra_ReservoirType_CustomAdditive4:
-            return SFP(TStr_Enum_CustomAdditive4);
-        case Terra_ReservoirType_CustomAdditive5:
-            return SFP(TStr_Enum_CustomAdditive5);
-        case Terra_ReservoirType_CustomAdditive6:
-            return SFP(TStr_Enum_CustomAdditive6);
-        case Terra_ReservoirType_CustomAdditive7:
-            return SFP(TStr_Enum_CustomAdditive7);
-        case Terra_ReservoirType_CustomAdditive8:
-            return SFP(TStr_Enum_CustomAdditive8);
-        case Terra_ReservoirType_CustomAdditive9:
-            return SFP(TStr_Enum_CustomAdditive9);
-        case Terra_ReservoirType_CustomAdditive10:
-            return SFP(TStr_Enum_CustomAdditive10);
-        case Terra_ReservoirType_CustomAdditive11:
-            return SFP(TStr_Enum_CustomAdditive11);
-        case Terra_ReservoirType_CustomAdditive12:
-            return SFP(TStr_Enum_CustomAdditive12);
-        case Terra_ReservoirType_CustomAdditive13:
-            return SFP(TStr_Enum_CustomAdditive13);
-        case Terra_ReservoirType_CustomAdditive14:
-            return SFP(TStr_Enum_CustomAdditive14);
-        case Terra_ReservoirType_CustomAdditive15:
-            return SFP(TStr_Enum_CustomAdditive15);
-        case Terra_ReservoirType_CustomAdditive16:
-            return SFP(TStr_Enum_CustomAdditive16);
+        case Terra_ReservoirType_Water:
+            return SFP(TStr_Water);
+        case Terra_ReservoirType_Thermal:
+            return SFP(TStr_Thermal);
         case Terra_ReservoirType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Undefined) : String();
         case Terra_ReservoirType_Undefined:
             break;
     }
@@ -1787,38 +1489,28 @@ String enableModeToString(Terra_EnableMode enableMode, bool excludeSpecial)
 String unitsCategoryToString(Terra_UnitsCategory unitsCategory, bool excludeSpecial)
 {
     switch (unitsCategory) {
-        case Terra_UnitsCategory_Raw:
-            return SFP(TStr_Raw);
-        case Terra_UnitsCategory_Percentile:
-            return SFP(TStr_Percentile);
-        case Terra_UnitsCategory_Temperature:
-            return SFP(TStr_Temperature);
+        case Terra_UnitsCategory_Angle:
+            return SFP(TStr_Angle);
+        case Terra_UnitsCategory_Distance:
+            return SFP(TStr_Distance);
+        case Terra_UnitsCategory_Energy:
+            return SFP(TStr_Energy);
+        case Terra_UnitsCategory_Irradiance:
+            return SFP(TStr_Irradiance);
         case Terra_UnitsCategory_LiqVolume:
             return SFP(TStr_LiquidVolume);
         case Terra_UnitsCategory_LiqFlowRate:
             return SFP(TStr_LiquidFlowRate);
-        case Terra_UnitsCategory_Pressure:
-            return SFP(TStr_Pressure);
-        case Terra_UnitsCategory_Distance:
-            return SFP(TStr_Distance);
-        case Terra_UnitsCategory_RainRate:
-            return SFP(TStr_RainRate);
         case Terra_UnitsCategory_Power:
             return SFP(TStr_Power);
-        case Terra_UnitsCategory_Irradiance:
-            return SFP(TStr_Irradiance);
-        case Terra_UnitsCategory_Energy:
-            return SFP(TStr_Energy);
+        case Terra_UnitsCategory_Pressure:
+            return SFP(TStr_Pressure);
         case Terra_UnitsCategory_Speed:
             return SFP(TStr_Speed);
-        case Terra_UnitsCategory_Angle:
-            return SFP(TStr_Angle);
-        case Terra_UnitsCategory_Voltage:
-            return SFP(TStr_Voltage);
-        case Terra_UnitsCategory_Current:
-            return SFP(TStr_Current);
+        case Terra_UnitsCategory_Temperature:
+            return SFP(TStr_Temperature);
         case Terra_UnitsCategory_Count:
-            return !excludeSpecial ? SFP(TStr_CountLabel) : String();
+            return !excludeSpecial ? SFP(TStr_Undefined) : String();
         case Terra_UnitsCategory_Undefined:
             break;
     }
@@ -1832,6 +1524,16 @@ String unitsTypeToSymbol(Terra_UnitsType unitsType, bool excludeSpecial)
             return SFP(TStr_raw);
         case Terra_UnitsType_Percentile_100:
             return SFP(TStr_Percent);
+        case Terra_UnitsType_Angle_Degrees_360:
+            return SFP(TStr_deg);
+        case Terra_UnitsType_Angle_Radians_2pi:
+            return SFP(TStr_rad);
+        case Terra_UnitsType_Angle_Minutes_24hr:
+            return SFP(TStr_min);
+        case Terra_UnitsType_Distance_Millimeters:
+            return SFP(TStr_mm);
+        case Terra_UnitsType_Distance_Inches:
+            return SFP(TStr_in);
         case Terra_UnitsType_Distance_Feet:
             return SFP(TStr_ft);
         case Terra_UnitsType_Distance_Meters:
@@ -1844,28 +1546,22 @@ String unitsTypeToSymbol(Terra_UnitsType unitsType, bool excludeSpecial)
             return SFP(TStr_galPerMin);
         case Terra_UnitsType_LiqFlowRate_LitersPerMin:
             return SFP(TStr_LPerMin);
-        case Terra_UnitsType_Power_Wattage:
-            return SFP(TStr_W);
         case Terra_UnitsType_Irradiance_WattsPerSquareMeter:
             return SFP(TStr_WPerM2);
         case Terra_UnitsType_Energy_KilowattHours:
             return SFP(TStr_kWh);
-        case Terra_UnitsType_Temperature_Celsius:
-            return SFP(TStr_C);
-        case Terra_UnitsType_Temperature_Fahrenheit:
-            return SFP(TStr_F);
-        case Terra_UnitsType_Temperature_Kelvin:
-            return SFP(TStr_K);
+        case Terra_UnitsType_Power_Amperage:
+            return SFP(TStr_A);
+        case Terra_UnitsType_Power_Wattage:
+            return SFP(TStr_W);
+        case Terra_UnitsType_Power_Volts:
+            return SFP(TStr_V);
         case Terra_UnitsType_Pressure_Kilopascals:
             return SFP(TStr_kPa);
         case Terra_UnitsType_Pressure_PSI:
             return SFP(TStr_psi);
         case Terra_UnitsType_Pressure_Hectopascals:
             return SFP(TStr_hPa);
-        case Terra_UnitsType_Distance_Millimeters:
-            return SFP(TStr_mm);
-        case Terra_UnitsType_Distance_Inches:
-            return SFP(TStr_in);
         case Terra_UnitsType_Speed_MillimetersPerHour:
             return SFP(TStr_mmPerH);
         case Terra_UnitsType_Speed_InchesPerHour:
@@ -1876,19 +1572,20 @@ String unitsTypeToSymbol(Terra_UnitsType unitsType, bool excludeSpecial)
             return SFP(TStr_kmPerH);
         case Terra_UnitsType_Speed_MilesPerHour:
             return SFP(TStr_mph);
-        case Terra_UnitsType_Angle_Degrees_360:
-            return SFP(TStr_deg);
-        case Terra_UnitsType_Power_Volts:
-            return SFP(TStr_V);
-        case Terra_UnitsType_Current_Amperage:
-            return SFP(TStr_A);
+        case Terra_UnitsType_Temperature_Celsius:
+            return SFP(TStr_C);
+        case Terra_UnitsType_Temperature_Fahrenheit:
+            return SFP(TStr_F);
+        case Terra_UnitsType_Temperature_Kelvin:
+            return SFP(TStr_K);
         case Terra_UnitsType_Count:
-            return !excludeSpecial ? SFP(TStr_CountLabel) : String();
+            return !excludeSpecial ? SFP(TStr_Undefined) : String();
         case Terra_UnitsType_Undefined:
             break;
     }
     return !excludeSpecial ? SFP(TStr_Undefined) : String();
 }
+
 
 String positionIndexToString(tposi_t positionIndex, bool excludeSpecial)
 {
@@ -1921,875 +1618,499 @@ tposi_t positionIndexFromString(String positionIndexStr)
 
 Terra_SystemMode systemModeFromString(String systemModeStr)
 {
-        switch (systemModeStr.length() >= 1 ? systemModeStr[0] : '\000') {
-        case 'C':
-            return (Terra_SystemMode)2;
-        case 'D':
-            return (Terra_SystemMode)1;
-        case 'R':
-            return (Terra_SystemMode)0;
-        case 'U':
-            return (Terra_SystemMode)-1;
+    systemModeStr.toLowerCase();
+    switch (systemModeStr.length() > 0 ? systemModeStr[0] : '\000') {
+        case 'a':
+            return Terra_SystemMode_Automatic;
+        case 'c':
+            return Terra_SystemMode_Count;
+        case 'd':
+            return Terra_SystemMode_Disabled;
+        case 'm':
+            return Terra_SystemMode_Manual;
+        case 'u':
+            return Terra_SystemMode_Undefined;
     }
     return Terra_SystemMode_Undefined;
 }
 
 Terra_MeasurementMode measurementModeFromString(String measurementModeStr)
 {
-    switch (measurementModeStr.length() >= 1 ? measurementModeStr[0] : '\000') {
-        case 'C':
-            return (Terra_MeasurementMode)3;
-        case 'I':
-            return (Terra_MeasurementMode)0;
-        case 'M':
-            return (Terra_MeasurementMode)1;
-        case 'S':
-            return (Terra_MeasurementMode)2;
-        case 'U':
-            return (Terra_MeasurementMode)-1;
+    measurementModeStr.toLowerCase();
+    switch (measurementModeStr.length() > 0 ? measurementModeStr[0] : '\000') {
+        case 'c':
+            return Terra_MeasurementMode_Count;
+        case 'i':
+            return Terra_MeasurementMode_Imperial;
+        case 'm':
+            return Terra_MeasurementMode_Metric;
+        case 's':
+            return Terra_MeasurementMode_Scientific;
+        case 'u':
+            return Terra_MeasurementMode_Undefined;
     }
     return Terra_MeasurementMode_Undefined;
 }
 
 Terra_DisplayOutputMode displayOutputModeFromString(String displayOutModeStr)
 {
-    switch (displayOutModeStr.length() >= 1 ? displayOutModeStr[0] : '\000') {
-        case 'C':
-            switch (displayOutModeStr.length() >= 2 ? displayOutModeStr[1] : '\000') {
-                case 'o':
-                    return (Terra_DisplayOutputMode)18;
-                case 'u':
-                    return (Terra_DisplayOutputMode)10;
-            }
-            break;
-        case 'D':
-            return (Terra_DisplayOutputMode)0;
-        case 'I':
-            switch (displayOutModeStr.length() >= 3 ? displayOutModeStr[2] : '\000') {
-                case '3':
-                    switch (displayOutModeStr.length() >= 7 ? displayOutModeStr[6] : '\000') {
-                        case '\000':
-                            return (Terra_DisplayOutputMode)12;
-                        case 'V':
-                            return (Terra_DisplayOutputMode)13;
-                    }
-                    break;
-                case 'I':
-                    return (Terra_DisplayOutputMode)16;
-            }
-            break;
-        case 'L':
-            switch (displayOutModeStr.length() >= 4 ? displayOutModeStr[3] : '\000') {
-                case '1':
-                    switch (displayOutModeStr.length() >= 8 ? displayOutModeStr[7] : '\000') {
-                        case 'E':
-                            return (Terra_DisplayOutputMode)1;
-                        case 'R':
-                            return (Terra_DisplayOutputMode)2;
-                    }
-                    break;
+    displayOutModeStr.toLowerCase();
+    switch (displayOutModeStr.length() > 6 ? displayOutModeStr[6] : '\000') {
+        case '\000':
+            switch (displayOutModeStr.length() > 4 ? displayOutModeStr[4] : '\000') {
+                case '\000':
+                    return Terra_DisplayOutputMode_TFT;
+                case '0':
+                    return Terra_DisplayOutputMode_SH1106;
                 case '2':
-                    switch (displayOutModeStr.length() >= 8 ? displayOutModeStr[7] : '\000') {
-                        case 'E':
-                            return (Terra_DisplayOutputMode)3;
-                        case 'R':
-                            return (Terra_DisplayOutputMode)4;
-                    }
-                    break;
+                    return Terra_DisplayOutputMode_IL3820;
+                case '3':
+                    return Terra_DisplayOutputMode_ST7735;
+                case '8':
+                    return Terra_DisplayOutputMode_ST7789;
+                case 't':
+                    return Terra_DisplayOutputMode_Count;
             }
             break;
-        case 'S':
-            switch (displayOutModeStr.length() >= 2 ? displayOutModeStr[1] : '\000') {
-                case 'H':
-                    return (Terra_DisplayOutputMode)9;
-                case 'S':
-                    switch (displayOutModeStr.length() >= 5 ? displayOutModeStr[4] : '\000') {
-                        case '3':
-                            switch (displayOutModeStr.length() >= 7 ? displayOutModeStr[6] : '\000') {
-                                case '5':
-                                    switch (displayOutModeStr.length() >= 8 ? displayOutModeStr[7] : '\000') {
-                                        case '\000':
-                                            return (Terra_DisplayOutputMode)5;
-                                        case 'x':
-                                            switch (displayOutModeStr.length() >= 9 ? displayOutModeStr[8] : '\000') {
-                                                case '3':
-                                                    return (Terra_DisplayOutputMode)6;
-                                                case '6':
-                                                    return (Terra_DisplayOutputMode)7;
-                                            }
-                                            break;
-                                    }
-                                    break;
-                                case '6':
-                                    return (Terra_DisplayOutputMode)8;
-                            }
-                            break;
-                        case '6':
-                            return (Terra_DisplayOutputMode)11;
-                    }
-                    break;
-                case 'T':
-                    switch (displayOutModeStr.length() >= 5 ? displayOutModeStr[4] : '\000') {
-                        case '3':
-                            return (Terra_DisplayOutputMode)14;
-                        case '8':
-                            return (Terra_DisplayOutputMode)15;
-                    }
-                    break;
+        case '1':
+            return Terra_DisplayOutputMode_ILI9341;
+        case '2':
+            switch (displayOutModeStr.length() > 7 ? displayOutModeStr[7] : '\000') {
+                case 'e':
+                    return Terra_DisplayOutputMode_LCD16x2_EN;
+                case 'r':
+                    return Terra_DisplayOutputMode_LCD16x2_RS;
             }
             break;
-        case 'T':
-            return (Terra_DisplayOutputMode)17;
-        case 'U':
-            return (Terra_DisplayOutputMode)-1;
+        case '4':
+            switch (displayOutModeStr.length() > 7 ? displayOutModeStr[7] : '\000') {
+                case 'e':
+                    return Terra_DisplayOutputMode_LCD20x4_EN;
+                case 'r':
+                    return Terra_DisplayOutputMode_LCD20x4_RS;
+            }
+            break;
+        case '5':
+            switch (displayOutModeStr.length() > 8 ? displayOutModeStr[8] : '\000') {
+                case '\000':
+                    return Terra_DisplayOutputMode_SSD1305;
+                case '3':
+                    return Terra_DisplayOutputMode_SSD1305_x32Ada;
+                case '6':
+                    return Terra_DisplayOutputMode_SSD1305_x64Ada;
+            }
+            break;
+        case '6':
+            return Terra_DisplayOutputMode_SSD1306;
+        case '7':
+            return Terra_DisplayOutputMode_SSD1607;
+        case 'e':
+            return Terra_DisplayOutputMode_Disabled;
+        case 'n':
+            return Terra_DisplayOutputMode_Undefined;
+        case 'o':
+            return Terra_DisplayOutputMode_CustomOLED;
+        case 'v':
+            return Terra_DisplayOutputMode_IL3820_V2;
     }
     return Terra_DisplayOutputMode_Undefined;
 }
 
 Terra_ControlInputMode controlInputModeFromString(String controlInModeStr)
 {
-    switch (controlInModeStr.length() >= 1 ? controlInModeStr[0] : '\000') {
-        case 'A':
-            return (Terra_ControlInputMode)7;
-        case 'C':
-            return (Terra_ControlInputMode)17;
-        case 'D':
-            return (Terra_ControlInputMode)0;
-        case 'M':
-            switch (controlInModeStr.length() >= 7 ? controlInModeStr[6] : '\000') {
-                case '2':
-                    return (Terra_ControlInputMode)8;
-                case '3':
-                    switch (controlInModeStr.length() >= 12 ? controlInModeStr[11] : '\000') {
+    controlInModeStr.toLowerCase();
+    switch (controlInModeStr.length() > 5 ? controlInModeStr[5] : '\000') {
+        case '\000':
+            return Terra_ControlInputMode_Count;
+        case 'e':
+            return Terra_ControlInputMode_RemoteControl;
+        case 'g':
+            return Terra_ControlInputMode_AnalogJoystickOk;
+        case 'i':
+            return Terra_ControlInputMode_Undefined;
+        case 'l':
+            return Terra_ControlInputMode_Disabled;
+        case 'n':
+            switch (controlInModeStr.length() > 15 ? controlInModeStr[15] : '\000') {
+                case '\000':
+                    return Terra_ControlInputMode_UpDownButtonsOk;
+                case 'h':
+                    switch (controlInModeStr.length() > 18 ? controlInModeStr[18] : '\000') {
                         case '\000':
-                            return (Terra_ControlInputMode)9;
-                        case 'L':
-                            return (Terra_ControlInputMode)10;
+                            return Terra_ControlInputMode_UpDownESP32TouchOk;
+                        case 'l':
+                            return Terra_ControlInputMode_UpDownESP32TouchOkLR;
+                    }
+                    break;
+                case 'l':
+                    return Terra_ControlInputMode_UpDownButtonsOkLR;
+            }
+            break;
+        case 's':
+            return Terra_ControlInputMode_TouchScreen;
+        case 't':
+            return Terra_ControlInputMode_ResistiveTouch;
+        case 'u':
+            return Terra_ControlInputMode_TFTTouch;
+        case 'x':
+            switch (controlInModeStr.length() > 6 ? controlInModeStr[6] : '\000') {
+                case '2':
+                    return Terra_ControlInputMode_Matrix2x2UpDownButtonsOkL;
+                case '3':
+                    switch (controlInModeStr.length() > 11 ? controlInModeStr[11] : '\000') {
+                        case '\000':
+                            return Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOk;
+                        case 'l':
+                            return Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOkLR;
                     }
                     break;
                 case '4':
-                    switch (controlInModeStr.length() >= 12 ? controlInModeStr[11] : '\000') {
+                    switch (controlInModeStr.length() > 11 ? controlInModeStr[11] : '\000') {
                         case '\000':
-                            return (Terra_ControlInputMode)11;
-                        case 'L':
-                            return (Terra_ControlInputMode)12;
+                            return Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOk;
+                        case 'l':
+                            return Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOkLR;
                     }
-                    break;
             }
             break;
-        case 'R':
-            switch (controlInModeStr.length() >= 2 ? controlInModeStr[1] : '\000') {
-                case 'e':
-                    switch (controlInModeStr.length() >= 3 ? controlInModeStr[2] : '\000') {
-                        case 'm':
-                            return (Terra_ControlInputMode)16;
-                        case 's':
-                            return (Terra_ControlInputMode)13;
-                    }
-                    break;
-                case 'o':
-                    switch (controlInModeStr.length() >= 16 ? controlInModeStr[15] : '\000') {
-                        case '\000':
-                            return (Terra_ControlInputMode)1;
-                        case 'L':
-                            return (Terra_ControlInputMode)2;
-                    }
-                    break;
+        case 'y':
+            switch (controlInModeStr.length() > 15 ? controlInModeStr[15] : '\000') {
+                case '\000':
+                    return Terra_ControlInputMode_RotaryEncoderOk;
+                case 'l':
+                    return Terra_ControlInputMode_RotaryEncoderOkLR;
             }
-            break;
-        case 'T':
-            switch (controlInModeStr.length() >= 2 ? controlInModeStr[1] : '\000') {
-                case 'F':
-                    return (Terra_ControlInputMode)15;
-                case 'o':
-                    return (Terra_ControlInputMode)14;
-            }
-            break;
-        case 'U':
-            switch (controlInModeStr.length() >= 2 ? controlInModeStr[1] : '\000') {
-                case 'n':
-                    return (Terra_ControlInputMode)-1;
-                case 'p':
-                    switch (controlInModeStr.length() >= 7 ? controlInModeStr[6] : '\000') {
-                        case 'B':
-                            switch (controlInModeStr.length() >= 16 ? controlInModeStr[15] : '\000') {
-                                case '\000':
-                                    return (Terra_ControlInputMode)3;
-                                case 'L':
-                                    return (Terra_ControlInputMode)4;
-                            }
-                            break;
-                        case 'E':
-                            switch (controlInModeStr.length() >= 19 ? controlInModeStr[18] : '\000') {
-                                case '\000':
-                                    return (Terra_ControlInputMode)5;
-                                case 'L':
-                                    return (Terra_ControlInputMode)6;
-                            }
-                            break;
-                    }
-                    break;
-            }
-            break;
     }
     return Terra_ControlInputMode_Undefined;
 }
 
 Terra_ActuatorType actuatorTypeFromString(String actuatorTypeStr)
 {
-    switch (actuatorTypeStr.length() >= 1 ? actuatorTypeStr[0] : '\000') {
-        case 'C':
-            return (Terra_ActuatorType)7;
-        case 'F':
-            return (Terra_ActuatorType)0;
-        case 'G':
-            return (Terra_ActuatorType)1;
-        case 'P':
-            return (Terra_ActuatorType)2;
-        case 'U':
-            return (Terra_ActuatorType)-1;
-        case 'W':
-            switch (actuatorTypeStr.length() >= 6 ? actuatorTypeStr[5] : '\000') {
-                case 'A':
-                    return (Terra_ActuatorType)3;
-                case 'H':
-                    return (Terra_ActuatorType)4;
-                case 'P':
-                    return (Terra_ActuatorType)5;
-                case 'S':
-                    return (Terra_ActuatorType)6;
-            }
-            break;
+    actuatorTypeStr.toLowerCase();
+    switch (actuatorTypeStr.length() > 2 ? actuatorTypeStr[2] : '\000') {
+        case 'a':
+            return Terra_ActuatorType_Heater;
+        case 'd':
+            return Terra_ActuatorType_Undefined;
+        case 'l':
+            return Terra_ActuatorType_Valve;
+        case 'm':
+            return Terra_ActuatorType_Pump;
+        case 'n':
+            return Terra_ActuatorType_Fan;
+        case 'r':
+            return Terra_ActuatorType_Circulator;
+        case 'u':
+            return Terra_ActuatorType_Count;
     }
     return Terra_ActuatorType_Undefined;
 }
 
 Terra_SensorType sensorTypeFromString(String sensorTypeStr)
 {
-    switch (sensorTypeStr.length() >= 1 ? sensorTypeStr[0] : '\000') {
-        case 'A':
-            switch (sensorTypeStr.length() >= 4 ? sensorTypeStr[3] : '\000') {
-                case 'C':
-                    return (Terra_SensorType)0;
-                case 'T':
-                    return (Terra_SensorType)1;
-            }
-            break;
-        case 'C':
-            return (Terra_SensorType)10;
-        case 'L':
-            return (Terra_SensorType)8;
-        case 'P':
-            switch (sensorTypeStr.length() >= 2 ? sensorTypeStr[1] : '\000') {
+    sensorTypeStr.toLowerCase();
+    switch (sensorTypeStr.length() > 0 ? sensorTypeStr[0] : '\000') {
+        case 'c':
+            switch (sensorTypeStr.length() > 1 ? sensorTypeStr[1] : '\000') {
                 case 'o':
-                    return (Terra_SensorType)3;
+                    return Terra_SensorType_Count;
                 case 'u':
-                    return (Terra_SensorType)4;
+                    return Terra_SensorType_Current;
             }
             break;
-        case 'S':
-            return (Terra_SensorType)5;
-        case 'U':
-            return (Terra_SensorType)-1;
-        case 'W':
-            switch (sensorTypeStr.length() >= 6 ? sensorTypeStr[5] : '\000') {
-                case 'H':
-                    return (Terra_SensorType)7;
-                case 'P':
-                    return (Terra_SensorType)2;
-                case 'T':
-                    switch (sensorTypeStr.length() >= 7 ? sensorTypeStr[6] : '\000') {
-                        case 'D':
-                            return (Terra_SensorType)6;
-                        case 'e':
-                            return (Terra_SensorType)9;
-                    }
-                    break;
+        case 'f':
+            return Terra_SensorType_Flow;
+        case 'h':
+            return Terra_SensorType_Humidity;
+        case 'l':
+            switch (sensorTypeStr.length() > 2 ? sensorTypeStr[2] : '\000') {
+                case 'a':
+                    return Terra_SensorType_Leak;
+                case 'v':
+                    return Terra_SensorType_Level;
             }
             break;
+        case 'p':
+            return Terra_SensorType_Pressure;
+        case 'r':
+            return Terra_SensorType_Rainfall;
+        case 's':
+            return Terra_SensorType_SolarRadiation;
+        case 't':
+            return Terra_SensorType_Temperature;
+        case 'u':
+            return Terra_SensorType_Undefined;
+        case 'v':
+            return Terra_SensorType_Voltage;
+        case 'w':
+            switch (sensorTypeStr.length() > 4 ? sensorTypeStr[4] : '\000') {
+                case 'd':
+                    return Terra_SensorType_WindDirection;
+                case 's':
+                    return Terra_SensorType_WindSpeed;
+            }
     }
     return Terra_SensorType_Undefined;
 }
 
-Terra_TargetType targetTypeFromString(String targetTypeStr)
-{
-    switch (targetTypeStr.length() >= 1 ? targetTypeStr[0] : '\000') {
-        case 'A':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'l':
-                    return (Terra_TargetType)0;
-                case 'n':
-                    return (Terra_TargetType)1;
-                case 'r':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 't':
-                            return (Terra_TargetType)2;
-                        case 'u':
-                            return (Terra_TargetType)3;
-                    }
-                    break;
-                case 's':
-                    return (Terra_TargetType)4;
-            }
-            break;
-        case 'B':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)5;
-                case 'e':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'a':
-                            switch (targetTypeStr.length() >= 5 ? targetTypeStr[4] : '\000') {
-                                case '\000':
-                                    return (Terra_TargetType)6;
-                                case 'B':
-                                    return (Terra_TargetType)7;
-                            }
-                            break;
-                        case 'e':
-                            return (Terra_TargetType)8;
-                    }
-                    break;
-                case 'l':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'a':
-                            return (Terra_TargetType)9;
-                        case 'u':
-                            return (Terra_TargetType)10;
-                    }
-                    break;
-                case 'o':
-                    return (Terra_TargetType)11;
-                case 'r':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'o':
-                            return (Terra_TargetType)12;
-                        case 'u':
-                            return (Terra_TargetType)13;
-                    }
-                    break;
-            }
-            break;
-        case 'C':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'b':
-                            return (Terra_TargetType)14;
-                        case 'n':
-                            return (Terra_TargetType)15;
-                        case 'p':
-                            return (Terra_TargetType)16;
-                        case 'r':
-                            return (Terra_TargetType)17;
-                        case 't':
-                            return (Terra_TargetType)18;
-                        case 'u':
-                            return (Terra_TargetType)19;
-                    }
-                    break;
-                case 'e':
-                    return (Terra_TargetType)20;
-                case 'h':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'a':
-                            return (Terra_TargetType)21;
-                        case 'i':
-                            switch (targetTypeStr.length() >= 4 ? targetTypeStr[3] : '\000') {
-                                case 'c':
-                                    return (Terra_TargetType)22;
-                                case 'v':
-                                    return (Terra_TargetType)23;
-                            }
-                            break;
-                    }
-                    break;
-                case 'i':
-                    return (Terra_TargetType)24;
-                case 'o':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'r':
-                            switch (targetTypeStr.length() >= 4 ? targetTypeStr[3] : '\000') {
-                                case 'i':
-                                    return (Terra_TargetType)25;
-                                case 'n':
-                                    return (Terra_TargetType)26;
-                            }
-                            break;
-                        case 'u':
-                            return (Terra_TargetType)85;
-                    }
-                    break;
-                case 'u':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'c':
-                            return (Terra_TargetType)27;
-                        case 's':
-                            switch (targetTypeStr.length() >= 11 ? targetTypeStr[10] : '\000') {
-                                case '1':
-                                    return (Terra_TargetType)77;
-                                case '2':
-                                    return (Terra_TargetType)78;
-                                case '3':
-                                    return (Terra_TargetType)79;
-                                case '4':
-                                    return (Terra_TargetType)80;
-                                case '5':
-                                    return (Terra_TargetType)81;
-                                case '6':
-                                    return (Terra_TargetType)82;
-                                case '7':
-                                    return (Terra_TargetType)83;
-                                case '8':
-                                    return (Terra_TargetType)84;
-                            }
-                            break;
-                    }
-                    break;
-            }
-            break;
-        case 'D':
-            return (Terra_TargetType)28;
-        case 'E':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'g':
-                    return (Terra_TargetType)29;
-                case 'n':
-                    return (Terra_TargetType)30;
-            }
-            break;
-        case 'F':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'e':
-                    return (Terra_TargetType)31;
-                case 'l':
-                    return (Terra_TargetType)33;
-                case 'o':
-                    return (Terra_TargetType)32;
-            }
-            break;
-        case 'G':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)34;
-                case 'i':
-                    return (Terra_TargetType)35;
-            }
-            break;
-        case 'K':
-            return (Terra_TargetType)36;
-        case 'L':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)37;
-                case 'e':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'e':
-                            return (Terra_TargetType)38;
-                        case 'm':
-                            return (Terra_TargetType)39;
-                        case 't':
-                            return (Terra_TargetType)40;
-                    }
-                    break;
-            }
-            break;
-        case 'M':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)41;
-                case 'e':
-                    return (Terra_TargetType)42;
-                case 'i':
-                    return (Terra_TargetType)43;
-                case 'u':
-                    return (Terra_TargetType)44;
-            }
-            break;
-        case 'O':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'k':
-                    return (Terra_TargetType)45;
-                case 'n':
-                    return (Terra_TargetType)46;
-                case 'r':
-                    return (Terra_TargetType)47;
-            }
-            break;
-        case 'P':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'k':
-                            return (Terra_TargetType)48;
-                        case 'r':
-                            switch (targetTypeStr.length() >= 5 ? targetTypeStr[4] : '\000') {
-                                case 'l':
-                                    return (Terra_TargetType)49;
-                                case 'n':
-                                    return (Terra_TargetType)50;
-                            }
-                            break;
-                    }
-                    break;
-                case 'e':
-                    switch (targetTypeStr.length() >= 3 ? targetTypeStr[2] : '\000') {
-                        case 'a':
-                            switch (targetTypeStr.length() >= 4 ? targetTypeStr[3] : '\000') {
-                                case '\000':
-                                    return (Terra_TargetType)51;
-                                case 'S':
-                                    return (Terra_TargetType)52;
-                            }
-                            break;
-                        case 'p':
-                            switch (targetTypeStr.length() >= 4 ? targetTypeStr[3] : '\000') {
-                                case 'i':
-                                    return (Terra_TargetType)53;
-                                case 'p':
-                                    switch (targetTypeStr.length() >= 8 ? targetTypeStr[7] : '\000') {
-                                        case 'B':
-                                            return (Terra_TargetType)54;
-                                        case 'H':
-                                            return (Terra_TargetType)55;
-                                    }
-                                    break;
-                            }
-                            break;
-                    }
-                    break;
-                case 'o':
-                    switch (targetTypeStr.length() >= 7 ? targetTypeStr[6] : '\000') {
-                        case '\000':
-                            return (Terra_TargetType)56;
-                        case 'S':
-                            return (Terra_TargetType)57;
-                    }
-                    break;
-                case 'u':
-                    return (Terra_TargetType)58;
-            }
-            break;
-        case 'R':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)59;
-                case 'h':
-                    return (Terra_TargetType)60;
-                case 'o':
-                    return (Terra_TargetType)61;
-            }
-            break;
-        case 'S':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    return (Terra_TargetType)62;
-                case 'i':
-                    return (Terra_TargetType)63;
-                case 'p':
-                    return (Terra_TargetType)64;
-                case 'q':
-                    return (Terra_TargetType)65;
-                case 't':
-                    return (Terra_TargetType)67;
-                case 'u':
-                    return (Terra_TargetType)66;
-                case 'w':
-                    return (Terra_TargetType)68;
-            }
-            break;
-        case 'T':
-            switch (targetTypeStr.length() >= 2 ? targetTypeStr[1] : '\000') {
-                case 'a':
-                    switch (targetTypeStr.length() >= 4 ? targetTypeStr[3] : '\000') {
-                        case 'o':
-                            return (Terra_TargetType)69;
-                        case 'r':
-                            return (Terra_TargetType)70;
-                    }
-                    break;
-                case 'h':
-                    return (Terra_TargetType)71;
-                case 'o':
-                    return (Terra_TargetType)72;
-                case 'u':
-                    return (Terra_TargetType)73;
-            }
-            break;
-        case 'U':
-            return (Terra_TargetType)-1;
-        case 'W':
-            switch (targetTypeStr.length() >= 6 ? targetTypeStr[5] : '\000') {
-                case 'c':
-                    return (Terra_TargetType)74;
-                case 'm':
-                    return (Terra_TargetType)75;
-            }
-            break;
-        case 'Z':
-            return (Terra_TargetType)76;
-    }
-    return Terra_TargetType_Undefined;
-}
-
-Terra_SubstrateType substrateTypeFromString(String substrateTypeStr)
-{
-        switch (substrateTypeStr.length() >= 1 ? substrateTypeStr[0] : '\000') {
-        case 'C':
-            switch (substrateTypeStr.length() >= 2 ? substrateTypeStr[1] : '\000') {
-                case 'l':
-                    return (Terra_SubstrateType)0;
-                case 'o':
-                    switch (substrateTypeStr.length() >= 3 ? substrateTypeStr[2] : '\000') {
-                        case 'c':
-                            return (Terra_SubstrateType)1;
-                        case 'u':
-                            return (Terra_SubstrateType)3;
-                    }
-                    break;
-            }
-            break;
-        case 'R':
-            return (Terra_SubstrateType)2;
-        case 'U':
-            return (Terra_SubstrateType)-1;
-    }
-    return Terra_SubstrateType_Undefined;
-}
-
 Terra_ReservoirType reservoirTypeFromString(String reservoirTypeStr)
 {
-     switch (reservoirTypeStr.length() >= 1 ? reservoirTypeStr[0] : '\000') {
-        case 'C':
-            switch (reservoirTypeStr.length() >= 2 ? reservoirTypeStr[1] : '\000') {
-                case 'o':
-                    return (Terra_ReservoirType)22;
-                case 'u':
-                    switch (reservoirTypeStr.length() >= 15 ? reservoirTypeStr[14] : '\000') {
-                        case '1':
-                            switch (reservoirTypeStr.length() >= 16 ? reservoirTypeStr[15] : '\000') {
-                                case '\000':
-                                    return (Terra_ReservoirType)6;
-                                case '0':
-                                    return (Terra_ReservoirType)15;
-                                case '1':
-                                    return (Terra_ReservoirType)16;
-                                case '2':
-                                    return (Terra_ReservoirType)17;
-                                case '3':
-                                    return (Terra_ReservoirType)18;
-                                case '4':
-                                    return (Terra_ReservoirType)19;
-                                case '5':
-                                    return (Terra_ReservoirType)20;
-                                case '6':
-                                    return (Terra_ReservoirType)21;
-                            }
-                            break;
-                        case '2':
-                            return (Terra_ReservoirType)7;
-                        case '3':
-                            return (Terra_ReservoirType)8;
-                        case '4':
-                            return (Terra_ReservoirType)9;
-                        case '5':
-                            return (Terra_ReservoirType)10;
-                        case '6':
-                            return (Terra_ReservoirType)11;
-                        case '7':
-                            return (Terra_ReservoirType)12;
-                        case '8':
-                            return (Terra_ReservoirType)13;
-                        case '9':
-                            return (Terra_ReservoirType)14;
-                    }
-                    break;
-            }
-            break;
-        case 'D':
-            return (Terra_ReservoirType)1;
-        case 'F':
-            switch (reservoirTypeStr.length() >= 2 ? reservoirTypeStr[1] : '\000') {
-                case 'e':
-                    return (Terra_ReservoirType)0;
-                case 'r':
-                    return (Terra_ReservoirType)3;
-            }
-            break;
-        case 'N':
-            return (Terra_ReservoirType)2;
-        case 'P':
-            switch (reservoirTypeStr.length() >= 3 ? reservoirTypeStr[2] : '\000') {
-                case 'D':
-                    return (Terra_ReservoirType)5;
-                case 'U':
-                    return (Terra_ReservoirType)4;
-            }
-            break;
-        case 'U':
-            return (Terra_ReservoirType)-1;
+    reservoirTypeStr.toLowerCase();
+    switch (reservoirTypeStr.length() > 0 ? reservoirTypeStr[0] : '\000') {
+        case 'c':
+            return Terra_ReservoirType_Count;
+        case 't':
+            return Terra_ReservoirType_Thermal;
+        case 'u':
+            return Terra_ReservoirType_Undefined;
+        case 'w':
+            return Terra_ReservoirType_Water;
     }
     return Terra_ReservoirType_Undefined;
 }
 
-Terra_RailType railTypeFromString(String railTypeStr) {
-    switch (railTypeStr.length() >= 1 ? railTypeStr[0] : '\000') {
-        case 'A':
-            switch (railTypeStr.length() >= 3 ? railTypeStr[2] : '\000') {
-                case '1':
-                    return (Terra_RailType)0;
-                case '2':
-                    return (Terra_RailType)1;
+Terra_RailType railTypeFromString(String railTypeStr)
+{
+    railTypeStr.toLowerCase();
+    switch (railTypeStr.length() > 2 ? railTypeStr[2] : '\000') {
+        case '1':
+            switch (railTypeStr.length() > 0 ? railTypeStr[0] : '\000') {
+                case 'a':
+                    return Terra_RailType_AC110V;
+                case 'd':
+                    return Terra_RailType_DC12V;
             }
             break;
-        case 'C':
-            return (Terra_RailType)7;
-        case 'D':
-            switch (railTypeStr.length() >= 3 ? railTypeStr[2] : '\000') {
-                case '1':
-                    return (Terra_RailType)4;
-                case '2':
-                    return (Terra_RailType)5;
-                case '3':
-                    return (Terra_RailType)2;
-                case '4':
-                    return (Terra_RailType)6;
-                case '5':
-                    return (Terra_RailType)3;
+        case '2':
+            switch (railTypeStr.length() > 0 ? railTypeStr[0] : '\000') {
+                case 'a':
+                    return Terra_RailType_AC220V;
+                case 'd':
+                    return Terra_RailType_DC24V;
             }
             break;
-        case 'U':
-            return (Terra_RailType)-1;
+        case '3':
+            return Terra_RailType_DC3V3;
+        case '4':
+            return Terra_RailType_DC48V;
+        case '5':
+            return Terra_RailType_DC5V;
+        case 'd':
+            return Terra_RailType_Undefined;
+        case 'u':
+            return Terra_RailType_Count;
     }
     return Terra_RailType_Undefined;
 }
 
 Terra_PinMode pinModeFromString(String pinModeStr)
 {
-    switch (pinModeStr.length() >= 1 ? pinModeStr[0] : '\000') {
-        case 'A':
-            switch (pinModeStr.length() >= 7 ? pinModeStr[6] : '\000') {
-                case 'I':
-                    return (Terra_PinMode)5;
-                case 'O':
-                    return (Terra_PinMode)6;
+    pinModeStr.toLowerCase();
+    switch (pinModeStr.length() > 7 ? pinModeStr[7] : '\000') {
+        case '\000':
+            return Terra_PinMode_Count;
+        case 'e':
+            return Terra_PinMode_Undefined;
+        case 'i':
+            switch (pinModeStr.length() > 16 ? pinModeStr[16] : '\000') {
+                case 'd':
+                    return Terra_PinMode_Digital_Input_PullDown;
+                case 't':
+                    return Terra_PinMode_Digital_Input_Floating;
+                case 'u':
+                    return Terra_PinMode_Digital_Input_PullUp;
             }
             break;
-        case 'C':
-            return (Terra_PinMode)7;
-        case 'D':
-            switch (pinModeStr.length() >= 8 ? pinModeStr[7] : '\000') {
-                case 'I':
-                    switch (pinModeStr.length() >= 13 ? pinModeStr[12] : '\000') {
-                        case '\000':
-                            return (Terra_PinMode)0;
-                        case 'P':
-                            switch (pinModeStr.length() >= 17 ? pinModeStr[16] : '\000') {
-                                case 'D':
-                                    return (Terra_PinMode)2;
-                                case 'U':
-                                    return (Terra_PinMode)1;
-                            }
-                            break;
-                    }
-                    break;
-                case 'O':
-                    switch (pinModeStr.length() >= 14 ? pinModeStr[13] : '\000') {
-                        case '\000':
-                            return (Terra_PinMode)3;
-                        case 'P':
-                            return (Terra_PinMode)4;
-                    }
-                    break;
+        case 'n':
+            return Terra_PinMode_Analog_Input;
+        case 'o':
+            switch (pinModeStr.length() > 13 ? pinModeStr[13] : '\000') {
+                case 'o':
+                    return Terra_PinMode_Digital_Output_OpenDrain;
+                case 'p':
+                    return Terra_PinMode_Digital_Output_PushPull;
             }
             break;
-        case 'U':
-            return (Terra_PinMode)-1;
+        case 'u':
+            return Terra_PinMode_Analog_Output;
     }
     return Terra_PinMode_Undefined;
 }
 
 Terra_EnableMode enableModeFromString(String enableModeStr)
 {
-    switch (enableModeStr.length() >= 1 ? enableModeStr[0] : '\000') {
-        case 'A':
-            switch (enableModeStr.length() >= 2 ? enableModeStr[1] : '\000') {
-                case 's':
-                    return (Terra_EnableMode)7;
-                case 'v':
-                    return (Terra_EnableMode)2;
-            }
-            break;
-        case 'C':
-            return (Terra_EnableMode)8;
-        case 'D':
-            return (Terra_EnableMode)6;
-        case 'H':
-            return (Terra_EnableMode)0;
-        case 'I':
-            return (Terra_EnableMode)4;
-        case 'L':
-            return (Terra_EnableMode)1;
-        case 'M':
-            return (Terra_EnableMode)3;
-        case 'R':
-            return (Terra_EnableMode)5;
-        case 'U':
-            return (Terra_EnableMode)-1;
+    enableModeStr.toLowerCase();
+    switch (enableModeStr.length() > 2 ? enableModeStr[2] : '\000') {
+        case 'c':
+            return Terra_EnableMode_AscOrder;
+        case 'd':
+            return Terra_EnableMode_Undefined;
+        case 'e':
+            return Terra_EnableMode_Average;
+        case 'g':
+            return Terra_EnableMode_Highest;
+        case 'l':
+            return Terra_EnableMode_Multiply;
+        case 'o':
+            return Terra_EnableMode_InOrder;
+        case 's':
+            return Terra_EnableMode_DescOrder;
+        case 'u':
+            return Terra_EnableMode_Count;
+        case 'v':
+            return Terra_EnableMode_RevOrder;
+        case 'w':
+            return Terra_EnableMode_Lowest;
     }
     return Terra_EnableMode_Undefined;
 }
 
 Terra_UnitsCategory unitsCategoryFromString(String unitsCategoryStr)
 {
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Raw))) { return Terra_UnitsCategory_Raw; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Percentile))) { return Terra_UnitsCategory_Percentile; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Temperature))) { return Terra_UnitsCategory_Temperature; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_LiquidVolume))) { return Terra_UnitsCategory_LiqVolume; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_LiquidFlowRate))) { return Terra_UnitsCategory_LiqFlowRate; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Pressure))) { return Terra_UnitsCategory_Pressure; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Distance))) { return Terra_UnitsCategory_Distance; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_RainRate))) { return Terra_UnitsCategory_RainRate; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Power))) { return Terra_UnitsCategory_Power; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Irradiance))) { return Terra_UnitsCategory_Irradiance; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Energy))) { return Terra_UnitsCategory_Energy; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Speed))) { return Terra_UnitsCategory_Speed; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Angle))) { return Terra_UnitsCategory_Angle; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Voltage))) { return Terra_UnitsCategory_Voltage; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_Current))) { return Terra_UnitsCategory_Current; }
-    if (unitsCategoryStr.equalsIgnoreCase(SFP(TStr_CountLabel))) { return Terra_UnitsCategory_Count; }
+    unitsCategoryStr.toLowerCase();
+    switch (unitsCategoryStr.length() > 0 ? unitsCategoryStr[0] : '\000') {
+        case 'a':
+            return Terra_UnitsCategory_Angle;
+        case 'c':
+            return Terra_UnitsCategory_Count;
+        case 'd':
+            return Terra_UnitsCategory_Distance;
+        case 'e':
+            return Terra_UnitsCategory_Energy;
+        case 'i':
+            return Terra_UnitsCategory_Irradiance;
+        case 'l':
+            switch (unitsCategoryStr.length() > 6 ? unitsCategoryStr[6] : '\000') {
+                case 'f':
+                    return Terra_UnitsCategory_LiqFlowRate;
+                case 'v':
+                    return Terra_UnitsCategory_LiqVolume;
+            }
+            break;
+        case 'p':
+            switch (unitsCategoryStr.length() > 1 ? unitsCategoryStr[1] : '\000') {
+                case 'o':
+                    return Terra_UnitsCategory_Power;
+                case 'r':
+                    return Terra_UnitsCategory_Pressure;
+            }
+            break;
+        case 's':
+            return Terra_UnitsCategory_Speed;
+        case 't':
+            return Terra_UnitsCategory_Temperature;
+        case 'u':
+            return Terra_UnitsCategory_Undefined;
+    }
     return Terra_UnitsCategory_Undefined;
 }
 
 Terra_UnitsType unitsTypeFromSymbol(String unitsSymbolStr)
 {
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_raw))) { return Terra_UnitsType_Raw_1; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_Percent))) { return Terra_UnitsType_Percentile_100; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_ft))) { return Terra_UnitsType_Distance_Feet; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_m))) { return Terra_UnitsType_Distance_Meters; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_gal))) { return Terra_UnitsType_LiqVolume_Gallons; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_L))) { return Terra_UnitsType_LiqVolume_Liters; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_galPerMin))) { return Terra_UnitsType_LiqFlowRate_GallonsPerMin; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_LPerMin))) { return Terra_UnitsType_LiqFlowRate_LitersPerMin; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_W)) || unitsSymbolStr.equalsIgnoreCase("J/s")) { return Terra_UnitsType_Power_Wattage; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_WPerM2))) { return Terra_UnitsType_Irradiance_WattsPerSquareMeter; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_kWh))) { return Terra_UnitsType_Energy_KilowattHours; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_C))) { return Terra_UnitsType_Temperature_Celsius; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_F))) { return Terra_UnitsType_Temperature_Fahrenheit; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_K))) { return Terra_UnitsType_Temperature_Kelvin; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_kPa))) { return Terra_UnitsType_Pressure_Kilopascals; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_psi))) { return Terra_UnitsType_Pressure_PSI; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_hPa))) { return Terra_UnitsType_Pressure_Hectopascals; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_mm))) { return Terra_UnitsType_Distance_Millimeters; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_in))) { return Terra_UnitsType_Distance_Inches; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_mmPerH))) { return Terra_UnitsType_Speed_MillimetersPerHour; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_inPerH))) { return Terra_UnitsType_Speed_InchesPerHour; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_mPerS))) { return Terra_UnitsType_Speed_MetersPerSecond; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_kmPerH))) { return Terra_UnitsType_Speed_KilometersPerHour; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_mph))) { return Terra_UnitsType_Speed_MilesPerHour; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_deg))) { return Terra_UnitsType_Angle_Degrees_360; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_V))) { return Terra_UnitsType_Power_Volts; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_A))) { return Terra_UnitsType_Current_Amperage; }
-    if (unitsSymbolStr.equalsIgnoreCase(SFP(TStr_CountLabel))) { return Terra_UnitsType_Count; }
+    unitsSymbolStr.toLowerCase();
+    switch (unitsSymbolStr.length() > 0 ? unitsSymbolStr[0] : '\000') {
+        case '%':
+            return Terra_UnitsType_Percentile_100;
+        case 'a':
+            return Terra_UnitsType_Power_Amperage;
+        case 'c':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Temperature_Celsius;
+                case 'o':
+                    return Terra_UnitsType_Count;
+            }
+            break;
+        case 'd':
+            return Terra_UnitsType_Angle_Degrees_360;
+        case 'f':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Temperature_Fahrenheit;
+                case 't':
+                    return Terra_UnitsType_Distance_Feet;
+            }
+            break;
+        case 'g':
+            switch (unitsSymbolStr.length() > 3 ? unitsSymbolStr[3] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_LiqVolume_Gallons;
+                case '/':
+                    return Terra_UnitsType_LiqFlowRate_GallonsPerMin;
+            }
+            break;
+        case 'h':
+            return Terra_UnitsType_Pressure_Hectopascals;
+        case 'i':
+            switch (unitsSymbolStr.length() > 2 ? unitsSymbolStr[2] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Distance_Inches;
+                case '/':
+                    return Terra_UnitsType_Speed_InchesPerHour;
+            }
+            break;
+        case 'k':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Temperature_Kelvin;
+                case 'm':
+                    return Terra_UnitsType_Speed_KilometersPerHour;
+                case 'p':
+                    return Terra_UnitsType_Pressure_Kilopascals;
+                case 'w':
+                    return Terra_UnitsType_Energy_KilowattHours;
+            }
+            break;
+        case 'l':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_LiqVolume_Liters;
+                case '/':
+                    return Terra_UnitsType_LiqFlowRate_LitersPerMin;
+            }
+            break;
+        case 'm':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Distance_Meters;
+                case '/':
+                    return Terra_UnitsType_Speed_MetersPerSecond;
+                case 'i':
+                    return Terra_UnitsType_Angle_Minutes_24hr;
+                case 'm':
+                    switch (unitsSymbolStr.length() > 2 ? unitsSymbolStr[2] : '\000') {
+                        case '\000':
+                            return Terra_UnitsType_Distance_Millimeters;
+                        case '/':
+                            return Terra_UnitsType_Speed_MillimetersPerHour;
+                    }
+                    break;
+                case 'p':
+                    return Terra_UnitsType_Speed_MilesPerHour;
+            }
+            break;
+        case 'p':
+            return Terra_UnitsType_Pressure_PSI;
+        case 'r':
+            switch (unitsSymbolStr.length() > 2 ? unitsSymbolStr[2] : '\000') {
+                case 'd':
+                    return Terra_UnitsType_Angle_Radians_2pi;
+                case 'w':
+                    return Terra_UnitsType_Raw_1;
+            }
+            break;
+        case 'u':
+            return Terra_UnitsType_Undefined;
+        case 'v':
+            return Terra_UnitsType_Power_Volts;
+        case 'w':
+            switch (unitsSymbolStr.length() > 1 ? unitsSymbolStr[1] : '\000') {
+                case '\000':
+                    return Terra_UnitsType_Power_Wattage;
+                case '/':
+                    return Terra_UnitsType_Irradiance_WattsPerSquareMeter;
+            }
+    }
     return Terra_UnitsType_Undefined;
 }
+

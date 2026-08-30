@@ -1,14 +1,13 @@
 // Simple-Homestead-Arduino Rainwater Collection Example
 //
-// Converts incremental roof rainfall into cistern inflow, applies a first-flush discard,
-// and respects the configured cistern overflow band. A real rain gauge should supply the
-// rainfall accumulated since the previous collection update.
+// Converts incremental roof rainfall into estimated catchment volume and applies a
+// first-flush discard. Application code can route the remaining captured water through
+// the same reservoir/pump plumbing used elsewhere in the system.
 
 #include <Terraduino.h>
 
 Terraduino terraController;
 SharedPtr<TerraRainCatchment> roofCatchment;
-SharedPtr<TerraCistern> rainCistern;
 TerraFirstFlushController firstFlush(20.0f);
 
 void setup()
@@ -16,12 +15,7 @@ void setup()
     Serial.begin(115200);
 
     terraController.init();
-    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, 0, "Roof Catchment");
-    rainCistern = terraController.addCistern(5000.0f, 0, "Rain Cistern");
-
-    rainCistern->setThresholds(15.0f, 30.0f, 95.0f);
-    rainCistern->configureFillBand(30.0f, 95.0f, 99.0f);
-    rainCistern->setLevel(25.0f);
+    roofCatchment = terraController.addRainCatchment(180.0f, 0.85f, "Roof Catchment");
     terraController.launch();
 }
 
@@ -29,11 +23,18 @@ void loop()
 {
     // Replace with incremental rainfall from the installed rain gauge.
     const float rainfallMm = 0.0f;
-    TerraRainCollectionResult result = roofCatchment->collectInto(*rainCistern, rainfallMm, &firstFlush);
+    float capturedLiters = roofCatchment->estimateCaptureLiters(rainfallMm);
+    float discardedLiters = 0.0f;
 
-    if (result.storedLiters > 0.0f) {
-        Serial.print(F("Stored rainwater, L: "));
-        Serial.println(result.storedLiters, 2);
+    if (firstFlush.shouldDivert()) {
+        discardedLiters = min(capturedLiters, firstFlush.getRemainingLiters());
+        firstFlush.recordFlow(discardedLiters);
+    }
+
+    float availableLiters = capturedLiters - discardedLiters;
+    if (availableLiters > 0.0f) {
+        Serial.print(F("Captured rainwater after first flush, L: "));
+        Serial.println(availableLiters, 2);
     }
 
     terraController.update();

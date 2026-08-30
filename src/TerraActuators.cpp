@@ -691,7 +691,7 @@ void TerraActuatorData::fromJSONObject(JsonObjectConst &objectIn)
     JsonObjectConst outputPinObj = objectIn[SFP(TStr_Key_OutputPin)];
     if (!outputPinObj.isNull()) { outputPin.fromJSONObject(outputPinObj); }
     const char *enableModeStr = objectIn[SFP(TStr_Key_EnableMode)] | nullptr;
-    if (enableModeStr) { enableMode = terraEnableModeFromString(TerraString(enableModeStr)); }
+    if (enableModeStr) { enableMode = terraEnableModeFromString(enableModeStr); }
     JsonVariantConst contPowerUsageVar = objectIn[SFP(TStr_Key_ContinuousPowerUsage)];
     if (!contPowerUsageVar.isNull()) { contPowerUsage.fromJSONVariant(contPowerUsageVar); }
     const char *railNameStr = objectIn[SFP(TStr_Key_RailName)] | nullptr;
@@ -725,7 +725,7 @@ void TerraPumpActuatorData::fromJSONObject(JsonObjectConst &objectIn)
     TerraActuatorData::fromJSONObject(objectIn);
 
     const char *flowRateUnitsStr = objectIn[SFP(TStr_Key_FlowRateUnits)] | nullptr;
-    if (flowRateUnitsStr) { flowRateUnits = unitsTypeFromSymbol(TerraString(flowRateUnitsStr)); }
+    if (flowRateUnitsStr) { flowRateUnits = unitsTypeFromSymbol(flowRateUnitsStr); }
     JsonVariantConst contFlowRateVar = objectIn[SFP(TStr_Key_ContinuousFlowRate)];
     if (!contFlowRateVar.isNull()) { contFlowRate.fromJSONVariant(contFlowRateVar); }
     const char *destReservoirStr = objectIn[SFP(TStr_Key_OutputReservoir)] | nullptr;

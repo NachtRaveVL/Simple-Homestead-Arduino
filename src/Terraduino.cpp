@@ -116,9 +116,9 @@ void Terraduino::deallocateRTC()
 #endif
 }
 
-void Terraduino::init(Terra_ControlMode controlMode, Terra_MeasurementMode measurementMode)
+void Terraduino::init(Terra_SystemMode systemMode, Terra_MeasurementMode measurementMode)
 {
-    _data.controlMode = controlMode;
+    _data.systemMode = systemMode;
     _data.measurementMode = measurementMode;
     _initialized = true;
     _running = false;
@@ -148,7 +148,7 @@ void Terraduino::suspend()
 
 void Terraduino::update()
 {
-    if (!_initialized || !_running || _data.controlMode == Terra_ControlMode_Disabled) { return; }
+    if (!_initialized || !_running || _data.systemMode == Terra_SystemMode_Disabled) { return; }
 
     uint32_t current = millis();
     bool pollSensors = !_lastPollAt || (uint32_t)(current - _lastPollAt) >= _data.pollingInterval;
@@ -168,7 +168,7 @@ void Terraduino::update()
     if (pollSensors) { publisher.advancePollingFrame(_pollingFrame, current); }
 }
 
-void Terraduino::setSystemName(const TerraString &name)
+void Terraduino::setSystemName(const String &name)
 {
     strncpy(_data.systemName, name.c_str(), TERRA_NAME_MAXSIZE - 1);
     _data.systemName[TERRA_NAME_MAXSIZE - 1] = '\0';
@@ -211,7 +211,7 @@ void Terraduino::setRTCTime(DateTime time)
 }
 #endif
 
-TerraString Terraduino::exportSystemJSON() const
+String Terraduino::exportSystemJSON() const
 {
     DynamicJsonDocument doc(TERRA_JSON_DOC_EXPORTSIZE);
     JsonArray records = doc.to<JsonArray>();
@@ -234,12 +234,12 @@ TerraString Terraduino::exportSystemJSON() const
         delete data;
     }
 
-    TerraString output;
+    String output;
     serializeJson(doc, output);
     return output;
 }
 
-bool Terraduino::importSystemJSON(const TerraString &json)
+bool Terraduino::importSystemJSON(const String &json)
 {
     DynamicJsonDocument doc(TERRA_JSON_DOC_EXPORTSIZE);
     if (deserializeJson(doc, json.c_str())) { return false; }

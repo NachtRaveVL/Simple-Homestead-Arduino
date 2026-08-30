@@ -29,8 +29,8 @@ enum Terra_Autosave : signed char {
 // User System Setup Data
 // id: TSYS. User system setup data.
 struct TerraSystemData : public TerraData {
-    Terra_SystemMode systemMode;                            // System type mode
-    Terra_MeasurementMode measureMode;                      // System measurement mode
+    Terra_SystemMode systemMode;                            // Controller operating mode
+    Terra_MeasurementMode measurementMode;                  // System measurement mode
     Terra_DisplayOutputMode dispOutMode;                    // System display output mode
     Terra_ControlInputMode ctrlInMode;                      // System control input mode 
     char systemName[TERRA_NAME_MAXSIZE];                    // System name

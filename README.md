@@ -212,7 +212,7 @@ For example:
 ```Arduino
 TerraSystemSetup setup;
 setup.systemName = "Homestead";
-setup.controlMode = Terra_ControlMode_Automatic;
+setup.systemMode = Terra_SystemMode_Automatic;
 
 terraController.init(setup);
 terraController.launch();
@@ -223,7 +223,7 @@ The controller `update()` method advances registered objects, schedules, and pub
 Terraduino also exposes JSON and binary helpers for controller-level persistence:
 
 ```Arduino
-TerraString json = terraController.exportSystemJSON();
+String json = terraController.exportSystemJSON();
 
 terraController.importSystemJSON(json);
 terraController.exportSystemBinary(buffer, capacity);

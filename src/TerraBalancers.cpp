@@ -4,190 +4,216 @@
 */
 
 #include "Terraduino.h"
-#include "TerraActuators.h"
-#include "TerraSensors.h"
-#include "TerraThermal.h"
-#include "TerraWater.h"
+#include "TerraCoreLogic.h"
 
-TerraWaterBalancer::TerraWaterBalancer(TerraWaterRoute *route)
-    : _route(route), _source(route), _destination(route), _pump(route), _flowSensor(route)
-{ ; }
-
-void TerraWaterBalancer::setParent(TerraWaterRoute *route)
+TerraBalancer::TerraBalancer(SharedPtr<TerraSensor> sensor, float targetSetpoint, float targetRange, uint8_t measurementRow, int typeIn)
+    : type((typeof(type))typeIn), _sensor(this), _balancingState(Terra_BalancingState_Undefined),
+      _targetSetpoint(targetSetpoint), _targetRange(targetRange), _enabled(false)
 {
-    _route = route;
-    _source.setParent(route);
-    _destination.setParent(route);
-    _pump.setParent(route);
-    _flowSensor.setParent(route);
+    _sensor.setMeasurementRow(measurementRow);
+    _sensor.setHandleMethod(&TerraBalancer::handleMeasurement, this);
+    _sensor.initObject(sensor);
 }
 
-void TerraWaterBalancer::update(uint32_t now)
+TerraBalancer::~TerraBalancer()
 {
-    if (!_route || !_route->isEnabled() || _route->hasFault()) {
-        _pump.disableActivation();
-        return;
+    _enabled = false;
+    disableAllActivations();
+}
+
+void TerraBalancer::update()
+{
+    _sensor.updateIfNeeded(true);
+
+    if (_enabled && getController() && getController()->isPollingFrameOld(_sensor.getMeasurementFrame(), TERRA_BALANCER_STALE_FRAMES)) {
+        _balancingState = Terra_BalancingState_Undefined;
+        disableAllActivations();
     }
+}
 
-    SharedPtr<TerraWaterSource> source = _source.getObject<TerraWaterSource>();
-    SharedPtr<TerraWaterStorage> destination = _destination.getObject<TerraWaterStorage>();
-    if (!source || !destination || !_pump.isSet()) {
-        _pump.disableActivation();
-        return;
+void TerraBalancer::setTargetSetpoint(float targetSetpoint)
+{
+    if (!isFPEqual(_targetSetpoint, targetSetpoint)) {
+        _targetSetpoint = targetSetpoint;
+
+        _sensor.setNeedsMeasurement();
+        bumpRevisionIfNeeded();
     }
+}
 
-    bool run = false;
-    bool pumpWasActive = _pump.isActivated();
-    const TerraCistern *cistern = destination->classType == TerraReservoir::Cistern
-                                ? static_cast<const TerraCistern *>(destination.get())
-                                : nullptr;
+Terra_BalancingState TerraBalancer::getBalancingState(bool poll)
+{
+    _sensor.updateIfNeeded(poll);
+    return _balancingState;
+}
 
-    if (cistern && cistern->isOverflowDetected()) {
-        _route->setRouteState(Terra_RouteState_Fault);
-    } else if (!destination->isEnabled() || destination->hasFault()) {
-        _route->setRouteState(Terra_RouteState_Fault);
-    } else if (!source->isAvailable() || source->getLevel() <= source->getReserveLevel()) {
-        _route->setRouteState(Terra_RouteState_Idle);
-    } else {
-        float startPercent = cistern ? cistern->getFillStartPercent() : _route->getDestinationStartPercent();
-        float stopPercent = cistern ? cistern->getFillStopPercent() : _route->getDestinationStopPercent();
-        bool routeWasActive = _route->getRouteState() == Terra_RouteState_Requested ||
-                              _route->getRouteState() == Terra_RouteState_Active;
-
-        if (destination->getLevel() >= stopPercent) {
-            _route->setRouteState(Terra_RouteState_Complete);
-        } else if (routeWasActive || pumpWasActive) {
-            _route->setRouteState(Terra_RouteState_Active);
-            run = true;
-        } else if (destination->getLevel() <= startPercent) {
-            _route->setRouteState(Terra_RouteState_Requested);
-            run = true;
+void TerraBalancer::setEnabled(bool enabled)
+{
+    if (_enabled != enabled) {
+        _enabled = enabled;
+        if (_enabled) {
+            _sensor.setNeedsMeasurement();
         } else {
-            _route->setRouteState(Terra_RouteState_Idle);
+            _balancingState = Terra_BalancingState_Undefined;
+            disableAllActivations();
+        }
+    }
+}
+
+void TerraBalancer::setIncrementActuators(const Vector<TerraActuatorAttachment, TERRA_BAL_ACTUATORS_MAXSIZE> &incActuators)
+{
+    for (auto attachIter = _incActuators.begin(); attachIter != _incActuators.end(); ++attachIter) {
+        bool found = false;
+        auto key = attachIter->getKey();
+
+        for (auto attachInIter = incActuators.begin(); attachInIter != incActuators.end(); ++attachInIter) {
+            if (key == attachInIter->getKey()) {
+                auto activation = *attachInIter;
+                activation.setupActivation(attachIter->getActivationSetup());
+                if (attachIter->getUpdateSlot()) { activation.setUpdateSlot(*attachIter->getUpdateSlot()); }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) { // disables activations not found in new list, prevents same used actuators from prev cycle from turning off/on on cycle switch
+            attachIter->disableActivation();
         }
     }
 
-    if (_flowSensor.isSet()) {
-        TerraSingleMeasurement flow = _flowSensor.getMeasurement(now, true);
-        if (flow.isSet() && flow.units != Terra_UnitsType_LitersPerMinute && canConvertUnits(flow.units, Terra_UnitsType_LitersPerMinute)) {
-            flow.toUnits(Terra_UnitsType_LitersPerMinute);
-        }
-        if (!flow.isSet() || flow.units != Terra_UnitsType_LitersPerMinute) {
-            run = false;
-        } else if ((run && pumpWasActive && !_route->validateFlow(flow.value, true)) ||
-                   (!run && !_route->validateFlow(flow.value, false))) {
-            run = false;
+    {   _incActuators.clear();
+        for (auto attachInIter = incActuators.begin(); attachInIter != incActuators.end(); ++attachInIter) {
+            _incActuators.push_back(*attachInIter);
+            _incActuators.back().setParent(this);
         }
     }
-
-    if (run) { _pump.setupActivation((millis_t)-1); _pump.enableActivation(); }
-    else { _pump.disableActivation(); }
 }
 
-void TerraWaterBalancer::unresolveAny(TerraObject *object)
+void TerraBalancer::setDecrementActuators(const Vector<TerraActuatorAttachment, TERRA_BAL_ACTUATORS_MAXSIZE> &decActuators)
 {
-    _source.unresolveAny(object);
-    _destination.unresolveAny(object);
-    _pump.unresolveAny(object);
-    _flowSensor.unresolveAny(object);
-}
+    for (auto attachIter = _decActuators.begin(); attachIter != _decActuators.end(); ++attachIter) {
+        bool found = false;
+        auto key = attachIter->getKey();
 
-const TerraWaterSource *TerraWaterBalancer::selectSource(const TerraWaterSource *const *sources, uint8_t count) const
-{
-    if (!sources || !count) return nullptr;
-    const TerraWaterSource *selected = nullptr;
-    for (uint8_t index = 0; index < count; ++index) {
-        const TerraWaterSource *source = sources[index];
-        if (!source || !source->isAvailable() || source->getLevel() <= source->getReserveLevel()) continue;
-        if (!selected || source->getPriority() < selected->getPriority()) selected = source;
+        for (auto attachInIter = decActuators.begin(); attachInIter != decActuators.end(); ++attachInIter) {
+            if (key == attachInIter->getKey()) {
+                auto activation = *attachInIter;
+                activation.setupActivation(attachIter->getActivationSetup());
+                if (attachIter->getUpdateSlot()) { activation.setUpdateSlot(*attachIter->getUpdateSlot()); }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) { // disables activations not found in new list
+            attachIter->disableActivation();
+        }
     }
-    return selected;
-}
 
-TerraCistern *TerraWaterBalancer::selectFillCistern(TerraCistern *const *cisterns, uint8_t count) const
-{
-    if (!cisterns || !count) return nullptr;
-    TerraCistern *selected = nullptr;
-    for (uint8_t index = 0; index < count; ++index) {
-        TerraCistern *cistern = cisterns[index];
-        if (!cistern || !cistern->needsFill(false)) continue;
-        if (!selected || cistern->getLevel() < selected->getLevel()) selected = cistern;
+    {   _decActuators.clear();
+        for (auto attachInIter = decActuators.begin(); attachInIter != decActuators.end(); ++attachInIter) {
+            _decActuators.push_back(*attachInIter);
+            _decActuators.back().setParent(this);
+        }
     }
-    return selected;
 }
 
-const TerraCistern *TerraWaterBalancer::selectSupplyCistern(const TerraCistern *const *cisterns, uint8_t count) const
+void TerraBalancer::setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t)
 {
-    if (!cisterns || !count) return nullptr;
-    const TerraCistern *selected = nullptr;
-    for (uint8_t index = 0; index < count; ++index) {
-        const TerraCistern *cistern = cisterns[index];
-        if (!cistern || !cistern->canSupplyWater()) continue;
-        if (!selected || cistern->availableAboveReserveLiters() > selected->availableAboveReserveLiters()) selected = cistern;
+    if (_measurementUnits[0] != measurementUnits) {
+        _measurementUnits[0] = measurementUnits;
+        //bumpRevisionIfNeeded();
     }
-    return selected;
 }
 
-float TerraWaterBalancer::transferAllowance(const TerraCistern &source, const TerraCistern &destination, float requestedLiters) const
+Terra_UnitsType TerraBalancer::getMeasurementUnits(uint8_t) const
 {
-    if (!source.canSupplyWater() || !destination.canAcceptWater()) return 0.0f;
-    if (requestedLiters <= 0.0f) { return 0.0f; }
-    const float sourceReserve = source.getCapacityLiters() * (source.getReserveLevel() / 100.0f);
-    const float sourceAvailable = source.getStoredLiters() > sourceReserve
-                                ? source.getStoredLiters() - sourceReserve : 0.0f;
-    const float destinationTarget = destination.getCapacityLiters() * (destination.getFillStopPercent() / 100.0f);
-    const float destinationRoom = destinationTarget > destination.getStoredLiters()
-                                ? destinationTarget - destination.getStoredLiters() : 0.0f;
-    const float sourceLimited = sourceAvailable < requestedLiters ? sourceAvailable : requestedLiters;
-    return destinationRoom < sourceLimited ? destinationRoom : sourceLimited;
+    return definedUnitsElse(_measurementUnits[0], _sensor.getMeasurementUnits());
 }
 
-TerraThermalBalancer::TerraThermalBalancer(TerraThermalLoop *loop)
-    : _loop(loop), _sourceTemperature(loop), _store(loop), _circulator(loop)
+TerraSensorAttachment &TerraBalancer::getSensorAttachment()
+{
+    return _sensor;
+}
+
+Signal<Terra_BalancingState, TERRA_BALANCER_SIGNAL_SLOTS> &TerraBalancer::getBalancingSignal()
+{
+    return _balancingSignal;
+}
+
+void TerraBalancer::disableAllActivations()
+{
+    for (auto attachIter = _incActuators.begin(); attachIter != _incActuators.end(); ++attachIter) {
+        attachIter->disableActivation();
+    }
+    for (auto attachIter = _decActuators.begin(); attachIter != _decActuators.end(); ++attachIter) {
+        attachIter->disableActivation();
+    }
+}
+
+void TerraBalancer::handleMeasurement(const TerraMeasurement *measurement)
+{
+    if (measurement && measurement->frame) {
+        auto balancingStateBefore = _balancingState;
+
+        auto measure = getAsSingleMeasurement(measurement, getMeasurementRow());
+        convertUnits(&measure, getMeasurementUnits(), getMeasurementConvertParam());
+        _sensor.setMeasurement(measure);
+
+        if (_enabled) {
+            _balancingState = (Terra_BalancingState)terraBalancingStateForValue(measure.value, _targetSetpoint, _targetRange);
+
+            if (_balancingState != balancingStateBefore) {
+                #ifdef TERRA_USE_MULTITASKING
+                    scheduleSignalFireOnce<Terra_BalancingState>(_balancingSignal, _balancingState);
+                #else
+                    _balancingSignal.fire(_balancingState);
+                #endif
+            }
+        }
+    }
+}
+
+
+TerraLinearEdgeBalancer::TerraLinearEdgeBalancer(SharedPtr<TerraSensor> sensor, float targetSetpoint, float targetRange, float edgeOffset, float edgeLength, uint8_t measurementRow)
+    : TerraBalancer(sensor, targetSetpoint, targetRange, measurementRow, LinearEdge), _edgeOffset(edgeOffset), _edgeLength(edgeLength)
 { ; }
 
-void TerraThermalBalancer::setParent(TerraThermalLoop *loop)
+void TerraLinearEdgeBalancer::update()
 {
-    _loop = loop;
-    _sourceTemperature.setParent(loop);
-    _store.setParent(loop);
-    _circulator.setParent(loop);
-}
-
-void TerraThermalBalancer::update(uint32_t now)
-{
-    if (!_loop || !_loop->isEnabled() || _loop->hasFault()) {
-        _circulator.disableActivation();
-        if (_loop) { _loop->setRunning(false); }
+    TerraBalancer::update();
+    if (!_enabled || !_sensor) {
+        disableAllActivations();
         return;
     }
 
-    SharedPtr<TerraThermalReservoir> store = _store.getObject<TerraThermalReservoir>();
-    if (!store || !_sourceTemperature.isSet() || !_circulator.isSet()) {
-        _circulator.disableActivation();
-        _loop->setRunning(false);
-        return;
-    }
+    int correction = terraBalancingCorrectionForState(_balancingState);
+    if (correction) {
+        auto measure = _sensor.getMeasurement(true);
 
-    TerraSingleMeasurement source = _sourceTemperature.getMeasurement(now, true);
-    if (source.isSet() && source.units != Terra_UnitsType_Temperature_Celsius && canConvertUnits(source.units, Terra_UnitsType_Temperature_Celsius)) {
-        source.toUnits(Terra_UnitsType_Temperature_Celsius);
-    }
-    if (!source.isSet() || source.units != Terra_UnitsType_Temperature_Celsius) {
-        _circulator.disableActivation();
-        _loop->setRunning(false);
-        return;
-    }
+        float x = fabsf(measure.value - _targetSetpoint);
+        float val = _edgeLength > FLT_EPSILON ? mapValue<float>(x, _edgeOffset, _edgeOffset + _edgeLength, 0.0f, 1.0f)
+                                              : (x >= _edgeOffset - FLT_EPSILON ? 1.0 : 0.0f);
+        val = constrain(val, 0.0f, 1.0f);
 
-    bool run = _loop->shouldCirculate(source.value, store->getTemperature());
-    _loop->setRunning(run);
-    if (run) { _circulator.setupActivation((millis_t)-1); _circulator.enableActivation(); }
-    else { _circulator.disableActivation(); }
-}
-
-void TerraThermalBalancer::unresolveAny(TerraObject *object)
-{
-    _sourceTemperature.unresolveAny(object);
-    _store.unresolveAny(object);
-    _circulator.unresolveAny(object);
+        if (correction > 0) {
+            for (auto attachIter = _decActuators.begin(); attachIter != _decActuators.end(); ++attachIter) {
+                attachIter->disableActivation();
+            }
+            for (auto attachIter = _incActuators.begin(); attachIter != _incActuators.end(); ++attachIter) {
+                attachIter->setupActivation(val * attachIter->getRateMultiplier());
+                attachIter->enableActivation();
+            }
+        } else {
+            for (auto attachIter = _incActuators.begin(); attachIter != _incActuators.end(); ++attachIter) {
+                attachIter->disableActivation();
+            }
+            for (auto attachIter = _decActuators.begin(); attachIter != _decActuators.end(); ++attachIter) {
+                attachIter->setupActivation(val * attachIter->getRateMultiplier());
+                attachIter->enableActivation();
+            }
+        }
+    } else {
+        disableAllActivations();
+    }
 }

@@ -345,10 +345,6 @@ enum Terra_ObjectType : signed char {
     Terra_ObjectType_Actuator,                              // Controlled output
     Terra_ObjectType_Sensor,                                // Sensor input
     Terra_ObjectType_Reservoir,                             // Managed water/thermal reservoir
-    Terra_ObjectType_WaterRoute,                            // Water transfer route
-    Terra_ObjectType_RainCatchment,                         // Rainfall catchment
-    Terra_ObjectType_ThermalLoop,                           // Thermal circulation loop
-    Terra_ObjectType_Environment,                           // Local weather/environment observations
     Terra_ObjectType_Rail,                                  // Equipment power rail
 
     Terra_ObjectType_Count,                                 // Placeholder
@@ -357,13 +353,13 @@ enum Terra_ObjectType : signed char {
 
 // Controller Operating Mode
 // Specifies whether local automation is active or under manual control.
-enum Terra_ControlMode : signed char {
-    Terra_ControlMode_Manual,                               // Application/user code drives outputs
-    Terra_ControlMode_Automatic,                            // Local automation active
-    Terra_ControlMode_Disabled,                             // Controller updates suspended
+enum Terra_SystemMode : signed char {
+    Terra_SystemMode_Manual,                               // Application/user code drives outputs
+    Terra_SystemMode_Automatic,                            // Local automation active
+    Terra_SystemMode_Disabled,                             // Controller updates suspended
 
-    Terra_ControlMode_Count,                                // Placeholder
-    Terra_ControlMode_Undefined = -1                        // Placeholder
+    Terra_SystemMode_Count,                                // Placeholder
+    Terra_SystemMode_Undefined = -1                        // Placeholder
 };
 
 // Measurement Units Mode
@@ -661,10 +657,6 @@ class TerraTrigger;
 class TerraActuator;
 class TerraSensor;
 class TerraReservoir;
-class TerraWaterRoute;
-class TerraRainCatchment;
-class TerraThermalLoop;
-class TerraEnvironment;
 class TerraRail;
 
 // System sketches setup enums (for non-zero resolution)

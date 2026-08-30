@@ -11,8 +11,8 @@ int main()
     assert(pump);
     assert(pump->getOutputPin().isValid());
 
-    TerraActivationHandle first = pump->activate(Terra_DirectionMode_Forward, 0.4f);
-    TerraActivationHandle second = pump->activate(Terra_DirectionMode_Forward, 0.8f);
+    TerraActivationHandle first = pump->enableActuator(Terra_DirectionMode_Forward, 0.4f);
+    TerraActivationHandle second = pump->enableActuator(Terra_DirectionMode_Forward, 0.8f);
     pump->setEnableMode(Terra_EnableMode_Highest);
     pump->update(100);
     assert(pump->isEnabled());
@@ -23,11 +23,9 @@ int main()
     pump->update(101);
     assert(!pump->isEnabled());
 
-    auto sump = controller.addSumpPumpRelay(7, true, "Sump");
-    auto level = controller.addAnalogLevelSensor(8, 0.0f, 1.0f, 0.0f, 100.0f, "Sump Level");
-    assert(sump && level);
-    sump->setLevelSensor(level);
-    assert(sump->getLevelSensorAttachment().isSet());
+    auto valve = controller.addValveRelay(7, true, "Valve");
+    assert(valve);
+    assert(valve->getActuatorType() == Terra_ActuatorType_Valve);
 
     auto leak = controller.addLeakIndicator(9, true, "Leak");
     assert(leak);

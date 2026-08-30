@@ -137,7 +137,7 @@ extern void hardAssert(bool cond, String msg, const char *file, const char *func
 // Helpers & Misc
 
 // Returns the active controller instance. Not guaranteed to be non-null.
-inline Hydruino *getController();
+inline Terraduino *getController();
 // Returns the active scheduler instance. Not guaranteed to be non-null.
 inline TerraScheduler *getScheduler();
 // Returns the active logger instance. Not guaranteed to be non-null.
@@ -296,12 +296,16 @@ inline Terra_UnitsType defaultDistanceUnits(Terra_MeasurementMode measureMode = 
 inline Terra_UnitsType defaultFlowRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_LiqFlowRate, measureMode); }
 // Returns default liquid volume units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultVolumeUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_LiqVolume, measureMode); }
-// Returns default percentile units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultPercentileUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Percentile, measureMode); }
+// Returns default percentile units.
+inline Terra_UnitsType defaultPercentileUnits(Terra_MeasurementMode = Terra_MeasurementMode_Undefined) { return Terra_UnitsType_Percentile_100; }
 // Returns default pressure units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultPressureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Pressure, measureMode); }
 // Returns default rainfall rate units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_RainRate, measureMode); }
+inline Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) {
+    measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
+    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
+    return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Speed_InchesPerHour : Terra_UnitsType_Speed_MillimetersPerHour;
+}
 // Returns default power units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultPowerUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Power, measureMode); }
 // Returns default irradiance units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
@@ -314,12 +318,16 @@ inline Terra_UnitsType defaultSpeedUnits(Terra_MeasurementMode measureMode = Ter
 inline Terra_UnitsType defaultAngleUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Angle, measureMode); }
 // Returns default temperature units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultTemperatureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Temperature, measureMode); }
-// Returns default voltage units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultVoltageUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Voltage, measureMode); }
-// Returns default current units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultCurrentUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Current, measureMode); }
+// Returns voltage units.
+inline Terra_UnitsType defaultVoltageUnits(Terra_MeasurementMode = Terra_MeasurementMode_Undefined) { return Terra_UnitsType_Power_Volts; }
+// Returns current units.
+inline Terra_UnitsType defaultCurrentUnits(Terra_MeasurementMode = Terra_MeasurementMode_Undefined) { return Terra_UnitsType_Power_Amperage; }
 // Returns default decimal places rounded to based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline int defaultDecimalPlaces(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return (int)defaultUnits(Terra_UnitsCategory_Count, measureMode); }
+inline int defaultDecimalPlaces(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) {
+    measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
+    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
+    return measureMode == Terra_MeasurementMode_Scientific ? 2 : 1;
+}
 
 // Rounds value according to default decimal places rounding, as typically used for data export, with optional additional decimal places.
 inline float roundForExport(float value, unsigned int additionalDecPlaces = 0) { return roundToDecimalPlaces(value, defaultDecimalPlaces() + additionalDecPlaces); }
@@ -365,9 +373,9 @@ inline bool checkPinCanInterrupt(pintype_t pin);
 
 // Enums & Conversions
 
-// Converts from system mode enum to string, with optional exclude for special types (instead returning "").
+// Converts from control mode enum to string, with optional exclude for special types (instead returning "").
 extern String systemModeToString(Terra_SystemMode systemMode, bool excludeSpecial = false);
-// Converts back to system mode enum from string.
+// Converts back to control mode enum from string.
 extern Terra_SystemMode systemModeFromString(String systemModeStr);
 
 // Converts from measurement mode enum to string, with optional exclude for special types (instead returning "").
@@ -385,10 +393,6 @@ extern String controlInputModeToString(Terra_ControlInputMode controlInMode, boo
 // Converts back to control input mode enum from string.
 extern Terra_ControlInputMode controlInputModeFromString(String controlInModeStr);
 
-// Returns true for actuators that "live" in water (thus must do empty checks) as derived from actuator type enumeration.
-inline bool getActuatorInWaterFromType(Terra_ActuatorType actuatorType) { return actuatorType == Terra_ActuatorType_WaterAerator || actuatorType == Terra_ActuatorType_WaterPump || actuatorType == Terra_ActuatorType_WaterHeater; }
-// Returns true for actuators that pump liquid (thus must do empty/filled checks) as derived from actuator type enumeration.
-inline bool getActuatorIsPumpFromType(Terra_ActuatorType actuatorType) { return actuatorType == Terra_ActuatorType_PeristalticPump || actuatorType == Terra_ActuatorType_WaterPump; }
 // Returns true for actuators that operate activation handles serially (as opposed to in-parallel) as derived from enabled mode enumeration.
 inline bool getActuatorIsSerialFromMode(Terra_EnableMode enableMode) { return enableMode >= Terra_EnableMode_Serial; }
 
@@ -401,16 +405,6 @@ extern Terra_ActuatorType actuatorTypeFromString(String actuatorTypeStr);
 extern String sensorTypeToString(Terra_SensorType sensorType, bool excludeSpecial = false);
 // Converts back to sensor type enum from string.
 extern Terra_SensorType sensorTypeFromString(String sensorTypeStr);
-
-// Converts from target type enum to string, with optional exclude for special types (instead returning "").
-extern String targetTypeToString(Terra_TargetType targetType, bool excludeSpecial = false);
-// Converts back to target type enum from string.
-extern Terra_TargetType targetTypeFromString(String targetTypeStr);
-
-// Converts from substrate type enum to string, with optional exclude for special types (instead returning "").
-extern String substrateTypeToString(Terra_SubstrateType substrateType, bool excludeSpecial = false);
-// Converts back to substrate type enum from string.
-extern Terra_SubstrateType substrateTypeFromString(String substrateTypeStr);
 
 // Converts from fluid reservoir enum to string, with optional exclude for special types (instead returning "").
 extern String reservoirTypeToString(Terra_ReservoirType reservoirType, bool excludeSpecial = false);
