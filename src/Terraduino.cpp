@@ -233,7 +233,7 @@ void Terraduino::init(Terra_SystemMode systemMode,
 
         if (_systemData) {
             _systemData->systemMode = systemMode;
-            _systemData->measurementMode = measureMode;
+            _systemData->measureMode = measureMode;
             #ifdef TERRA_USE_GUI
                 _systemData->dispOutMode = dispOutMode;
                 _systemData->ctrlInMode = ctrlInMode;
@@ -1073,11 +1073,7 @@ void Terraduino::setAutosaveEnabled(Terra_Autosave autosaveEnabled, Terra_Autosa
 
 void Terraduino::setRTCTime(DateTime time)
 {
-    auto rtc = getRTC();
-    if (rtc) {
-        rtc->adjust(DateTime((uint32_t)unixTime(time)));
-        notifyRTCTimeUpdated();
-    }
+    _setUnixTime(DateTime((uint32_t)unixTime(time)), true);
 }
 
 #ifdef TERRA_USE_WIFI
@@ -1338,7 +1334,7 @@ Terra_SystemMode Terraduino::getSystemMode() const
 
 Terra_MeasurementMode Terraduino::getMeasurementMode() const
 {
-    return _systemData ? _systemData->measurementMode : Terra_MeasurementMode_Undefined;
+    return _systemData ? _systemData->measureMode : Terra_MeasurementMode_Undefined;
 }
 
 Terra_DisplayOutputMode Terraduino::getDisplayOutputMode() const

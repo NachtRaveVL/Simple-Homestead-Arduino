@@ -22,7 +22,7 @@ void setup()
 
     TerraSystemData system;
     system.systemMode = Terra_SystemMode_Automatic;
-    system.measurementMode = Terra_MeasurementMode_Imperial;
+    system.measureMode = Terra_MeasurementMode_Imperial;
     system.timeZoneOffset = -7;
     system.pollingInterval = 500;
     strncpy(system.systemName, "Test Homestead", TERRA_NAME_MAXSIZE - 1);
@@ -30,7 +30,7 @@ void setup()
     TerraSystemData systemCopy;
     roundTripData(system, systemCopy);
     pass &= systemCopy.systemMode == system.systemMode;
-    pass &= systemCopy.measurementMode == system.measurementMode;
+    pass &= systemCopy.measureMode == system.measureMode;
     pass &= systemCopy.timeZoneOffset == system.timeZoneOffset;
     pass &= systemCopy.pollingInterval == system.pollingInterval;
     pass &= !strcmp(systemCopy.systemName, system.systemName);

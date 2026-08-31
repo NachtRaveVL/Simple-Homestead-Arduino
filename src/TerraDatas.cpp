@@ -123,7 +123,7 @@ void TerraObjectData::fromJSONObject(JsonObjectConst &objectIn)
 
 TerraSystemData::TerraSystemData()
     : TerraData('T','S','Y','S', 1),
-      systemMode(Terra_SystemMode_Undefined), measurementMode(Terra_MeasurementMode_Undefined),
+      systemMode(Terra_SystemMode_Undefined), measureMode(Terra_MeasurementMode_Undefined),
       dispOutMode(Terra_DisplayOutputMode_Undefined), ctrlInMode(Terra_ControlInputMode_Undefined),
       systemName{0}, timeZoneOffset(0), pollingInterval(TERRA_DATA_LOOP_INTERVAL),
       autosaveEnabled(Terra_Autosave_Disabled), autosaveFallback(Terra_Autosave_Disabled), autosaveInterval(TERRA_SYS_AUTOSAVE_INTERVAL),
@@ -141,7 +141,7 @@ void TerraSystemData::toJSONObject(JsonObject &objectOut) const
     TerraData::toJSONObject(objectOut);
 
     objectOut[SFP(TStr_Key_SystemMode)] = systemModeToString(systemMode);
-    objectOut[SFP(TStr_Key_MeasureMode)] = measurementModeToString(measurementMode);
+    objectOut[SFP(TStr_Key_MeasureMode)] = measurementModeToString(measureMode);
     #ifdef TERRA_USE_GUI
         objectOut[SFP(TStr_Key_DispOutMode)] = displayOutputModeToString(dispOutMode);
         objectOut[SFP(TStr_Key_CtrlInMode)] = controlInputModeToString(ctrlInMode);
@@ -188,7 +188,7 @@ void TerraSystemData::fromJSONObject(JsonObjectConst &objectIn)
     TerraData::fromJSONObject(objectIn);
 
     systemMode = systemModeFromString(objectIn[SFP(TStr_Key_SystemMode)]);
-    measurementMode = measurementModeFromString(objectIn[SFP(TStr_Key_MeasureMode)]);
+    measureMode = measurementModeFromString(objectIn[SFP(TStr_Key_MeasureMode)]);
     #ifdef TERRA_USE_GUI
         dispOutMode = displayOutputModeFromString(objectIn[SFP(TStr_Key_DispOutMode)]);
         ctrlInMode = controlInputModeFromString(objectIn[SFP(TStr_Key_CtrlInMode)]);
