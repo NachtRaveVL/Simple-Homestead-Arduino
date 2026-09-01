@@ -3,51 +3,51 @@ Terraduino: Simple Homestead Automation Controller.
 
 **Simple-Homestead-Arduino v0.7.2.0**
 
-Simple automation controller for homestead resource and environmental systems.  
+Simple automation controller for homestead resource and environmental systems.
 Licensed under the non-restrictive MIT license.
 
 Created by NachtRaveVL, 2026.
 
-This controller manages water storage and transfer, thermal storage, environmental sensing, pumps, valves, heaters, shared power rails, scheduling, logging, publishing, and persistent configuration for physical property infrastructure. Terraduino uses the same controller, object registration, attachments, measurement, scheduler, logger, publisher, and persistence patterns established by Hydruino and Helioduino while applying them to homestead resource systems.
+This controller manages water storage and transfer, thermal storage, environmental sensing, pumps, valves, heaters, shared power rails, scheduling, logging, publishing, and persistent configuration for physical property infrastructure.
 
 Our Keep-It-Simple controller system:
 
-* Can be used entirely offline with an RTC module and optional GPS module (or known static location) for accurate time keeping, or used online through enabled on-board WiFi/Ethernet or an external ESP-AT WiFi module.
-  * Network loss does not need to interrupt unrelated reservoir, actuator, sensor, or scheduler behavior.
+* Can be used entirely offline with RTC module and optional GPS module (or known static location) for accurate time keeping, or used online through enabled on-board WiFi/Ethernet or external ESP-AT WiFi module.
+  * Uses [SolarCalculator](https://github.com/jpb10/SolarCalculator), inspired by the NOAA Solar Calculator, for fine offline calculations of the sun's solar position (including sunrise, sunset, & transit times), accurate until 2100.
 * Exportable system configuration to EEPROM, SD card, or WiFiStorage external storage device.
   * Saved in pretty-print JSON for human-readability & easy text editing, or in raw binary for compactness & speed.
-  * Attachments save object identity so relationships can be restored after loading.
-* Supports interval-based sensor data publishing and system event logging to an MQTT IoT broker or to external storage in .csv/.txt format (/w date in filename, segmented daily).
-  * Remote sensors remain transport-neutral; MQTT, serial radio, RS-485, CAN, ESP-NOW, LoRa, or application code can feed reports without changing the sensor model.
-* Models the system with the same small set of registered object families used throughout the controller architecture.
-  * Sensors provide measurements.
-  * Actuators perform work.
-  * Reservoirs represent stored or effectively infinite resources.
-  * Rails limit shared electrical capacity.
-* Uses attachments instead of parallel route/source object systems to describe relationships.
-  * Transfer-capable actuators attach to source and destination reservoirs.
-  * Reservoirs attach to sensors and filled/high/low/empty triggers.
-  * Actuators can attach to parent reservoirs and power rails.
-* Supports water and thermal reservoirs.
-  * Finite reservoirs use attached sensors to track state.
-  * Infinite reservoirs represent effectively inexhaustible sources or sinks such as a water main, drain, ambient environment, or external thermal source.
-* Includes automatic reservoir scheduling.
-  * Reservoir processes move through `Assess`, `Fill`, `Condition`, `Distribute`, and `Settle` stages.
-  * Transfer decisions are derived from reservoir state and actuator attachments rather than a second route graph.
-* Actuator & Sensor pins can be multiplexed or expanded along with control input pins through supported I/O abstraction hardware where appropriate.
-* Networking, GUI support, remote sensors, and external services remain optional to normal local automation.
+  * Auto-save, backup auto-save (for auto-recovery), and low external storage space cleanup (TODO) functionality.
+  * Import string decode functions are pre-optimized with minimum spanning trie for ultra-fast text parsing & reduced loading times.
+* Supports interval-based sensor data publishing and system event logging to MQTT IoT broker (for further IoT-integrated processing) or to external storage in .csv/.txt format (/w date in filename, segmented daily).
+  * Can be extended to work with other JSON-based Web APIs or Client-like derivatives (for DB storage or server-endpoint support).
+  * Can add a piezo buzzer for audible system warning/failure alerting (TODO), or a LCD/OLED/TFT display for current readings & recent logging messages (TODO).
+* Enabled GUI works with a large variety of common Arduino-compatible LCD/OLED/TFT displays, touchscreens, matrix keypads, analog joysticks, rotary encoders, and momentary buttons (support by [tcMenu](https://github.com/davetcc/tcMenuLib)).
+  * Contains at-a-glance system overview screen and interactive menu system for system configuration, sensor calibration, and more (TODO).
+  * Critical system config menus can be pin-coded to prevent setup tampering.
+  * Includes remote GUI menu access through enabled WiFi, Ethernet, Bluetooth, Serial, and/or Simhub connection via tcMenu's excellent [embedCONTROL](https://github.com/davetcc/tcMenu/releases) desktop application, available for Linux/OSX/Windows.
+  * GUI I/O pins can be setup as fully interrupt driven (5-25ms latency), partially interrupt driven (only keys & buttons polled), or polling based (75-100ms+ latency), and can be automatically selected depending on pins used.
+  * System examples can be compiled in:
+    * Disabled UI mode, which removes all GUI code entirely, freeing a large amount of Flash size for constrained (<=256kB Flash) devices.
+    * Minimal UI mode, which saves on compiled sketch size through optimized code stripping at the cost of having to modify/re-upload a new sketch to change most system settings (or to change system object structure).
+    * Full UI mode, which uses large amounts of Flash space available on modern MCUs to provide everything all at once, with only major system (or static linked component) changes requiring a sketch modify/re-upload.
+* Supports finite and effectively infinite water and thermal reservoirs for modeling property resources.
+* Transfer-capable pumps, valves, and circulators use source and destination reservoir attachments to define resource flow.
+* Includes automatic reservoir scheduling through Assess, Fill, Condition, Distribute, and Settle stages.
+* Supports local and remote sensor measurements for environmental and infrastructure monitoring.
+* Actuator & Sensor pins can be multiplexed or expanded along with any control input pins through 8/16-bit i2c expanders for pin-limited controllers.
+* Library data can be built into onboard Flash or exported onto external storage to additionally save on compiled sketch size.
 
-Made primarily for Arduino microcontrollers / build environments, but intended to fit PlatformIO, Espressif, Teensy, STM32, Pico/RP2040/RP2350, GIGA, Portenta, and similar MCU platforms. Practical size depends on enabled features and total object count.
+Made primarily for Arduino microcontrollers / build environments, but should work with PlatformIO, Espressif, Teensy, STM32, Pico, and others - although one might experience turbulence until the bug reports get ironed out.
 
 *If you value the work that we do, our small team always appreciates a subscription to our [Patreon](www.patreon.com/nachtrave).*
 
 ## About
 
-We want to make practical property automation more accessible to DIY'ers by utilizing the widely-available low-cost IoT and IoT-like microcontrollers (MCUs) of today.
+We want to make homestead resource automation more accessible to DIY'ers by utilizing the widely-available low-cost IoT and IoT-like microcontrollers (MCUs) of today.
 
-Terraduino is aimed at physical homestead infrastructure rather than generic smart-home automation. Typical jobs include monitoring a storage tank, moving water between reservoirs, operating a sump pump, circulating stored heat, logging weather measurements, controlling heaters or ventilation, or preventing too many high-current loads from starting at once.
+With the advances in miniaturization technology bringing us even more compact MCUs at even lower costs, it becomes a lot more possible to use one of these small devices to monitor reservoirs, move water, manage stored heat, record weather measurements, control equipment, and coordinate property infrastructure. Homestead automation is a strong application for these devices, especially as a data logger, process monitor, and local supervisory controller.
 
-Terraduino is a MCU-based solution primarily written for Arduino and Arduino-like MCU devices. A small water-transfer system and a larger property controller can use the same identity, attachment, sensor, actuator, scheduler, logger, and persistence mechanisms. The controller does not require every installation to use the same hardware or communications path.
+Terraduino is a MCU-based solution primarily written for Arduino and Arduino-like MCU devices. It allows one to combine widely available pumps, valves, relays, sensors, heaters, storage tanks, thermal stores, and other low-cost hardware into a functional DIY property automation system. A small sump or cistern controller and a larger multi-reservoir homestead system can use the same controller without requiring cloud services or a fixed hardware design.
 
 ## Controller Setup
 
@@ -61,54 +61,29 @@ Minimum planning target: 256–512kB Flash, 16–24kB SRAM, 16MHz+
 
 Recommended: 512kB–1MB+ Flash, 24–32kB+ SRAM, 32–48MHz+
 
-Modern 32-bit boards such as Pico RP2040/RP2350, ESP32, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the natural starting point when monitoring, logging, UI, networking, and several automated resource processes are expected to run together.
+Modern 32-bit boards such as Pico RP2040/RP2350, ESP32, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the natural starting point when monitoring, logging, UI, and networking are expected to run together.
 
-Terraduino systems may need to service numerous sensors, pumps, valves, heaters, reservoirs, power rails, and scheduled processes concurrently. Sensor polling, actuator response, balancing activity, display load, logging, and communication traffic can therefore matter more than Flash size alone when selecting the MCU.
+Terraduino systems may need to service numerous sensors, pumps, valves, heaters, reservoirs, rails, and timed processes concurrently. Sensor polling, actuator response, control-loop activity, display load, and communication traffic can therefore matter more than Flash size alone when selecting the MCU.
 
 ### Installation
 
-The easiest way to install this controller is to utilize the Arduino IDE library manager when available, or through a package manager such as PlatformIO. Otherwise, simply download this controller and extract its files into a `Simple-Homestead-Arduino` folder in your Arduino custom libraries folder, typically found in your `[My ]Documents\Arduino\libraries` folder (Windows), or `~/Documents/Arduino/libraries/` folder (Linux/OSX).
+The easiest way to install this controller is to utilize the Arduino IDE library manager, or through a package manager such as PlatformIO. Otherwise, simply download this controller and extract its files into a `Simple-Homestead-Arduino` folder in your Arduino custom libraries folder, typically found in your `[My ]Documents\Arduino\libraries` folder (Windows), or `~/Documents/Arduino/libraries/` folder (Linux/OSX).
 
-From there, make a local copy of one of the supplied example sketches based on the kind of system setup you want to use. If you are unsure of which, start with the Basic Homestead Example because it demonstrates the normal controller lifecycle, sensors, reservoirs, and attachments with the least surrounding complexity. The Full System Example is the larger reference implementation.
+From there, you can make a local copy of one of the example sketches based on the kind of system setup you want to use. If you are unsure of which, we recommend the Basic Homestead Example, as it is the smallest complete system example. The Full System Example is the larger reference implementation for a more complete property controller.
 
-The current example set includes:
-
-* **BasicHomestead** - Minimal controller lifecycle with water/thermal reservoirs and measurements.
-* **DataWriter** - JSON/external-data persistence workflow.
-* **RemoteSensor** - Transport-neutral remote reports and stale/offline tracking.
-* **ThermalStorage** - Thermal reservoir with attached temperature sensing.
-* **WeatherStation** - WiFi/MQTT sensor-station usage through the normal publisher.
-* **FullSystem** - Integrated water transfer, thermal storage, remote data, scheduler operation, and console/debug logging.
-
-Storage constrained MCUs (< 512kB Flash, particularly <= 256kB) may need further setup file/max-size tweaking and possibly external storage hardware such as EEPROM or SD card. Modern MCUs with more Flash and SRAM are strongly preferred when logging, networking, GUI, and many reservoir/sensor objects are expected to operate together.
+Storage constrained MCUs (< 512kB Flash, particularly <= 256kB) may need further setup file/max-sizes tweaking, and possibly external storage hardware (such as EEPROM or SD Card - see the Data Writer example for more details). Modern MCUs with lots of Flash storage can instead use larger reservoir, sensor, networking, logging, and UI configurations together.
 
 ### Reservoirs and Scheduling
 
-Reservoirs are Terraduino's resource-storage abstraction.
+Terraduino models water and thermal resources through finite and effectively infinite reservoirs. Finite reservoirs use attached sensors and filled/high/low/empty triggers so hard end conditions can remain separate from normal operating thresholds.
 
-Finite water and thermal reservoirs use attached sensors to track their current state. Filled/high/low/empty triggers remain separate so a system can distinguish hard end conditions from normal operating thresholds.
+Transfer-capable actuators connect resources through source and destination reservoir attachments. Pumps, valves, and circulators can therefore describe resource movement directly through their attached reservoirs.
 
-Transfer-capable actuators connect resources by attachment: the actuator's source reservoir and destination reservoir define the transfer path. This follows the same attachment-first design used throughout the controller family instead of inventing a separate route object model.
-
-The scheduler automatically tracks registered reservoirs with relevant actuator linkages through:
-
-1. `Assess`
-2. `Fill`
-3. `Condition`
-4. `Distribute`
-5. `Settle`
-
-A reservoir can be filled from an inbound source, conditioned by local equipment, or distributed to another reservoir that needs resource. Activation is maintained through the normal actuator attachment/activation-handle mechanism.
+The scheduler automatically coordinates reservoir processes through Assess, Fill, Condition, Distribute, and Settle stages.
 
 ### Host Tests
 
-Core logic can be run without an Arduino connected:
-
-```sh
-./tests/run_tests.sh
-```
-
-or:
+Core logic and source-data checks can be run without an Arduino connected:
 
 ```sh
 cmake -S tests -B build-host
@@ -116,17 +91,15 @@ cmake --build build-host
 ctest --test-dir build-host --output-on-failure
 ```
 
-The native target covers the standalone/core-logic layer. Hardware-facing controller behavior still requires the Arduino/platform environment and real-device testing.
-
 ### Setup
 
 #### Header Defines
 
-There are several defines inside of the controller's main `Terraduino.h` header file that allow for more fine-tuned control of the controller. You may edit and uncomment these lines directly, or supply them via custom build flags. While editing the main header file isn't ideal, it is often easiest. Note that editing the controller's main header file directly will affect all projects compiled on your system using those modified controller files.
+There are several defines inside of the controller's main `Terraduino[UI].h` header file that allow for more fine-tuned control of the controller. You may edit and uncomment these lines directly, or supply them via custom build flags. While editing the main header file isn't ideal, it is often easiest. Note that editing the controller's main header file directly will affect all projects compiled on your system using those modified controller files.
 
-Alternatively, you may also refer to <https://forum.arduino.cc/index.php?topic=602603.0> on how to define custom build flags manually via modifying the `platform[.local].txt` file, or with the Arduino CLI (preferred way going forward).
+Alternatively, you may also refer to <https://forum.arduino.cc/index.php?topic=602603.0> on how to define custom build flags manually via modifying the platform[.local].txt file, or with the Arduino CLI (preferred way going forward).
 
-For the older `platform.local.txt` file override approach, create `platform.local.txt` alongside `platform.txt` located in `%applocaldata%\Arduino15\packages\{platform}\hardware\{arch}\{version}\` (replacing `%applocaldata%\Arduino15` with `~/Library/Arduino15` for OSX, and `~/.arduino15` for Linux), with the contents: `compiler.cpp.extra_flags=-Dname` (replacing `name` with full name of below define). Note that it will affect all builds for that platform until again changed/removed. Some build systems may require directly editing `platform.txt` and adding onto the end of its CPP build recipe, e.g. Teensy & `recipe.cpp.o.pattern=<bunch-of-stuff> -Dname`.
+For the older platform.local.txt file override approach, create platform.local.txt alongside platform.txt located in %applocaldata%\Arduino15\packages\{platform}\hardware\{arch}\{version}\ (replacing %applocaldata%\Arduino15 with ~/Library/Arduino15 for OSX, and ~/.arduino15 for Linux), with the contents: `compiler.cpp.extra_flags=-Dname` (replacing `name` with full name of below define). Note that it will affect all builds for that platform until again changed/removed. Some build systems may require directly editing platform.txt and adding onto the end of its CPP build recipe, e.g. Teensy & `recipe.cpp.o.pattern=<bunch-of-stuff> -Dname`.
 
 From Terraduino.h:
 ```Arduino
@@ -175,7 +148,7 @@ From shared/TerraduinoUI.h:
 // Uncomment or -D this define to enable usage of the StChromaArt BSP touch screen interrogator in place of the default AdaLibTouchInterrogator (STM32/mbed only, note: requires advanced setup, see tcMenu_Extra_BspUserSettings.h)
 //#define TERRA_UI_ENABLE_BSP_TOUCH
 
-// Uncomment or -D this define to enable usage of the debug menu 
+// Uncomment or -D this define to enable usage of the debug menu
 //#define TERRA_UI_ENABLE_DEBUG_MENU
 ```
 
@@ -220,7 +193,7 @@ There are several initialization mode settings exposed through this controller t
 
 #### Class Instantiation
 
-The controller's class object must first be instantiated, commonly at the top of the sketch where pin setups are defined. The constructor configures controller-level devices and interfaces, with defaults providing no optional device specified.
+The controller's class object must first be instantiated, commonly at the top of the sketch where pin setups are defined (or exposed through some other mechanism), which makes a call to the controller's class constructor. The constructor allows one to set the module's various devices and how they are connected, with defaults providing no device specified.
 
 From Terraduino.h, in class Terraduino:
 ```Arduino
@@ -239,79 +212,174 @@ From Terraduino.h, in class Terraduino:
 
 #### Controller Initialization
 
-Additionally, a call is expected to be provided to the controller class object's `init[From…](…)` method, commonly called inside of the sketch's `setup()` function. This allows one to set the controller's system mode, units of measurement, control input mode, and display output mode.
+Additionally, a call is expected to be provided to the controller class object's `init[From…](…)` method, commonly called inside of the sketch's `setup()` function. This allows one to set the controller's system type (Manual, Automatic, or Disabled), units of measurement (Metric, Imperial, or Scientific), control input mode, and display output mode. The default mode of the controller, if left unspecified, is an Automatic system set to Metric units, without any input control or output display.
 
 From Terraduino.h, in class Terraduino:
 ```Arduino
     // Initializes default empty system. Typically called near top of setup().
     // See individual enums for more info.
-    void init(Terra_SystemMode systemMode = Terra_SystemMode_Automatic,
-              Terra_MeasurementMode measureMode = Terra_MeasurementMode_Default,
-              Terra_DisplayOutputMode dispOutMode = Terra_DisplayOutputMode_Disabled,
-              Terra_ControlInputMode ctrlInMode = Terra_ControlInputMode_Disabled);
+    void init(Terra_SystemMode systemMode = Terra_SystemMode_Automatic,                 // What controller operating mode should be used
+              Terra_MeasurementMode measureMode = Terra_MeasurementMode_Default,        // What units of measurement should be used
+              Terra_DisplayOutputMode dispOutMode = Terra_DisplayOutputMode_Disabled,   // What display output mode should be used
+              Terra_ControlInputMode ctrlInMode = Terra_ControlInputMode_Disabled);     // What control input mode should be used
 
+    // Initializes system from EEPROM save, returning success flag
+    // Set system data address with setSystemEEPROMAddress
     bool initFromEEPROM(bool jsonFormat = false);
+    // Initializes system from SD card file save, returning success flag
+    // Set config file name with setSystemConfigFilename
     bool initFromSDCard(bool jsonFormat = true);
 #ifdef TERRA_USE_WIFI_STORAGE
+    // Initializes system from a WiFiStorage file save, returning success flag
+    // Set config file name with setSystemConfigFilename
     bool initFromWiFiStorage(bool jsonFormat = true);
 #endif
+    // Initializes system from custom JSON-based stream, returning success flag
     bool initFromJSONStream(Stream *streamIn);
+    // Initializes system from custom binary stream, returning success flag
     bool initFromBinaryStream(Stream *streamIn);
 ```
 
-The controller can also be initialized from a saved configuration, such as from EEPROM or SD card, or another JSON/Binary stream. A saved configuration can be made through the matching `saveTo…(…)` methods or through configured autosave behavior.
+The controller can also be initialized from a saved configuration, such as from an EEPROM or SD card, or other JSON or Binary stream. A saved configuration of the system can be made via the controller class object's `saveTo…(…)` methods, or called automatically on timer by setting an Autosave mode/interval.
 
-A normal lifecycle is:
-
+From Terraduino.h, in class Terraduino:
 ```Arduino
-#include <Terraduino.h>
-
-Terraduino terraController;
-
-void setup()
-{
-    terraController.init(Terra_SystemMode_Automatic,
-                         Terra_MeasurementMode_Metric);
-
-    terraController.setSystemName("Homestead");
-
-    // Add reservoirs, sensors, actuators, and rails here.
-
-    terraController.launch();
-}
-
-void loop()
-{
-    terraController.update();
-}
+    // Saves current system setup to EEPROM save, returning success flag
+    // Set system data address with setSystemEEPROMAddress
+    bool saveToEEPROM(bool jsonFormat = false);
+    // Saves current system setup to SD card file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool saveToSDCard(bool jsonFormat = true);
+#ifdef TERRA_USE_WIFI_STORAGE
+    // Saves current system setup to WiFiStorage file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool saveToWiFiStorage(bool jsonFormat = true);
+#endif
+    // Saves current system setup to custom JSON-based stream, returning success flag
+    bool saveToJSONStream(Stream *streamOut, bool compact = true);
+    // Saves current system setup to custom binary stream, returning success flag
+    bool saveToBinaryStream(Stream *streamOut);
 ```
 
 ### Event Logging & Data Publishing
 
-The controller can, after initialization, produce logs and sensor data that can be used by other applications. Log entries are timestamped and can track scheduler stages, actuator state changes, warnings, and other controller events, while published data can be read into plotting applications or exported to a database for further processing.
+The controller can, after initialization, be set to produce logs and data files that can be further used by other applications. Log entries are timestamped and can keep track of when transfers are performed, when devices enable/disable, scheduler stage changes, etc., while data files can be read into plotting applications or exported to a database for further processing. The passed file prefix is typically the subfolder that such files should reside under and is appended with the year, month, and date (in YYMMDD format).
 
-Note: The same logging output can also be sent to the Serial device by defining `TERRA_ENABLE_DEBUG_OUTPUT`, described above in Header Defines.
+Note: You can also get the same logging output sent to the Serial device by defining `TERRA_ENABLE_DEBUG_OUTPUT`, described above in Header Defines.
 
-The controller exposes:
+Note: Files on FAT32-based SD cards are limited to 8 character file/folder names and a 3 character extension.
 
+From Terraduino.h, in class Terraduino:
 ```Arduino
-terraController.scheduler;
-terraController.logger;
-terraController.publisher;
+    // Enables system logging to the SD card. Log file names will append YYMMDD.txt to the specified prefix. Returns success flag.
+    inline bool enableSysLoggingToSDCard(String logFilePrefix);
+
+    // Enables data publishing to the SD card. Data file names will append YYMMDD.csv to the specified prefix. Returns success flag.
+    inline bool enableDataPublishingToSDCard(String dataFilePrefix);
 ```
 
-Local SD-card logging and publishing are available through:
+## Hookup Callouts
 
-```Arduino
-terraController.enableSysLoggingToSDCard("logs/te");
-terraController.enableDataPublishingToSDCard("data/te");
-```
+Many of the various electronic components and systems this controller is designed to work with may have specific setup procedures and/or wiring requirements. While advanced users may find this section a refresher at best, the below callouts are highlighted in order to help prevent device damage and ensure proper controller operation.
 
-WiFiStorage and MQTT publishing are available when the matching feature paths are enabled.
+### General
 
-The publisher tabulates registered sensor measurements by polling frame. Scheduler stage messages use the normal logger/debug-output path rather than a second console-reporting mechanism.
+* The recommended Vcc power supply and logic level is 5v, with most newer MCUs restricted to 3.3v.
+  * There are many devices that are 3.3v only and not 5v tolerant. Check your IC's datasheet for details.
+* 5v device output pins that interface with any 3.3v device input pins that are not 5v tolerant (such as a 5v AVR interfacing with a 3.3v-only [serial ESP-AT WiFi module](http://www.instructables.com/id/Cheap-Arduino-WiFi-Shield-With-ESP8266/), or a 3.3v MCU interfacing with a 5v analog sensor), will require a bi-directional logic level converter/shifter to use, especially for any high-speed digital data transfer lines.
+  * Alternatively, using a 10kΩ resistor can often times be enough to 'convert' 5v to 3.3v, but the correct way is to utilize a 1kΩ resistor and a 2kΩ resistor (or any size with a 1:2 ratio) in a [simple voltage divider circuit](https://randomnerdtutorials.com/how-to-level-shift-5v-to-3-3v/).
 
-## Current Object Model
+### Serial UART
+
+Serial UART uses individual communication lines for each device, with the receive `RX` pin of one being the transmit `TX` pin of the other - thus having to "flip wires" when connecting. However, devices can always be active and never have to share their access. UART runs at low to mid kHz speeds and is useful for simple device control, albeit somewhat clumsy at times.
+
+* When wiring up modules that use Serial UART, make sure to flip `RX`/`TX` pins.
+* Always ensure that any data output pins and data input pins have compatible voltages.
+
+Serial UART Devices Supported: Bluetooth-AT modules, ESP-AT WiFi modules, NMEA-AT GPS modules
+
+### SPI Bus
+
+SPI devices can be chained together on the same shared data lines, which are typically labeled `COPI` (or `MOSI`), `CIPO` (or `MISO`), and `SCK`, often with an additional `CS` (or `SS`). Each SPI device requires its own individual cable-select `CS` wire as only one SPI device may be active at any given time - accomplished by pulling its `CS` line of that device low (aka active-low). SPI runs at MHz speeds and is useful for large data block transfers.
+
+* The `CS` pin may be connected to any digital output pin, but it's common to use the `CS` (or `SS`) pin for the first device. Additional devices are not restricted to what pin they can or should use, but given it's not a data pin not using a choice interrupt-capable pin allows those to be used for interrupt driven mechanisms.
+* Many low-cost SPI-based SD card modules on market only read SDHC sized SD cards (2GB to 32GB) formatted in FAT32 (filenames limited to 8 characters plus 3 character file extension).
+  * Some SD cards simply will not play nicely with these modules and you may have to try another SD card manufacturer. We recommend 32GB SD cards due to overall lowest cost (smaller SD cards actually becoming _more_ expensive).
+* Many various graphical displays may have an additional `DC` (or `RS`) pin, which is required to be connected to any open digital pin in addition to its `CS` pin.
+  * There is often an additional `Reset` (or `RST`) pin that needs either wired to an open digital pin for MCU control, otherwise typically will need hard-tied to a HIGH signal (such as that from `Vcc`) in order for the display to function/turn-on.
+  * There is also often an additional `LED` (or `BL`) pin that controls the backlight that can be either optionally wired to an open digital or analog pin for MCU control, otherwise can be hard-tied typically to a HIGH signal (such as that from `Vcc`) in order to stay always-on, or simply left disconnected for device default.
+* Always ensure that any data output pins and data input pins have compatible voltages.
+
+SPI Devices Supported: SD card modules, NMEA GPS modules, 128x128+ LCD/OLED/TFT graphical displays, XPT2046 touchscreens
+
+### I2C Bus
+
+I2C (aka I²C, IIC, TwoWire, TWI) devices can be chained together on the same shared data lines (no flipping of wires), which are typically labeled `SCL` and `SDA`. Only different kinds of I2C devices can be used on the same data line together using factory default settings, otherwise manual addressing must be performed. I2C runs at mid to high kHz speeds and is useful for advanced device control.
+
+* When more than one I2C device of the same kind is to be used on the same data line, each device must be set to use a different address. This is accomplished via the A0-A2 (sometimes A0-A5) pins/pads on the physical device that must be set either open or closed (typically via a de-solderable resistor, or by shorting a pin/pad). Check your specific breakout's datasheet for details.
+* Note that not all the I2C libraries used support multi-addressable I2C devices at this time (read as: may only use one). Currently, this restriction applies to: RTC devices.
+* Always ensure that any data output pins and data input pins have compatible voltages.
+
+I2C Devices Supported: DS*/PCF* RTC modules, AT24C* EEPROM modules, NMEA GPS modules, 16x2/20x4 LCD displays, 128x32/128x64 OLED displays, FT6206 touchscreens, 8/16-bit pin expanders
+
+### OneWire Bus
+
+OneWire devices can be chained together on the same shared data lines (no flipping of wires). Devices can be of the same or different types, require minimal setup (and often no soldering), and most can even operate in "parasite" power mode where they use the power from the data line (and an internal capacitor) to function (thus saving a `Vcc` line, only requiring `Data` and return `GND`). OneWire runs only in the low kb/s speeds and is useful for light-weight digital sensors.
+
+* Typically, sensors are limited to 20 devices along a maximum 100m of wire.
+* When more than one OneWire device is on the same device line, each device registers itself an enumeration index (0 - N) along with its own 64-bit unique identifier (UUID, with last byte being CRC). The device can then be referenced via this UUID by the system in the future indefinitely, or enumeration index so long as the device doesn't change its line position.
+* Always ensure that any data output pins and data input pins have compatible voltages.
+
+OneWire Devices Supported: DHT* 1W air temp/humidity sensors
+
+### Analog IO
+
+* All analog sensors will need to have the same operational voltage range as the controller supports. Many analog sensors are set to use 0v to 5v by default, but some can go -5v to +5v, some even up to 5.5v.
+  * Note: Altering default factory calibration settings may require addition tools for setting up a new calibration, such as special calibration fluids/procedures/etc. Refer to the datasheet of your device for details.
+* The `AREF` (or `IOREF`) pin, which controls the upper-bound of this range, by default if left not-connected (NC) is the same voltage as the MCU. Analog sensors must not exceed this voltage limit.
+  * 5v analog sensor output signals connecting to 3.3v MCUs that are not 5v tolerant **must** either be: [level converted](https://randomnerdtutorials.com/how-to-level-shift-5v-to-3-3v/) in order to connect, or configured to output 0v to `AREF` (or `IOREF`) in voltage calibration output range (if able to calibrate - see note above).
+  * Warning: Too high of applied voltage to any pin incapable of receiving such high a voltage risks permanent damage to that device. _Always_ ensure that the applied voltage level coming out a device is supported when going back into another. Some breakouts/IC's have 5v tolerance built-in, some do not. Refer to the datasheet of your MCU/device for details.
+  * Note: Typically a 3.3v output signal will _not_ need level converted up to 5v for a 5v digital input to operate (read as: 3.3v is plenty enough to trigger HIGH on 5v device inputs).
+* The SAM/SAMD family of MCUs (e.g. Due, Zero, MKR, Nano 33, etc.) as well as many more modern MCUs support different bit resolutions for analog/PWM pins (tied to overridable `DAC_RESOLUTION` & `ADC_RESOLUTION` defines), with some (e.g. Pico, ESP32, etc.) supporting any pin being digital or analog w/o restriction. Refer to the datasheet of your MCU for details.
+
+### Sensors
+
+* Many different kinds of hobbyist sensors label their analog output `AO` (or `Ao`) - however, always check your specific sensor's datasheet, as some may have non-standard pin designations.
+  * Again, make sure all analog sensors are calibrated to output the same 0v - `AREF` (or `IOREF`) volts in range.
+* Sensor pins used for event triggering when measurements go above/below a pre-set tolerance - many of which are deceptively labeled `DO` (or `Do`), despite having nothing to do with being `D`ata lines of any kind - can be safely ignored, as software measurement triggers can provide the same decision point when needed.
+  * Such connections can still be used through a `TerraBinarySensor` when a hardware threshold output is useful, possibly using an ISR-capable pin if desired.
+
+### Pumps, Valves, and Thermal Equipment
+
+* Use correctly rated relays, contactors, motor drivers, fuses, overload protection, and isolation.
+* Use independent dry-run/pressure protection where required for pumps.
+* Use independent over-temperature, pressure-relief, and combustion safety hardware for thermal equipment.
+* Use suitable backflow protection and sanitation practices for potable or reclaimed water systems.
+* A software sensor, timer, or controller should not be the only protection against flooding, fire, electrical fault, or equipment damage.
+
+### Networking & Wireless
+
+* Networking of any kind is 100% optional. Base controller operation works offline using an RTC and optional GPS or known static location.
+  * WiFi or Ethernet can be enabled when remote control, MQTT, network time, or network storage is wanted.
+* Devices with built-in WiFi or Ethernet can enable such through header/build defines while other devices can utilize an external [serial ESP WiFi module](http://www.instructables.com/id/Cheap-Arduino-WiFi-Shield-With-ESP8266/) on any open Serial line.
+  * Warning: While WiFi password is encrypted into system settings data, it should not be considered secure.
+* Serial Bluetooth-AT modules can be used on any open Serial port to provide remote device control (only).
+* MQTT requires remotely accessible broker daemon in order to publish sensor data (setup separately).
+* UDP time server requires remotely accessible time & date API service in order to sync time (TODO).
+  * RTC not required / used in reserve when UDP service enabled.
+* Note: Geo-location APIs require external 3rd party monthly subscription fees, thus isn't included as a feature.
+
+## Memory Callouts
+
+* The total number of objects and different kinds of objects (reservoirs, pumps, valves, sensors, rails, etc.) that the controller can support at once depends on how much free Flash storage and SRAM your MCU has available.
+  * For our supported microcontroller range, on the low end we have devices with 256kB of Flash and at least 16kB of SRAM, while on the upper end we have more modern devices with 1MB+ of Flash and 32kB+ of SRAM. Devices with < 24kB of SRAM may struggle with system builds and may be limited to minimal system setups (such as no WiFi, no data publishing, no built-in library data, only minimal-to-no GUI, etc.), while other newer devices with more capacity build with everything enabled.
+* For AVR, SAM, and other build architectures that do not have C++0x11 STL (standard container library) support, there are a series of *`_MAXSIZE` defines nearer to the top of `Terra[UI]Defines.h` that can be modified to adjust how much memory space is allocated for the various static array structures the controller instead uses.
+* To save on the cost of code size for constrained devices, focus on not enabling that which you won't need, which has the benefit of being able to utilize code stripping to remove sections of code that don't get used.
+  * There are also header defines that can strip out certain libraries and functionality, such as ones that disable the GUI, multi-tasking subsystems, etc.
+* To further save on code size cost, built-in data can be externalized onto an SD Card or EEPROM where supported.
+  * Note: Upgrading between versions or changing custom/program data may require you to re-build and re-deploy to such external device.
+
+## Object Model
 
 ### Sensors
 
@@ -336,9 +404,9 @@ Finite reservoirs use attached sensors and separate filled/high/low/empty trigge
 
 `TerraRelayActuator` represents ordinary on/off equipment.
 
-`TerraRelayPumpActuator` is the current transfer-capable binary actuator class. Its source and destination reservoir attachments describe resource flow. Pump/valve/circulator semantics should be represented through the established actuator type and attachment model rather than by creating a parallel route graph.
+`TerraRelayPumpActuator` is the transfer-capable binary actuator class. Its source and destination reservoir attachments describe resource flow. Pump, valve, and circulator actuator types use this transfer model.
 
-`TerraVariableActuator` represents proportional outputs. Variable/throttled pump support remains a planned port alongside the corresponding Hydruino implementation.
+`TerraVariableActuator` represents proportional outputs.
 
 ### Rails
 
@@ -350,13 +418,13 @@ Software rails coordinate load capacity; they are not substitutes for fuses, bre
 
 `TerraMeasurementValueTrigger` and `TerraMeasurementRangeTrigger` convert sensor measurements into trigger state with configurable de-trigger tolerance/delay.
 
-`TerraLinearEdgeBalancer` drives increment/decrement actuator attachments around a sensor setpoint and target range. Balancers are subobjects used by higher-level control logic; they are not another registered object family.
+`TerraLinearEdgeBalancer` drives increment/decrement actuator attachments around a sensor setpoint and target range. Balancers are subobjects used by higher-level control logic.
 
 ## Scheduler
 
 `TerraScheduler` is not a generic user task scheduler. It automatically tracks registered reservoirs that have relevant actuator linkages.
 
-The current tracking stages are:
+The tracking stages are:
 
 1. `Assess`
 2. `Fill`
@@ -366,90 +434,15 @@ The current tracking stages are:
 
 A reservoir can be filled by an inbound transfer actuator, conditioned by a heater or local circulator, or distributed to another reservoir that needs resource. Actuator requests are maintained through the normal `TerraActuatorAttachment` activation-handle path.
 
-The scheduler also maintains daily twilight state, date-change notifications, and the controller-family environmental report interval.
-
-## Persistence
-
-Controller and object data use `TerraData` records and can be saved in JSON or binary form.
-
-Common controller entry points include:
-
-```Arduino
-terraController.saveToJSONStream(&Serial, false);
-terraController.saveToBinaryStream(&stream);
-terraController.initFromJSONStream(&stream);
-terraController.initFromBinaryStream(&stream);
-```
-
-EEPROM, SD card, and WiFiStorage helpers are also available when the matching storage path is enabled.
-
-Attachments save identity strings rather than raw pointers so relationships can be resolved again after loading.
-
-## Hookup Callouts
-
-Many of the electronic components and systems this controller is designed to work with have specific setup procedures and wiring requirements. The below callouts are intended to help prevent device damage and ensure reliable controller operation.
-
-### General
-
-* Verify MCU and peripheral logic voltage before connection.
-* Do not power pumps, valves, heaters, relays, contactors, motors, or similar loads directly from MCU pins.
-* Use suitable drivers, relay/MOSFET interfaces, fusing, grounding, isolation, and properly rated power supplies.
-* Software state, timing, and sensor checks are secondary protections and should not be the only protection against flooding, overheating, fire, electrical fault, or equipment damage.
-
-### Serial UART
-
-* When wiring modules that use Serial UART, connect device TX to controller RX and device RX to controller TX.
-* Always ensure that data output/input logic voltages are compatible.
-
-Serial UART devices can include Bluetooth-AT modules, ESP-AT WiFi modules, GPS modules, and transport devices used by application-level remote sensors.
-
-### SPI Bus
-
-* Each SPI device normally requires its own `CS`/`SS` line while sharing the main data/clock lines.
-* SD-card, display, Ethernet, and other device requirements vary by module and MCU.
-* Always ensure that data output/input logic voltages are compatible.
-
-### I2C Bus
-
-* Devices sharing an I2C bus must use non-conflicting addresses.
-* Check pull-up voltage and total bus length/capacitance.
-* Long property runs may require slower buses, buffering, differential interfaces, or a different transport rather than stretching local I2C beyond its practical use.
-
-### OneWire Bus
-
-* OneWire sensors can share a data line when the selected device/library supports the required topology.
-* Verify pull-up voltage and cable length for the installation.
-* Keep pump/motor/heater wiring away from sensitive sensor lines where practical.
-
-### Analog IO
-
-* Analog input voltage must remain within the MCU's supported ADC/input range.
-* Use suitable scaling, conditioning, and protection for higher-voltage pressure, level, current, or other transducers.
-* Calibrate sensors in the units actually used by the controller.
-
-### Pumps, Valves, and Thermal Equipment
-
-* Use correctly rated relays, contactors, motor drivers, fuses, overload protection, and isolation.
-* Use independent dry-run/pressure protection where required for pumps.
-* Use independent over-temperature, pressure-relief, and combustion safety hardware for thermal equipment.
-* Use suitable backflow protection and sanitation practices for potable or reclaimed water systems.
-
-### Networking & Wireless
-
-* Networking is optional. Base controller operation works locally.
-* WiFi or Ethernet can be enabled when remote control, MQTT, network storage, or other remote functionality is wanted.
-* Remote sensor transport should be chosen for the distance/noise/environment rather than forcing a local bus protocol into a long-run application.
-
-## Memory Callouts
-
-* The number of reservoirs, sensors, actuators, rails, attachments, GUI objects, networking features, logging buffers, and debug options all affect Flash/SRAM usage.
-* Disabling unused GUI/network/debug functionality allows the compiler to remove code that is not needed.
-* On architectures without normal STL support, the `TERRA_*_MAXSIZE` values in the defines headers control several fixed-capacity containers and may need tuning for the intended build.
-* Larger 32-bit MCUs are recommended when many resource, sensor, and communication subsystems are active together.
+The scheduler also maintains daily twilight state, date-change notifications, and environmental report timing.
 
 ## Example Usage
 
 Below are several examples of controller usage.
+
+### Basic Homestead System Example
+
+The Basic Homestead Example shows how a small Terraduino system can be setup using a water reservoir and sensor without requiring the surrounding features of a larger property controller. In this sketch only that which you actually use is built into the final compiled binary, making it an ideal lean starting point.
 
 ```Arduino
 #include <Terraduino.h>
@@ -477,12 +470,23 @@ void loop()
 }
 ```
 
-The supplied examples provide focused demonstrations of thermal storage, remote sensors, weather publishing, persistence, and a larger integrated system.
+### Main System Examples
+
+The supplied examples cover the main Terraduino system roles. New users should start with the Basic Homestead Example above, then use the Full System Example as the larger integrated reference.
+
+* **BasicHomestead** - Minimal controller lifecycle with water/thermal reservoirs and measurements.
+* **FullSystem** - Integrated water transfer, thermal storage, remote data, scheduler operation, and console/debug logging.
+* **ThermalStorage** - Thermal reservoir with attached temperature sensing.
+* **RemoteSensor** - Transport-neutral remote reports and stale/offline tracking.
+* **WeatherStation** - WiFi/MQTT sensor-station usage through the normal publisher.
+* **DataWriter** - JSON persistence through the controller data model.
 
 ### Data Writer Example
 
-The Data Writer Example demonstrates the controller family's external-data/persistence workflow without requiring a complete homestead system to be operating. Use it when preparing data for constrained builds or when validating storage output independently from the main automation sketch.
+The Data Writer Example builds a small controller configuration and exports it through the same `TerraData` / ArduinoJson persistence path used by normal controller saves.
 
-## License
+This Example initializes the controller, creates example water and thermal reservoirs with attached remote sensors, and writes the resulting pretty-print JSON configuration to the Serial device.
 
-Terraduino is released under the MIT License. See `LICENSE` for details.
+The same save/load paths can be used with EEPROM, SD card, WiFiStorage, JSON streams, or binary streams when the matching storage path is enabled.
+
+Note: Again, you can get logging output sent to the Serial device by defining `TERRA_ENABLE_DEBUG_OUTPUT`, described above in Header Defines.
