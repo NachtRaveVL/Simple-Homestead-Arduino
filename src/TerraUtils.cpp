@@ -1672,61 +1672,86 @@ String unitsTypeToSymbol(Terra_UnitsType unitsType, bool excludeSpecial)
         case Terra_UnitsType_Raw_1:
             return SFP(TStr_raw);
         case Terra_UnitsType_Percentile_100:
-            return SFP(TStr_Unit_Percent);
+            return String('%');
         case Terra_UnitsType_Angle_Degrees_360:
-            return SFP(TStr_Unit_deg);
+            return SFP(TStr_Unit_Degree);
         case Terra_UnitsType_Angle_Radians_2pi:
-            return SFP(TStr_Unit_rad);
+            return SFP(TStr_Unit_Radians);
         case Terra_UnitsType_Angle_Minutes_24hr:
-            return SFP(TStr_Unit_min);
+            return SFP(TStr_Unit_Minutes);
         case Terra_UnitsType_Distance_Millimeters:
-            return SFP(TStr_Unit_mm);
+            return SFP(TStr_Unit_Millimeters);
         case Terra_UnitsType_Distance_Inches:
-            return SFP(TStr_Unit_in);
+            return SFP(TStr_Unit_Inches);
         case Terra_UnitsType_Distance_Feet:
-            return SFP(TStr_Unit_ft);
+            return SFP(TStr_Unit_Feet);
         case Terra_UnitsType_Distance_Meters:
-            return SFP(TStr_Unit_m);
+            return String('m');
         case Terra_UnitsType_LiqVolume_Gallons:
-            return SFP(TStr_Unit_gal);
+            return SFP(TStr_Unit_Gallons);
         case Terra_UnitsType_LiqVolume_Liters:
-            return SFP(TStr_Unit_L);
-        case Terra_UnitsType_LiqFlowRate_GallonsPerMin:
-            return SFP(TStr_Unit_galPerMin);
-        case Terra_UnitsType_LiqFlowRate_LitersPerMin:
-            return SFP(TStr_Unit_LPerMin);
+            return String('L');
+        case Terra_UnitsType_LiqFlowRate_GallonsPerMin: {
+            String retVal(SFP(TStr_Unit_Gallons));
+            String concat(SFP(TStr_Unit_PerMinute));
+            retVal.reserve(retVal.length() + concat.length() + 1);
+            retVal.concat(concat);
+            return retVal;
+        }
+        case Terra_UnitsType_LiqFlowRate_LitersPerMin: {
+            String retVal('L');
+            String concat(SFP(TStr_Unit_PerMinute));
+            retVal.reserve(retVal.length() + concat.length() + 1);
+            retVal.concat(concat);
+            return retVal;
+        }
         case Terra_UnitsType_Irradiance_WattsPerSquareMeter:
-            return SFP(TStr_Unit_WPerM2);
+            return SFP(TStr_Unit_WattsPerSquareMeter);
         case Terra_UnitsType_Energy_KilowattHours:
-            return SFP(TStr_Unit_kWh);
+            return SFP(TStr_Unit_KilowattHours);
         case Terra_UnitsType_Power_Amperage:
-            return SFP(TStr_Unit_A);
+            return String('A');
         case Terra_UnitsType_Power_Wattage:
-            return SFP(TStr_Unit_W);
+            return String('W');
         case Terra_UnitsType_Power_Volts:
-            return SFP(TStr_Unit_V);
+            return String('V');
         case Terra_UnitsType_Pressure_Kilopascals:
-            return SFP(TStr_Unit_kPa);
+            return SFP(TStr_Unit_Kilopascals);
         case Terra_UnitsType_Pressure_PSI:
-            return SFP(TStr_Unit_psi);
+            return SFP(TStr_Unit_PoundsPerSquareInch);
         case Terra_UnitsType_Pressure_Hectopascals:
-            return SFP(TStr_Unit_hPa);
-        case Terra_UnitsType_Speed_MillimetersPerHour:
-            return SFP(TStr_Unit_mmPerH);
-        case Terra_UnitsType_Speed_InchesPerHour:
-            return SFP(TStr_Unit_inPerH);
-        case Terra_UnitsType_Speed_MetersPerSecond:
-            return SFP(TStr_Unit_mPerS);
+            return SFP(TStr_Unit_Hectopascals);
+        case Terra_UnitsType_Speed_MillimetersPerHour: {
+            String retVal(SFP(TStr_Unit_Millimeters));
+            String concat(SFP(TStr_Unit_PerHour));
+            retVal.reserve(retVal.length() + concat.length() + 1);
+            retVal.concat(concat);
+            return retVal;
+        }
+        case Terra_UnitsType_Speed_InchesPerHour: {
+            String retVal(SFP(TStr_Unit_Inches));
+            String concat(SFP(TStr_Unit_PerHour));
+            retVal.reserve(retVal.length() + concat.length() + 1);
+            retVal.concat(concat);
+            return retVal;
+        }
+        case Terra_UnitsType_Speed_MetersPerSecond: {
+            String retVal('m');
+            String concat(SFP(TStr_Unit_PerSecond));
+            retVal.reserve(retVal.length() + concat.length() + 1);
+            retVal.concat(concat);
+            return retVal;
+        }
         case Terra_UnitsType_Speed_KilometersPerHour:
-            return SFP(TStr_Unit_kmPerH);
+            return SFP(TStr_Unit_KilometersPerHour);
         case Terra_UnitsType_Speed_MilesPerHour:
-            return SFP(TStr_Unit_mph);
+            return SFP(TStr_Unit_MilesPerHour);
         case Terra_UnitsType_Temperature_Celsius:
-            return SFP(TStr_Unit_C);
+            return String('C');
         case Terra_UnitsType_Temperature_Fahrenheit:
-            return SFP(TStr_Unit_F);
+            return String('F');
         case Terra_UnitsType_Temperature_Kelvin:
-            return SFP(TStr_Unit_K);
+            return String('K');
         case Terra_UnitsType_Count:
             return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_UnitsType_Undefined:

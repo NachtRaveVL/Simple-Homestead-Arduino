@@ -653,280 +653,116 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "windSpeedSensor";
             return flashStr;
         }
-        case TStr_Enum_Unknown: {
-            static const char flashStr[] PROGMEM = "Unknown";
+        case TStr_Enum_AC110V: {
+            static const char flashStr[] PROGMEM = "AC110V";
             return flashStr;
         }
-        case TStr_WaterReservoir: {
-            static const char flashStr[] PROGMEM = "WaterReservoir";
-            return flashStr;
-        }
-        case TStr_ThermalReservoir: {
-            static const char flashStr[] PROGMEM = "ThermalReservoir";
-            return flashStr;
-        }
-        case TStr_Enum_Water: {
-            static const char flashStr[] PROGMEM = "Water";
-            return flashStr;
-        }
-        case TStr_Enum_Thermal: {
-            static const char flashStr[] PROGMEM = "Thermal";
-            return flashStr;
-        }
-        case TStr_Enum_Normal: {
-            static const char flashStr[] PROGMEM = "Normal";
-            return flashStr;
-        }
-        case TStr_Enum_Low: {
-            static const char flashStr[] PROGMEM = "Low";
-            return flashStr;
-        }
-        case TStr_Enum_Reserve: {
-            static const char flashStr[] PROGMEM = "Reserve";
-            return flashStr;
-        }
-        case TStr_Enum_High: {
-            static const char flashStr[] PROGMEM = "High";
-            return flashStr;
-        }
-        case TStr_Enum_Fault: {
-            static const char flashStr[] PROGMEM = "Fault";
-            return flashStr;
-        }
-        case TStr_Enum_Rainwater: {
-            static const char flashStr[] PROGMEM = "Rainwater";
-            return flashStr;
-        }
-        case TStr_Enum_Well: {
-            static const char flashStr[] PROGMEM = "Well";
-            return flashStr;
-        }
-        case TStr_Enum_Municipal: {
-            static const char flashStr[] PROGMEM = "Municipal";
-            return flashStr;
-        }
-        case TStr_Enum_Surface: {
-            static const char flashStr[] PROGMEM = "Surface";
-            return flashStr;
-        }
-        case TStr_Enum_Reclaimed: {
-            static const char flashStr[] PROGMEM = "Reclaimed";
-            return flashStr;
-        }
-        case TStr_Enum_Stored: {
-            static const char flashStr[] PROGMEM = "Stored";
-            return flashStr;
-        }
-        case TStr_Enum_Tank: {
-            static const char flashStr[] PROGMEM = "Tank";
-            return flashStr;
-        }
-        case TStr_Enum_Binary: {
-            static const char flashStr[] PROGMEM = "Binary";
-            return flashStr;
-        }
-        case TStr_Enum_Analog: {
-            static const char flashStr[] PROGMEM = "Analog";
-            return flashStr;
-        }
-        case TStr_Enum_Temperature: {
-            static const char flashStr[] PROGMEM = "Temperature";
-            return flashStr;
-        }
-        case TStr_Enum_Humidity: {
-            static const char flashStr[] PROGMEM = "Humidity";
-            return flashStr;
-        }
-        case TStr_Enum_Pressure: {
-            static const char flashStr[] PROGMEM = "Pressure";
-            return flashStr;
-        }
-        case TStr_Enum_Rainfall: {
-            static const char flashStr[] PROGMEM = "Rainfall";
-            return flashStr;
-        }
-        case TStr_Enum_Flow: {
-            static const char flashStr[] PROGMEM = "Flow";
-            return flashStr;
-        }
-        case TStr_Enum_Level: {
-            static const char flashStr[] PROGMEM = "Level";
-            return flashStr;
-        }
-        case TStr_Enum_WindSpeed: {
-            static const char flashStr[] PROGMEM = "WindSpeed";
-            return flashStr;
-        }
-        case TStr_Enum_WindDirection: {
-            static const char flashStr[] PROGMEM = "WindDirection";
-            return flashStr;
-        }
-        case TStr_Enum_SolarRadiation: {
-            static const char flashStr[] PROGMEM = "SolarRadiation";
-            return flashStr;
-        }
-        case TStr_Enum_Leak: {
-            static const char flashStr[] PROGMEM = "Leak";
-            return flashStr;
-        }
-        case TStr_Enum_Remote: {
-            static const char flashStr[] PROGMEM = "Remote";
-            return flashStr;
-        }
-        case TStr_Enum_Digital: {
-            static const char flashStr[] PROGMEM = "Digital";
-            return flashStr;
-        }
-        case TStr_Enum_Variable: {
-            static const char flashStr[] PROGMEM = "Variable";
-            return flashStr;
-        }
-        case TStr_Enum_Pump: {
-            static const char flashStr[] PROGMEM = "Pump";
-            return flashStr;
-        }
-        case TStr_Enum_Valve: {
-            static const char flashStr[] PROGMEM = "Valve";
-            return flashStr;
-        }
-        case TStr_Enum_Fan: {
-            static const char flashStr[] PROGMEM = "Fan";
-            return flashStr;
-        }
-        case TStr_Enum_Diverter: {
-            static const char flashStr[] PROGMEM = "Diverter";
-            return flashStr;
-        }
-        case TStr_Enum_Heater: {
-            static const char flashStr[] PROGMEM = "Heater";
-            return flashStr;
-        }
-        case TStr_Enum_Circulator: {
-            static const char flashStr[] PROGMEM = "Circulator";
-            return flashStr;
-        }
-        case TStr_Enum_SumpPump: {
-            static const char flashStr[] PROGMEM = "SumpPump";
-            return flashStr;
-        }
-        case TStr_Enum_LessThan: {
-            static const char flashStr[] PROGMEM = "LessThan";
-            return flashStr;
-        }
-        case TStr_Enum_LessOrEqual: {
-            static const char flashStr[] PROGMEM = "LessOrEqual";
-            return flashStr;
-        }
-        case TStr_Enum_GreaterThan: {
-            static const char flashStr[] PROGMEM = "GreaterThan";
-            return flashStr;
-        }
-        case TStr_Enum_GreaterOrEqual: {
-            static const char flashStr[] PROGMEM = "GreaterOrEqual";
-            return flashStr;
-        }
-        case TStr_Enum_Equal: {
-            static const char flashStr[] PROGMEM = "Equal";
-            return flashStr;
-        }
-        case TStr_Enum_NotEqual: {
-            static const char flashStr[] PROGMEM = "NotEqual";
-            return flashStr;
-        }
-        case TStr_Enum_Inactive: {
-            static const char flashStr[] PROGMEM = "Inactive";
+        case TStr_Enum_AC220V: {
+            static const char flashStr[] PROGMEM = "AC220V";
             return flashStr;
         }
         case TStr_Enum_Active: {
             static const char flashStr[] PROGMEM = "Active";
             return flashStr;
         }
-        case TStr_Enum_RTC: {
-            static const char flashStr[] PROGMEM = "RTC";
+        case TStr_Enum_Analog: {
+            static const char flashStr[] PROGMEM = "Analog";
             return flashStr;
         }
-        case TStr_Enum_Storage: {
-            static const char flashStr[] PROGMEM = "Storage";
+        case TStr_Enum_AnalogInput: {
+            static const char flashStr[] PROGMEM = "AnalogInput";
             return flashStr;
         }
-        case TStr_Enum_Display: {
-            static const char flashStr[] PROGMEM = "Display";
+        case TStr_Enum_AnalogJoystick: {
+            static const char flashStr[] PROGMEM = "AnalogJoystick";
             return flashStr;
         }
-        case TStr_Enum_Network: {
-            static const char flashStr[] PROGMEM = "Network";
+        case TStr_Enum_AnalogOutput: {
+            static const char flashStr[] PROGMEM = "AnalogOutput";
             return flashStr;
         }
-        case TStr_Enum_Radio: {
-            static const char flashStr[] PROGMEM = "Radio";
-            return flashStr;
-        }
-        case TStr_Enum_IOExpander: {
-            static const char flashStr[] PROGMEM = "IOExpander";
-            return flashStr;
-        }
-        case TStr_Enum_Manual: {
-            static const char flashStr[] PROGMEM = "Manual";
-            return flashStr;
-        }
-        case TStr_Enum_Automatic: {
-            static const char flashStr[] PROGMEM = "Automatic";
-            return flashStr;
-        }
-        case TStr_Enum_Imperial: {
-            static const char flashStr[] PROGMEM = "Imperial";
-            return flashStr;
-        }
-        case TStr_Enum_Metric: {
-            static const char flashStr[] PROGMEM = "Metric";
-            return flashStr;
-        }
-        case TStr_Enum_Scientific: {
-            static const char flashStr[] PROGMEM = "Scientific";
-            return flashStr;
-        }
-        case TStr_Enum_Highest: {
-            static const char flashStr[] PROGMEM = "Highest";
-            return flashStr;
-        }
-        case TStr_Enum_Lowest: {
-            static const char flashStr[] PROGMEM = "Lowest";
-            return flashStr;
-        }
-        case TStr_Enum_Average: {
-            static const char flashStr[] PROGMEM = "Average";
-            return flashStr;
-        }
-        case TStr_Enum_Multiply: {
-            static const char flashStr[] PROGMEM = "Multiply";
-            return flashStr;
-        }
-        case TStr_Enum_InOrder: {
-            static const char flashStr[] PROGMEM = "InOrder";
-            return flashStr;
-        }
-        case TStr_Enum_RevOrder: {
-            static const char flashStr[] PROGMEM = "RevOrder";
+        case TStr_Enum_Angle: {
+            static const char flashStr[] PROGMEM = "Angle";
             return flashStr;
         }
         case TStr_Enum_AscOrder: {
             static const char flashStr[] PROGMEM = "AscOrder";
             return flashStr;
         }
+        case TStr_Enum_Automatic: {
+            static const char flashStr[] PROGMEM = "Automatic";
+            return flashStr;
+        }
+        case TStr_Enum_Average: {
+            static const char flashStr[] PROGMEM = "Average";
+            return flashStr;
+        }
+        case TStr_Enum_Binary: {
+            static const char flashStr[] PROGMEM = "Binary";
+            return flashStr;
+        }
+        case TStr_Enum_Circulator: {
+            static const char flashStr[] PROGMEM = "Circulator";
+            return flashStr;
+        }
+        case TStr_Enum_Complete: {
+            static const char flashStr[] PROGMEM = "Complete";
+            return flashStr;
+        }
+        case TStr_Enum_Count: {
+            static const char flashStr[] PROGMEM = "Count";
+            return flashStr;
+        }
+        case TStr_Enum_Current: {
+            static const char flashStr[] PROGMEM = "Current";
+            return flashStr;
+        }
+        case TStr_Enum_Custom: {
+            static const char flashStr[] PROGMEM = "Custom";
+            return flashStr;
+        }
+        case TStr_Enum_CustomOLED: {
+            static const char flashStr[] PROGMEM = "CustomOLED";
+            return flashStr;
+        }
+        case TStr_Enum_DC12V: {
+            static const char flashStr[] PROGMEM = "DC12V";
+            return flashStr;
+        }
+        case TStr_Enum_DC24V: {
+            static const char flashStr[] PROGMEM = "DC24V";
+            return flashStr;
+        }
+        case TStr_Enum_DC3V3: {
+            static const char flashStr[] PROGMEM = "DC3V3";
+            return flashStr;
+        }
+        case TStr_Enum_DC48V: {
+            static const char flashStr[] PROGMEM = "DC48V";
+            return flashStr;
+        }
+        case TStr_Enum_DC5V: {
+            static const char flashStr[] PROGMEM = "DC5V";
+            return flashStr;
+        }
         case TStr_Enum_DescOrder: {
             static const char flashStr[] PROGMEM = "DescOrder";
+            return flashStr;
+        }
+        case TStr_Enum_Digital: {
+            static const char flashStr[] PROGMEM = "Digital";
             return flashStr;
         }
         case TStr_Enum_DigitalInput: {
             static const char flashStr[] PROGMEM = "DigitalInput";
             return flashStr;
         }
-        case TStr_Enum_DigitalInputPullUp: {
-            static const char flashStr[] PROGMEM = "DigitalInputPullUp";
-            return flashStr;
-        }
         case TStr_Enum_DigitalInputPullDown: {
             static const char flashStr[] PROGMEM = "DigitalInputPullDown";
+            return flashStr;
+        }
+        case TStr_Enum_DigitalInputPullUp: {
+            static const char flashStr[] PROGMEM = "DigitalInputPullUp";
             return flashStr;
         }
         case TStr_Enum_DigitalOutput: {
@@ -937,20 +773,72 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "DigitalOutputPushPull";
             return flashStr;
         }
-        case TStr_Enum_AnalogInput: {
-            static const char flashStr[] PROGMEM = "AnalogInput";
+        case TStr_Enum_Display: {
+            static const char flashStr[] PROGMEM = "Display";
             return flashStr;
         }
-        case TStr_Enum_AnalogOutput: {
-            static const char flashStr[] PROGMEM = "AnalogOutput";
+        case TStr_Enum_Distance: {
+            static const char flashStr[] PROGMEM = "Distance";
             return flashStr;
         }
-        case TStr_Enum_AnalogJoystick: {
-            static const char flashStr[] PROGMEM = "AnalogJoystick";
+        case TStr_Enum_Diverter: {
+            static const char flashStr[] PROGMEM = "Diverter";
             return flashStr;
         }
-        case TStr_Enum_CustomOLED: {
-            static const char flashStr[] PROGMEM = "CustomOLED";
+        case TStr_Enum_Energy: {
+            static const char flashStr[] PROGMEM = "Energy";
+            return flashStr;
+        }
+        case TStr_Enum_Equal: {
+            static const char flashStr[] PROGMEM = "Equal";
+            return flashStr;
+        }
+        case TStr_Enum_Fan: {
+            static const char flashStr[] PROGMEM = "Fan";
+            return flashStr;
+        }
+        case TStr_Enum_Fault: {
+            static const char flashStr[] PROGMEM = "Fault";
+            return flashStr;
+        }
+        case TStr_Enum_Flow: {
+            static const char flashStr[] PROGMEM = "Flow";
+            return flashStr;
+        }
+        case TStr_Enum_FlowSensor: {
+            static const char flashStr[] PROGMEM = "FlowSensor";
+            return flashStr;
+        }
+        case TStr_Enum_GreaterOrEqual: {
+            static const char flashStr[] PROGMEM = "GreaterOrEqual";
+            return flashStr;
+        }
+        case TStr_Enum_GreaterThan: {
+            static const char flashStr[] PROGMEM = "GreaterThan";
+            return flashStr;
+        }
+        case TStr_Enum_Heater: {
+            static const char flashStr[] PROGMEM = "Heater";
+            return flashStr;
+        }
+        case TStr_Enum_High: {
+            static const char flashStr[] PROGMEM = "High";
+            return flashStr;
+        }
+        case TStr_Enum_Highest: {
+            static const char flashStr[] PROGMEM = "Highest";
+            return flashStr;
+        }
+        case TStr_Enum_Humidity: {
+            static const char flashStr[] PROGMEM = "Humidity";
+            return flashStr;
+        }
+        case TStr_Enum_HumiditySensor: {
+            static const char flashStr[] PROGMEM = "HumiditySensor";
+            return flashStr;
+        }
+        case TStr_Enum_Idle: {
+            static const char flashStr[] PROGMEM = "Idle";
             return flashStr;
         }
         case TStr_Enum_IL3820: {
@@ -965,12 +853,76 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "ILI9341";
             return flashStr;
         }
+        case TStr_Enum_Imperial: {
+            static const char flashStr[] PROGMEM = "Imperial";
+            return flashStr;
+        }
+        case TStr_Enum_Inactive: {
+            static const char flashStr[] PROGMEM = "Inactive";
+            return flashStr;
+        }
+        case TStr_Enum_InOrder: {
+            static const char flashStr[] PROGMEM = "InOrder";
+            return flashStr;
+        }
+        case TStr_Enum_IOExpander: {
+            static const char flashStr[] PROGMEM = "IOExpander";
+            return flashStr;
+        }
+        case TStr_Enum_Irradiance: {
+            static const char flashStr[] PROGMEM = "Irradiance";
+            return flashStr;
+        }
         case TStr_Enum_LCD16x2: {
             static const char flashStr[] PROGMEM = "LCD16x2";
             return flashStr;
         }
         case TStr_Enum_LCD20x4: {
             static const char flashStr[] PROGMEM = "LCD20x4";
+            return flashStr;
+        }
+        case TStr_Enum_Leak: {
+            static const char flashStr[] PROGMEM = "Leak";
+            return flashStr;
+        }
+        case TStr_Enum_LeakSensor: {
+            static const char flashStr[] PROGMEM = "LeakSensor";
+            return flashStr;
+        }
+        case TStr_Enum_LessOrEqual: {
+            static const char flashStr[] PROGMEM = "LessOrEqual";
+            return flashStr;
+        }
+        case TStr_Enum_LessThan: {
+            static const char flashStr[] PROGMEM = "LessThan";
+            return flashStr;
+        }
+        case TStr_Enum_Level: {
+            static const char flashStr[] PROGMEM = "Level";
+            return flashStr;
+        }
+        case TStr_Enum_LevelSensor: {
+            static const char flashStr[] PROGMEM = "LevelSensor";
+            return flashStr;
+        }
+        case TStr_Enum_LiquidFlowRate: {
+            static const char flashStr[] PROGMEM = "LiquidFlowRate";
+            return flashStr;
+        }
+        case TStr_Enum_LiquidVolume: {
+            static const char flashStr[] PROGMEM = "LiquidVolume";
+            return flashStr;
+        }
+        case TStr_Enum_Low: {
+            static const char flashStr[] PROGMEM = "Low";
+            return flashStr;
+        }
+        case TStr_Enum_Lowest: {
+            static const char flashStr[] PROGMEM = "Lowest";
+            return flashStr;
+        }
+        case TStr_Enum_Manual: {
+            static const char flashStr[] PROGMEM = "Manual";
             return flashStr;
         }
         case TStr_Enum_Matrix2x2: {
@@ -985,20 +937,128 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Matrix4x4";
             return flashStr;
         }
+        case TStr_Enum_Metric: {
+            static const char flashStr[] PROGMEM = "Metric";
+            return flashStr;
+        }
+        case TStr_Enum_Multiply: {
+            static const char flashStr[] PROGMEM = "Multiply";
+            return flashStr;
+        }
+        case TStr_Enum_Municipal: {
+            static const char flashStr[] PROGMEM = "Municipal";
+            return flashStr;
+        }
+        case TStr_Enum_Network: {
+            static const char flashStr[] PROGMEM = "Network";
+            return flashStr;
+        }
+        case TStr_Enum_Normal: {
+            static const char flashStr[] PROGMEM = "Normal";
+            return flashStr;
+        }
+        case TStr_Enum_NotEqual: {
+            static const char flashStr[] PROGMEM = "NotEqual";
+            return flashStr;
+        }
+        case TStr_Enum_Percentile: {
+            static const char flashStr[] PROGMEM = "Percentile";
+            return flashStr;
+        }
+        case TStr_Enum_Power: {
+            static const char flashStr[] PROGMEM = "Power";
+            return flashStr;
+        }
+        case TStr_Enum_Pressure: {
+            static const char flashStr[] PROGMEM = "Pressure";
+            return flashStr;
+        }
+        case TStr_Enum_PressureSensor: {
+            static const char flashStr[] PROGMEM = "PressureSensor";
+            return flashStr;
+        }
+        case TStr_Enum_Pump: {
+            static const char flashStr[] PROGMEM = "Pump";
+            return flashStr;
+        }
+        case TStr_Enum_Radio: {
+            static const char flashStr[] PROGMEM = "Radio";
+            return flashStr;
+        }
+        case TStr_Enum_Rainfall: {
+            static const char flashStr[] PROGMEM = "Rainfall";
+            return flashStr;
+        }
+        case TStr_Enum_RainfallSensor: {
+            static const char flashStr[] PROGMEM = "RainfallSensor";
+            return flashStr;
+        }
+        case TStr_Enum_RainRate: {
+            static const char flashStr[] PROGMEM = "RainRate";
+            return flashStr;
+        }
+        case TStr_Enum_Rainwater: {
+            static const char flashStr[] PROGMEM = "Rainwater";
+            return flashStr;
+        }
+        case TStr_Enum_Raw: {
+            static const char flashStr[] PROGMEM = "Raw";
+            return flashStr;
+        }
+        case TStr_Enum_Reclaimed: {
+            static const char flashStr[] PROGMEM = "Reclaimed";
+            return flashStr;
+        }
+        case TStr_Enum_Remote: {
+            static const char flashStr[] PROGMEM = "Remote";
+            return flashStr;
+        }
         case TStr_Enum_RemoteControl: {
             static const char flashStr[] PROGMEM = "RemoteControl";
+            return flashStr;
+        }
+        case TStr_Enum_Requested: {
+            static const char flashStr[] PROGMEM = "Requested";
+            return flashStr;
+        }
+        case TStr_Enum_Reserve: {
+            static const char flashStr[] PROGMEM = "Reserve";
             return flashStr;
         }
         case TStr_Enum_ResistiveTouch: {
             static const char flashStr[] PROGMEM = "ResistiveTouch";
             return flashStr;
         }
+        case TStr_Enum_RevOrder: {
+            static const char flashStr[] PROGMEM = "RevOrder";
+            return flashStr;
+        }
         case TStr_Enum_RotaryEncoder: {
             static const char flashStr[] PROGMEM = "RotaryEncoder";
             return flashStr;
         }
+        case TStr_Enum_RTC: {
+            static const char flashStr[] PROGMEM = "RTC";
+            return flashStr;
+        }
+        case TStr_Enum_Scientific: {
+            static const char flashStr[] PROGMEM = "Scientific";
+            return flashStr;
+        }
         case TStr_Enum_SH1106: {
             static const char flashStr[] PROGMEM = "SH1106";
+            return flashStr;
+        }
+        case TStr_Enum_SolarRadiation: {
+            static const char flashStr[] PROGMEM = "SolarRadiation";
+            return flashStr;
+        }
+        case TStr_Enum_SolarRadiationSensor: {
+            static const char flashStr[] PROGMEM = "SolarRadiationSensor";
+            return flashStr;
+        }
+        case TStr_Enum_Speed: {
+            static const char flashStr[] PROGMEM = "Speed";
             return flashStr;
         }
         case TStr_Enum_SSD1305: {
@@ -1029,12 +1089,52 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "ST7789";
             return flashStr;
         }
+        case TStr_Enum_Storage: {
+            static const char flashStr[] PROGMEM = "Storage";
+            return flashStr;
+        }
+        case TStr_Enum_Stored: {
+            static const char flashStr[] PROGMEM = "Stored";
+            return flashStr;
+        }
+        case TStr_Enum_SumpPump: {
+            static const char flashStr[] PROGMEM = "SumpPump";
+            return flashStr;
+        }
+        case TStr_Enum_Surface: {
+            static const char flashStr[] PROGMEM = "Surface";
+            return flashStr;
+        }
+        case TStr_Enum_Tank: {
+            static const char flashStr[] PROGMEM = "Tank";
+            return flashStr;
+        }
+        case TStr_Enum_Temperature: {
+            static const char flashStr[] PROGMEM = "Temperature";
+            return flashStr;
+        }
+        case TStr_Enum_TemperatureSensor: {
+            static const char flashStr[] PROGMEM = "TemperatureSensor";
+            return flashStr;
+        }
         case TStr_Enum_TFTTouch: {
             static const char flashStr[] PROGMEM = "TFTTouch";
             return flashStr;
         }
+        case TStr_Enum_Thermal: {
+            static const char flashStr[] PROGMEM = "Thermal";
+            return flashStr;
+        }
+        case TStr_Enum_ThermalReservoir: {
+            static const char flashStr[] PROGMEM = "ThermalReservoir";
+            return flashStr;
+        }
         case TStr_Enum_TouchScreen: {
             static const char flashStr[] PROGMEM = "TouchScreen";
+            return flashStr;
+        }
+        case TStr_Enum_Unknown: {
+            static const char flashStr[] PROGMEM = "Unknown";
             return flashStr;
         }
         case TStr_Enum_UpDownButtons: {
@@ -1045,256 +1145,113 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "UpDownESP32Touch";
             return flashStr;
         }
-        case TStr_Enum_Raw: {
-            static const char flashStr[] PROGMEM = "Raw";
+        case TStr_Enum_Valve: {
+            static const char flashStr[] PROGMEM = "Valve";
             return flashStr;
         }
-        case TStr_Enum_Percentile: {
-            static const char flashStr[] PROGMEM = "Percentile";
-            return flashStr;
-        }
-        case TStr_Enum_LiquidVolume: {
-            static const char flashStr[] PROGMEM = "LiquidVolume";
-            return flashStr;
-        }
-        case TStr_Enum_LiquidFlowRate: {
-            static const char flashStr[] PROGMEM = "LiquidFlowRate";
-            return flashStr;
-        }
-        case TStr_Enum_Distance: {
-            static const char flashStr[] PROGMEM = "Distance";
-            return flashStr;
-        }
-        case TStr_Enum_RainRate: {
-            static const char flashStr[] PROGMEM = "RainRate";
-            return flashStr;
-        }
-        case TStr_Enum_Power: {
-            static const char flashStr[] PROGMEM = "Power";
-            return flashStr;
-        }
-        case TStr_Enum_Irradiance: {
-            static const char flashStr[] PROGMEM = "Irradiance";
-            return flashStr;
-        }
-        case TStr_Enum_Energy: {
-            static const char flashStr[] PROGMEM = "Energy";
-            return flashStr;
-        }
-        case TStr_Enum_Speed: {
-            static const char flashStr[] PROGMEM = "Speed";
-            return flashStr;
-        }
-        case TStr_Enum_Angle: {
-            static const char flashStr[] PROGMEM = "Angle";
+        case TStr_Enum_Variable: {
+            static const char flashStr[] PROGMEM = "Variable";
             return flashStr;
         }
         case TStr_Enum_Voltage: {
             static const char flashStr[] PROGMEM = "Voltage";
             return flashStr;
         }
-        case TStr_Enum_Current: {
-            static const char flashStr[] PROGMEM = "Current";
+        case TStr_Enum_Water: {
+            static const char flashStr[] PROGMEM = "Water";
             return flashStr;
         }
-        case TStr_Enum_Custom: {
-            static const char flashStr[] PROGMEM = "Custom";
+        case TStr_Enum_WaterReservoir: {
+            static const char flashStr[] PROGMEM = "WaterReservoir";
             return flashStr;
         }
-        case TStr_Enum_AC110V: {
-            static const char flashStr[] PROGMEM = "AC110V";
+        case TStr_Enum_Well: {
+            static const char flashStr[] PROGMEM = "Well";
             return flashStr;
         }
-        case TStr_Enum_AC220V: {
-            static const char flashStr[] PROGMEM = "AC220V";
+        case TStr_Enum_WindDirection: {
+            static const char flashStr[] PROGMEM = "WindDirection";
             return flashStr;
         }
-        case TStr_Enum_DC3V3: {
-            static const char flashStr[] PROGMEM = "DC3V3";
-            return flashStr;
-        }
-        case TStr_Enum_DC5V: {
-            static const char flashStr[] PROGMEM = "DC5V";
-            return flashStr;
-        }
-        case TStr_Enum_DC12V: {
-            static const char flashStr[] PROGMEM = "DC12V";
-            return flashStr;
-        }
-        case TStr_Enum_DC24V: {
-            static const char flashStr[] PROGMEM = "DC24V";
-            return flashStr;
-        }
-        case TStr_Enum_DC48V: {
-            static const char flashStr[] PROGMEM = "DC48V";
-            return flashStr;
-        }
-        case TStr_Enum_Idle: {
-            static const char flashStr[] PROGMEM = "Idle";
-            return flashStr;
-        }
-        case TStr_Enum_Requested: {
-            static const char flashStr[] PROGMEM = "Requested";
-            return flashStr;
-        }
-        case TStr_Enum_Complete: {
-            static const char flashStr[] PROGMEM = "Complete";
-            return flashStr;
-        }
-        case TStr_LevelSensor: {
-            static const char flashStr[] PROGMEM = "LevelSensor";
-            return flashStr;
-        }
-        case TStr_FlowSensor: {
-            static const char flashStr[] PROGMEM = "FlowSensor";
-            return flashStr;
-        }
-        case TStr_TemperatureSensor: {
-            static const char flashStr[] PROGMEM = "TemperatureSensor";
-            return flashStr;
-        }
-        case TStr_HumiditySensor: {
-            static const char flashStr[] PROGMEM = "HumiditySensor";
-            return flashStr;
-        }
-        case TStr_PressureSensor: {
-            static const char flashStr[] PROGMEM = "PressureSensor";
-            return flashStr;
-        }
-        case TStr_RainfallSensor: {
-            static const char flashStr[] PROGMEM = "RainfallSensor";
-            return flashStr;
-        }
-        case TStr_WindSpeedSensor: {
-            static const char flashStr[] PROGMEM = "WindSpeedSensor";
-            return flashStr;
-        }
-        case TStr_WindDirectionSensor: {
+        case TStr_Enum_WindDirectionSensor: {
             static const char flashStr[] PROGMEM = "WindDirectionSensor";
             return flashStr;
         }
-        case TStr_SolarRadiationSensor: {
-            static const char flashStr[] PROGMEM = "SolarRadiationSensor";
+        case TStr_Enum_WindSpeed: {
+            static const char flashStr[] PROGMEM = "WindSpeed";
             return flashStr;
         }
-        case TStr_LeakSensor: {
-            static const char flashStr[] PROGMEM = "LeakSensor";
+        case TStr_Enum_WindSpeedSensor: {
+            static const char flashStr[] PROGMEM = "WindSpeedSensor";
             return flashStr;
         }
-        case TStr_Enum_Count: {
-            static const char flashStr[] PROGMEM = "Count";
-            return flashStr;
-        }
-        case TStr_Unit_Percent: {
-            static const char flashStr[] PROGMEM = "%";
-            return flashStr;
-        }
-        case TStr_Unit_C: {
-            static const char flashStr[] PROGMEM = "C";
-            return flashStr;
-        }
-        case TStr_Unit_F: {
-            static const char flashStr[] PROGMEM = "F";
-            return flashStr;
-        }
-        case TStr_Unit_K: {
-            static const char flashStr[] PROGMEM = "K";
-            return flashStr;
-        }
-        case TStr_Unit_L: {
-            static const char flashStr[] PROGMEM = "L";
-            return flashStr;
-        }
-        case TStr_Unit_gal: {
-            static const char flashStr[] PROGMEM = "gal";
-            return flashStr;
-        }
-        case TStr_Unit_m: {
-            static const char flashStr[] PROGMEM = "m";
-            return flashStr;
-        }
-        case TStr_Unit_ft: {
-            static const char flashStr[] PROGMEM = "ft";
-            return flashStr;
-        }
-        case TStr_Unit_LPerMin: {
-            static const char flashStr[] PROGMEM = "L/min";
-            return flashStr;
-        }
-        case TStr_Unit_galPerMin: {
-            static const char flashStr[] PROGMEM = "gal/min";
-            return flashStr;
-        }
-        case TStr_Unit_kPa: {
-            static const char flashStr[] PROGMEM = "kPa";
-            return flashStr;
-        }
-        case TStr_Unit_psi: {
-            static const char flashStr[] PROGMEM = "psi";
-            return flashStr;
-        }
-        case TStr_Unit_hPa: {
-            static const char flashStr[] PROGMEM = "hPa";
-            return flashStr;
-        }
-        case TStr_Unit_mm: {
-            static const char flashStr[] PROGMEM = "mm";
-            return flashStr;
-        }
-        case TStr_Unit_in: {
-            static const char flashStr[] PROGMEM = "in";
-            return flashStr;
-        }
-        case TStr_Unit_mmPerH: {
-            static const char flashStr[] PROGMEM = "mm/h";
-            return flashStr;
-        }
-        case TStr_Unit_W: {
-            static const char flashStr[] PROGMEM = "W";
-            return flashStr;
-        }
-        case TStr_Unit_WPerM2: {
-            static const char flashStr[] PROGMEM = "W/m2";
-            return flashStr;
-        }
-        case TStr_Unit_kWh: {
-            static const char flashStr[] PROGMEM = "kWh";
-            return flashStr;
-        }
-        case TStr_Unit_mPerS: {
-            static const char flashStr[] PROGMEM = "m/s";
-            return flashStr;
-        }
-        case TStr_Unit_kmPerH: {
-            static const char flashStr[] PROGMEM = "km/h";
-            return flashStr;
-        }
-        case TStr_Unit_mph: {
-            static const char flashStr[] PROGMEM = "mph";
-            return flashStr;
-        }
-        case TStr_Unit_deg: {
+
+        case TStr_Unit_Degree: {
             static const char flashStr[] PROGMEM = "deg";
             return flashStr;
         }
-        case TStr_Unit_V: {
-            static const char flashStr[] PROGMEM = "V";
+        case TStr_Unit_Feet: {
+            static const char flashStr[] PROGMEM = "ft";
             return flashStr;
         }
-        case TStr_Unit_A: {
-            static const char flashStr[] PROGMEM = "A";
+        case TStr_Unit_Gallons: {
+            static const char flashStr[] PROGMEM = "gal";
             return flashStr;
         }
-        case TStr_Unit_inPerH: {
-            static const char flashStr[] PROGMEM = "in/h";
+        case TStr_Unit_Hectopascals: {
+            static const char flashStr[] PROGMEM = "hPa";
             return flashStr;
         }
-        case TStr_Unit_rad: {
+        case TStr_Unit_Inches: {
+            static const char flashStr[] PROGMEM = "in";
+            return flashStr;
+        }
+        case TStr_Unit_KilometersPerHour: {
+            static const char flashStr[] PROGMEM = "km/h";
+            return flashStr;
+        }
+        case TStr_Unit_Kilopascals: {
+            static const char flashStr[] PROGMEM = "kPa";
+            return flashStr;
+        }
+        case TStr_Unit_KilowattHours: {
+            static const char flashStr[] PROGMEM = "kWh";
+            return flashStr;
+        }
+        case TStr_Unit_MilesPerHour: {
+            static const char flashStr[] PROGMEM = "mph";
+            return flashStr;
+        }
+        case TStr_Unit_Millimeters: {
+            static const char flashStr[] PROGMEM = "mm";
+            return flashStr;
+        }
+        case TStr_Unit_Minutes: {
+            static const char flashStr[] PROGMEM = "min";
+            return flashStr;
+        }
+        case TStr_Unit_PerHour: {
+            static const char flashStr[] PROGMEM = "/h";
+            return flashStr;
+        }
+        case TStr_Unit_PerMinute: {
+            static const char flashStr[] PROGMEM = "/min";
+            return flashStr;
+        }
+        case TStr_Unit_PerSecond: {
+            static const char flashStr[] PROGMEM = "/s";
+            return flashStr;
+        }
+        case TStr_Unit_PoundsPerSquareInch: {
+            static const char flashStr[] PROGMEM = "psi";
+            return flashStr;
+        }
+        case TStr_Unit_Radians: {
             static const char flashStr[] PROGMEM = "rad";
             return flashStr;
         }
-        case TStr_Unit_min: {
-            static const char flashStr[] PROGMEM = "min";
+        case TStr_Unit_WattsPerSquareMeter: {
+            static const char flashStr[] PROGMEM = "W/m2";
             return flashStr;
         }
         case TStr_Count: break;
