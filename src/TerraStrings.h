@@ -132,6 +132,7 @@ enum Terra_String : uint16_t {
     TStr_Key_RailName,                          // "railName"
     TStr_Key_RainfallSensor,                    // "rainfallSensor"
     TStr_Key_RainRateSensor,                    // "rainRateSensor"
+    TStr_Key_ReportInterval,                    // "reportInterval"
     TStr_Key_ReportedType,                      // "reportedType"
     TStr_Key_ReservoirName,                     // "reservoirName"
     TStr_Key_Revision,                          // "revision"

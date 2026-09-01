@@ -184,6 +184,7 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_CAL_CALIBS_MAXSIZE        8                   // Maximum array size for calibration store objects (max # of different custom calibrations)
 #define TERRA_OBJ_LINKS_MAXSIZE         8                   // Maximum array size for object linkage list, per obj (max # of linked objects)
 #define TERRA_BAL_ACTUATORS_MAXSIZE     8                   // Maximum array size for balancer actuators list (max # of actuators used)
+#define TERRA_SCH_PROCS_MAXSIZE         4                   // Maximum array size for scheduler tracking process list (max # of reservoirs)
 #define TERRA_SCH_REQACTS_MAXSIZE       4                   // Maximum array size for scheduler required actuators list (max # of actuators active per process stage)
 #define TERRA_SYS_ONEWIRES_MAXSIZE      2                   // Maximum array size for pin OneWire list (max # of OneWire comm pins)
 #define TERRA_SYS_PINLOCKS_MAXSIZE      2                   // Maximum array size for pin locks list (max # of locks)

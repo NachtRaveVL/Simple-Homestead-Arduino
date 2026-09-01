@@ -509,6 +509,10 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "rainRateSensor";
             return flashStr;
         }
+        case TStr_Key_ReportInterval: {
+            static const char flashStr[] PROGMEM = "reportInterval";
+            return flashStr;
+        }
         case TStr_Key_ReportedType: {
             static const char flashStr[] PROGMEM = "reportedType";
             return flashStr;
