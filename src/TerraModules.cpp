@@ -77,7 +77,7 @@ bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *cali
 
 bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 {
-    TERRA_SOFT_ASSERT(object && object->getId().posIndex >= 0 && object->getId().posIndex < TERRA_POS_MAXSIZE, SFP(TStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(object->getId().posIndex >= 0 && object->getId().posIndex < TERRA_POS_MAXSIZE, SFP(TStr_Err_InvalidParameter));
     if (object && _objects.find(object->getKey()) == _objects.end()) {
         _objects[object->getKey()] = object;
 
@@ -99,10 +99,8 @@ bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 
 bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
 {
-    if (!object) { return false; }
     auto iter = _objects.find(object->getKey());
-    if (iter != _objects.end() && iter->second.get() == object.get()) {
-        object->unresolve();
+    if (iter != _objects.end()) {
         _objects.erase(iter);
 
         if (object->isActuatorType() || object->isReservoirType()) {
@@ -148,7 +146,7 @@ SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) con
     } else {
         auto iter = _objects.find(id.key);
         if (iter != _objects.end()) {
-            if (!id.keyString.length() || id.keyString == iter->second->getKeyString()) {
+            if (id.keyString == iter->second->getKeyString()) {
                 return iter->second;
             } else {
                 return objectById_Col(id);
@@ -172,7 +170,7 @@ SharedPtr<TerraObject> TerraObjectRegistration::objectById_Col(const TerraIdenti
     return nullptr;
 }
 
-tposi_t TerraObjectRegistration::firstPosition(TerraIdentity id, bool taken) const
+tposi_t TerraObjectRegistration::firstPosition(TerraIdentity id, bool taken)
 {
     if (id.posIndex != TERRA_POS_SEARCH_FROMEND) {
         id.posIndex = TERRA_POS_SEARCH_FROMBEG;
@@ -192,7 +190,7 @@ tposi_t TerraObjectRegistration::firstPosition(TerraIdentity id, bool taken) con
         }
     }
 
-    return tposi_none;
+    return -1;
 }
 
 

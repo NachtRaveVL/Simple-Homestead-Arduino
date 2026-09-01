@@ -26,20 +26,6 @@
             ]
         },
         {
-            "name": "CisternManagement",
-            "base": "examples/CisternManagement",
-            "files": [
-                "CisternManagement.ino"
-            ]
-        },
-        {
-            "name": "RainwaterCollection",
-            "base": "examples/RainwaterCollection",
-            "files": [
-                "RainwaterCollection.ino"
-            ]
-        },
-        {
             "name": "ThermalStorage",
             "base": "examples/ThermalStorage",
             "files": [
@@ -65,13 +51,6 @@
             "base": "examples/FullSystem",
             "files": [
                 "FullSystem.ino"
-            ]
-        },
-        {
-            "name": "UISetup",
-            "base": "examples/UISetup",
-            "files": [
-                "UISetup.ino"
             ]
         },
         {

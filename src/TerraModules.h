@@ -53,9 +53,9 @@ public:
     SharedPtr<TerraObject> objectById(TerraIdentity id) const;
 
     // Finds first position either open or taken, given the identity type.
-    tposi_t firstPosition(TerraIdentity id, bool taken) const;
-    inline tposi_t firstPositionTaken(TerraIdentity id) const { return firstPosition(id, true); }
-    inline tposi_t firstPositionOpen(TerraIdentity id) const { return firstPosition(id, false); }
+    tposi_t firstPosition(TerraIdentity id, bool taken);
+    inline tposi_t firstPositionTaken(TerraIdentity id) { return firstPosition(id, true); }
+    inline tposi_t firstPositionOpen(TerraIdentity id) { return firstPosition(id, false); }
 
 protected:
     Map<tkey_t, SharedPtr<TerraObject>, TERRA_SYS_OBJECTS_MAXSIZE> _objects; // Shared object collection, keyed by TerraIdentity
