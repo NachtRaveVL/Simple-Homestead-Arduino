@@ -47,19 +47,21 @@ TerraActuator::TerraActuator(const TerraActuatorData *dataIn)
     _parentReservoir.initObject(dataIn->reservoirName);
 }
 
-void TerraActuator::update(uint32_t now)
+void TerraActuator::update()
 {
-    TerraObject::update(now);
+    TerraObject::update();
 
     _parentRail.resolve();
     _parentReservoir.resolve();
+
+    millis_t time = nzMillis();
 
     // Update running handles and elapse them as needed, determine forced status, and remove invalid/finished handles
     bool forced = false;
     if (_handles.size()) {
         for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
             if (_enabled && (*handleIter)->isActive()) {
-                (*handleIter)->elapseTo(now);
+                (*handleIter)->elapseTo(time);
             }
             if ((*handleIter)->actuator.get() != this || !(*handleIter)->isValid() || (*handleIter)->isDone()) {
                 if ((*handleIter)->actuator.get() == this) { (*handleIter)->actuator = nullptr; }
@@ -152,7 +154,7 @@ void TerraActuator::update(uint32_t now)
                 bool selected = false;
                 for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
                     if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
-                        selected = true; (*handleIter)->checkTime = now;
+                        selected = true; (*handleIter)->checkTime = time;
                     } else if ((*handleIter)->checkTime != 0) {
                         (*handleIter)->checkTime = 0;
                     }
@@ -164,7 +166,7 @@ void TerraActuator::update(uint32_t now)
                 bool selected = false;
                 for (auto handleIter = _handles.end() - 1; handleIter != _handles.begin() - 1; --handleIter) {
                     if (!selected && (*handleIter)->isValid() && !(*handleIter)->isDone() && isFPEqual((*handleIter)->activation.intensity, getDriveIntensity())) {
-                        selected = true; (*handleIter)->checkTime = now;
+                        selected = true; (*handleIter)->checkTime = time;
                     } else if ((*handleIter)->checkTime != 0) {
                         (*handleIter)->checkTime = 0;
                     }
@@ -174,7 +176,7 @@ void TerraActuator::update(uint32_t now)
             default: {
                 for (auto handleIter = _handles.begin(); handleIter != _handles.end(); ++handleIter) {
                     if ((*handleIter)->isValid() && !(*handleIter)->isDone() && (*handleIter)->checkTime == 0) {
-                        (*handleIter)->checkTime = now;
+                        (*handleIter)->checkTime = time;
                     }
                 }
             } break;
@@ -187,7 +189,6 @@ void TerraActuator::update(uint32_t now)
 
 bool TerraActuator::getCanEnable()
 {
-    if (!TerraObject::_enabled) { return false; }
     if (getParentRail() && !getParentRail()->canActivate(this)) { return false; }
     if (getParentReservoir() && !getParentReservoir()->canActivate(this)) { return false; }
     return true;
@@ -248,7 +249,7 @@ TerraData *TerraActuator::allocateData() const
     return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
 }
 
-void TerraActuator::saveToData(TerraData *dataOut) const
+void TerraActuator::saveToData(TerraData *dataOut)
 {
     TerraObject::saveToData(dataOut);
 
@@ -331,7 +332,7 @@ bool TerraRelayActuator::isEnabled(float tolerance) const
     return _enabled;
 }
 
-void TerraRelayActuator::saveToData(TerraData *dataOut) const
+void TerraRelayActuator::saveToData(TerraData *dataOut)
 {
     TerraActuator::saveToData(dataOut);
     _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);
@@ -389,15 +390,16 @@ TerraRelayPumpActuator::TerraRelayPumpActuator(const TerraPumpActuatorData *data
     _flowRate.initObject(dataIn->flowRateSensor);
 }
 
-void TerraRelayPumpActuator::update(uint32_t now)
+void TerraRelayPumpActuator::update()
 {
-    TerraActuator::update(now);
+    TerraActuator::update();
 
     _destReservoir.resolve();
     _flowRate.updateIfNeeded(true);
 
-    if (_pumpTimeStart && _pumpTimeAccum < now) {
-        handlePumpTime(now);
+    millis_t time = nzMillis();
+    if (_pumpTimeStart && _pumpTimeAccum < time) {
+        handlePumpTime(time);
     }
 }
 
@@ -502,7 +504,7 @@ TerraSensorAttachment &TerraRelayPumpActuator::getFlowRateSensorAttachment()
     return _flowRate;
 }
 
-void TerraRelayPumpActuator::saveToData(TerraData *dataOut) const
+void TerraRelayPumpActuator::saveToData(TerraData *dataOut)
 {
     TerraRelayActuator::saveToData(dataOut);
 
@@ -629,7 +631,7 @@ bool TerraVariableActuator::isEnabled(float tolerance) const
     return _enabled && _intensity >= tolerance - FLT_EPSILON;
 }
 
-void TerraVariableActuator::saveToData(TerraData *dataOut) const
+void TerraVariableActuator::saveToData(TerraData *dataOut)
 {
     TerraActuator::saveToData(dataOut);
     _outputPin.saveToData(&((TerraActuatorData *)dataOut)->outputPin);

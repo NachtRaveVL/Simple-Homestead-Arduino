@@ -21,8 +21,7 @@ void setup()
     Serial.begin(115200);
     terraController.init();
     barnTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
-                                                       Terra_UnitsType_Temperature_Celsius,
-                                                       "Barn Temperature");
+                                                       Terra_UnitsType_Temperature_Celsius);
     if (barnTemperature) { barnTemperature->setStaleAfter(5UL * 60UL * 1000UL); }
     terraController.launch();
 }

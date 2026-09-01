@@ -1,28 +1,33 @@
-#include "Terraduino.h"
+#include "TerraCoreLogic.h"
 #include <cassert>
+#include <cstdint>
 #include <iostream>
 
 int main()
 {
-    assert(terraBalancingStateForValue(47.0f, 50.0f, 4.0f) == Terra_BalancingState_TooLow);
-    assert(terraBalancingStateForValue(50.0f, 50.0f, 4.0f) == Terra_BalancingState_Balanced);
-    assert(terraBalancingStateForValue(53.0f, 50.0f, 4.0f) == Terra_BalancingState_TooHigh);
-    assert(terraBalancingCorrectionForState(Terra_BalancingState_TooLow) == 1);
-    assert(terraBalancingCorrectionForState(Terra_BalancingState_Balanced) == 0);
-    assert(terraBalancingCorrectionForState(Terra_BalancingState_TooHigh) == -1);
+    assert(terraBalancingStateForValue(47.0f, 50.0f, 4.0f) == 0);
+    assert(terraBalancingStateForValue(50.0f, 50.0f, 4.0f) == 1);
+    assert(terraBalancingStateForValue(53.0f, 50.0f, 4.0f) == 2);
+    assert(terraBalancingCorrectionForState(0) == 1);
+    assert(terraBalancingCorrectionForState(1) == 0);
+    assert(terraBalancingCorrectionForState(2) == -1);
 
-    Terraduino controller;
-    controller.init();
-    auto reservoir = controller.addWaterReservoir(1000.0f, "Reservoir");
-    assert(reservoir);
-    reservoir->setFault("test");
-    assert(reservoir->getState(false) == Terra_ResourceState_Unknown);
-    reservoir->clearFault();
+    bool pendingState = true;
+    bool hasPendingState = true;
+    uint32_t pendingStart = UINT32_MAX - 50;
+    bool accepted = false;
 
-    TerraFirstFlushController firstFlush(20.0f);
-    assert(isFPEqual(firstFlush.getRemainingLiters(), 20.0f));
-    firstFlush.recordFlow(7.5f);
-    assert(isFPEqual(firstFlush.getRemainingLiters(), 12.5f));
+    accepted = terraUpdateStableBinaryState(accepted, true, 48, 100,
+                                             pendingState, hasPendingState, pendingStart);
+    assert(!accepted && hasPendingState);
+
+    accepted = terraUpdateStableBinaryState(accepted, true, 49, 100,
+                                             pendingState, hasPendingState, pendingStart);
+    assert(accepted && !hasPendingState);
+
+    auto baseOnly = terraBinaryDataReadPlan(20, 100, 20);
+    assert(baseOnly.copyBytes == 0);
+    assert(baseOnly.skipBytes == 0);
 
     std::cout << "PASS Terraduino hardening" << std::endl;
     return 0;

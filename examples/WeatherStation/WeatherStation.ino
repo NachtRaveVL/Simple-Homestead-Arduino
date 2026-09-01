@@ -1,11 +1,24 @@
 // Simple-Homestead-Arduino Weather Station Example
 //
-// Shows a local environment assembled from normal Terraduino sensor objects.
-// Replace the sample measurements with installed sensor drivers as needed.
+// Demonstrates Terraduino as a networked sensor station. The controller collects normal
+// sensor measurements and its existing Publisher sends them to an MQTT broker. Enable
+// TERRA_ENABLE_WIFI and TERRA_ENABLE_MQTT through build flags or Terraduino.h to enable
+// the network portion of this example.
 
 #include <Terraduino.h>
 
+#define SETUP_WIFI_SSID                 "CHANGE_ME"
+#define SETUP_WIFI_PASS                 "CHANGE_ME"
+#define SETUP_MQTT_BROKER               "broker.example"
+#define SETUP_MQTT_PORT                 1883
+
 Terraduino terraController;
+
+#if defined(TERRA_USE_WIFI) && defined(TERRA_USE_MQTT)
+WiFiClient netClient;
+MQTTClient mqttClient;
+#endif
+
 SharedPtr<TerraRemoteSensor> airTemperature;
 SharedPtr<TerraRemoteSensor> humidity;
 SharedPtr<TerraRemoteSensor> pressure;
@@ -18,30 +31,45 @@ void setup()
 {
     Serial.begin(115200);
 
-    terraController.init();
-    weather = terraController.addEnvironment("Weather Station");
-    airTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
-    humidity = terraController.addRemoteSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percentile_100);
-    pressure = terraController.addRemoteSensor(Terra_SensorType_Pressure, Terra_UnitsType_Pressure_Hectopascals);
-    windSpeed = terraController.addRemoteSensor(Terra_SensorType_WindSpeed, Terra_UnitsType_Speed_MetersPerSecond);
-    windDirection = terraController.addRemoteSensor(Terra_SensorType_WindDirection, Terra_UnitsType_Angle_Degrees_360);
-    rainRate = terraController.addRemoteSensor(Terra_SensorType_Rainfall, Terra_UnitsType_Speed_MillimetersPerHour);
-    solarRadiation = terraController.addRemoteSensor(Terra_SensorType_SolarRadiation, Terra_UnitsType_Irradiance_WattsPerSquareMeter);
+    terraController.init(Terra_SystemMode_Automatic, Terra_MeasurementMode_Metric);
+    terraController.setSystemName("Weather Station");
+    terraController.setPollingInterval(5000);
 
-    weather->setAirTemperatureSensor(airTemperature);
-    weather->setHumiditySensor(humidity);
-    weather->setPressureSensor(pressure);
-    weather->setWindSpeedSensor(windSpeed);
-    weather->setWindDirectionSensor(windDirection);
-    weather->setRainRateSensor(rainRate);
-    weather->setSolarRadiationSensor(solarRadiation);
+    airTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
+                                                       Terra_UnitsType_Temperature_Celsius);
+    humidity = terraController.addRemoteSensor(Terra_SensorType_Humidity,
+                                                Terra_UnitsType_Percentile_100);
+    pressure = terraController.addRemoteSensor(Terra_SensorType_Pressure,
+                                                Terra_UnitsType_Pressure_Hectopascals);
+    windSpeed = terraController.addRemoteSensor(Terra_SensorType_WindSpeed,
+                                                 Terra_UnitsType_Speed_MetersPerSecond);
+    windDirection = terraController.addRemoteSensor(Terra_SensorType_WindDirection,
+                                                     Terra_UnitsType_Angle_Degrees_360);
+    rainRate = terraController.addRemoteSensor(Terra_SensorType_Rainfall,
+                                                Terra_UnitsType_Speed_MillimetersPerHour);
+    solarRadiation = terraController.addRemoteSensor(Terra_SensorType_SolarRadiation,
+                                                      Terra_UnitsType_Irradiance_WattsPerSquareMeter);
+
+    #if defined(TERRA_USE_WIFI) && defined(TERRA_USE_MQTT)
+        terraController.setWiFiConnection(SETUP_WIFI_SSID, SETUP_WIFI_PASS);
+        if (terraController.getWiFi()) {
+            mqttClient.begin(SETUP_MQTT_BROKER, SETUP_MQTT_PORT, netClient);
+            terraController.enableDataPublishingToMQTTClient(mqttClient);
+        }
+    #else
+        Serial.println(F("Enable TERRA_ENABLE_WIFI and TERRA_ENABLE_MQTT for MQTT publishing."));
+    #endif
 
     terraController.launch();
 }
 
 void loop()
 {
-    // Sample values stand in for sensor-driver readings.
+    #if defined(TERRA_USE_WIFI) && defined(TERRA_USE_MQTT)
+        mqttClient.loop();
+    #endif
+
+    // Replace these sample reports with installed weather sensor drivers.
     airTemperature->receiveReport(12.5f, Terra_UnitsType_Temperature_Celsius);
     humidity->receiveReport(73.0f, Terra_UnitsType_Percentile_100);
     pressure->receiveReport(1013.2f, Terra_UnitsType_Pressure_Hectopascals);
@@ -51,10 +79,5 @@ void loop()
     solarRadiation->receiveReport(420.0f, Terra_UnitsType_Irradiance_WattsPerSquareMeter);
 
     terraController.update();
-
-    Serial.print(F("Dew point C: "));
-    Serial.println(weather->dewPointC(), 2);
-    Serial.print(F("Freeze risk: "));
-    Serial.println(weather->isFreezing() ? F("YES") : F("NO"));
     delay(5000);
 }

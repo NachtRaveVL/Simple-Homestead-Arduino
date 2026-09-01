@@ -1,8 +1,8 @@
 // Simple-Homestead-Arduino Basic Homestead Example
 //
-// Shows the smallest useful Terraduino setup with local weather, a water reservoir, and a
-// thermal reservoir registered under one controller. Real sensors and actuators can be
-// attached later without changing the basic controller lifecycle.
+// Shows the smallest useful Terraduino setup with remote environmental measurements, a
+// water reservoir, and a thermal reservoir registered under one controller. Real sensors
+// and actuators can be attached later without changing the basic controller lifecycle.
 
 #include <Terraduino.h>
 
@@ -20,16 +20,13 @@ void setup()
 
     terraController.init(Terra_SystemMode_Automatic, Terra_MeasurementMode_Metric);
     terraController.setSystemName("Homestead");
-    outside = terraController.addEnvironment("Outside");
-    outsideTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius, "Outside Temperature");
-    outsideHumidity = terraController.addRemoteSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percentile_100, "Outside Humidity");
-    waterTank = terraController.addWaterReservoir(2000.0f, "Main Water Tank");
-    waterVolume = terraController.addRemoteSensor(Terra_SensorType_Level, Terra_UnitsType_LiqVolume_Liters, "Water Volume");
-    thermalTank = terraController.addThermalReservoir(90.0f, "Thermal Store");
-    thermalTankTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius, "Thermal Store Temperature");
+    outsideTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
+    outsideHumidity = terraController.addRemoteSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percentile_100);
+    waterTank = terraController.addWaterReservoir(2000.0f);
+    waterVolume = terraController.addRemoteSensor(Terra_SensorType_Level, Terra_UnitsType_LiqVolume_Liters);
+    thermalTank = terraController.addThermalReservoir(90.0f);
+    thermalTankTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
 
-    outside->setAirTemperatureSensor(outsideTemperature);
-    outside->setHumiditySensor(outsideHumidity);
     waterTank->getWaterVolumeSensorAttachment().setObject(waterVolume);
     thermalTank->getMediumTemperatureSensorAttachment().setObject(thermalTankTemperature);
 

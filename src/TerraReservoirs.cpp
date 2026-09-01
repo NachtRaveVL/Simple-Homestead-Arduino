@@ -227,7 +227,6 @@ float TerraWaterReservoir::getLevel(bool poll)
 
 Terra_ResourceState TerraWaterReservoir::getState(bool poll)
 {
-    if (hasFault()) { return Terra_ResourceState_Unknown; }
     if (isFilled(poll) || isHigh(poll)) { return Terra_ResourceState_High; }
     if (isEmpty(poll)) { return Terra_ResourceState_Low; }
     if (isLow(poll)) { return Terra_ResourceState_Low; }
@@ -410,7 +409,6 @@ float TerraThermalReservoir::getLevel(bool poll)
 
 Terra_ResourceState TerraThermalReservoir::getState(bool poll)
 {
-    if (hasFault()) { return Terra_ResourceState_Unknown; }
     if (isFilled(poll) || isHigh(poll)) { return Terra_ResourceState_High; }
     if (isEmpty(poll)) { return Terra_ResourceState_Low; }
     if (isLow(poll)) { return Terra_ResourceState_Low; }

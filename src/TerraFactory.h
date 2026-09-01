@@ -39,63 +39,48 @@ public:
 
     // Convenience builders for common sensors (shared, nullptr return -> failure).
     SharedPtr<TerraRemoteSensor> addRemoteSensor(Terra_SensorType reportedType,
-                                                 Terra_UnitsType unit = Terra_UnitsType_Raw_1,
-                                                 const String &name = String());
+                                                 Terra_UnitsType unit = Terra_UnitsType_Raw_1);
 
     // Pin-backed sensor convenience builders.
-    SharedPtr<TerraLeakSensor> addLeakIndicator(uint8_t inputPin,
-                                                bool activeLow = true,
-                                                const String &name = String());
-    SharedPtr<TerraLevelSensor> addAnalogLevelSensor(uint8_t inputPin,
+    SharedPtr<TerraLeakSensor> addLeakIndicator(pintype_t inputPin,
+                                                bool activeLow = true);
+    SharedPtr<TerraLevelSensor> addAnalogLevelSensor(pintype_t inputPin,
                                                      float rawMinimum = 0.0f,
                                                      float rawMaximum = 1.0f,
                                                      float levelMinimum = 0.0f,
-                                                     float levelMaximum = 100.0f,
-                                                     const String &name = String());
-    SharedPtr<TerraTemperatureSensor> addAnalogTemperatureSensor(uint8_t inputPin,
+                                                     float levelMaximum = 100.0f);
+    SharedPtr<TerraTemperatureSensor> addAnalogTemperatureSensor(pintype_t inputPin,
                                                                  float rawMinimum,
                                                                  float rawMaximum,
                                                                  float temperatureMinimum,
                                                                  float temperatureMaximum,
-                                                                 Terra_UnitsType unit = Terra_UnitsType_Temperature_Celsius,
-                                                                 const String &name = String());
-    SharedPtr<TerraPressureSensor> addAnalogPressureSensor(uint8_t inputPin,
+                                                                 Terra_UnitsType unit = Terra_UnitsType_Temperature_Celsius);
+    SharedPtr<TerraPressureSensor> addAnalogPressureSensor(pintype_t inputPin,
                                                            float rawMinimum,
                                                            float rawMaximum,
                                                            float pressureMinimum,
                                                            float pressureMaximum,
-                                                           Terra_UnitsType unit = Terra_UnitsType_Pressure_Kilopascals,
-                                                           const String &name = String());
+                                                           Terra_UnitsType unit = Terra_UnitsType_Pressure_Kilopascals);
 
     // Pin-backed actuator convenience builders.
-    SharedPtr<TerraRelayPumpActuator> addPumpRelay(uint8_t outputPin,
-                                                    bool activeLow = false,
-                                                    const String &name = String());
-    SharedPtr<TerraRelayPumpActuator> addSumpPumpRelay(uint8_t outputPin,
-                                                        bool activeLow = false,
-                                                        const String &name = String());
-    SharedPtr<TerraRelayPumpActuator> addCirculatorRelay(uint8_t outputPin,
-                                                          bool activeLow = false,
-                                                          const String &name = String());
-    SharedPtr<TerraRelayPumpActuator> addValveRelay(uint8_t outputPin,
-                                                     bool activeLow = false,
-                                                     const String &name = String());
-    SharedPtr<TerraRelayActuator> addFanRelay(uint8_t outputPin,
-                                              bool activeLow = false,
-                                              const String &name = String());
-    SharedPtr<TerraRelayActuator> addHeaterRelay(uint8_t outputPin,
-                                                 bool activeLow = false,
-                                                 const String &name = String());
+    SharedPtr<TerraRelayPumpActuator> addPumpRelay(pintype_t outputPin,
+                                                    bool activeLow = false);
+    SharedPtr<TerraRelayPumpActuator> addSumpPumpRelay(pintype_t outputPin,
+                                                        bool activeLow = false);
+    SharedPtr<TerraRelayPumpActuator> addCirculatorRelay(pintype_t outputPin,
+                                                          bool activeLow = false);
+    SharedPtr<TerraRelayPumpActuator> addValveRelay(pintype_t outputPin,
+                                                     bool activeLow = false);
+    SharedPtr<TerraRelayActuator> addFanRelay(pintype_t outputPin,
+                                              bool activeLow = false);
+    SharedPtr<TerraRelayActuator> addHeaterRelay(pintype_t outputPin,
+                                                 bool activeLow = false);
 
     // Reservoir and process object builders.
-    SharedPtr<TerraWaterReservoir> addWaterReservoir(float maxVolume,
-                                                     const String &name = String());
-    SharedPtr<TerraThermalReservoir> addThermalReservoir(float maxTemperature,
-                                                         const String &name = String());
-    SharedPtr<TerraInfiniteWaterReservoir> addInfiniteWaterReservoir(bool alwaysFilled = true,
-                                                                     const String &name = String());
-    SharedPtr<TerraInfiniteThermalReservoir> addInfiniteThermalReservoir(bool alwaysFilled = true,
-                                                                         const String &name = String());
+    SharedPtr<TerraWaterReservoir> addWaterReservoir(float maxVolume);
+    SharedPtr<TerraThermalReservoir> addThermalReservoir(float maxTemperature);
+    SharedPtr<TerraInfiniteWaterReservoir> addInfiniteWaterReservoir(bool alwaysFilled = true);
+    SharedPtr<TerraInfiniteThermalReservoir> addInfiniteThermalReservoir(bool alwaysFilled = true);
 
     // Convenience builders for common power rails (shared, nullptr return -> failure).
     SharedPtr<TerraSimpleRail> addSimplePowerRail(Terra_RailType railType,

@@ -47,7 +47,7 @@ public:
                   int classTypeIn = Unknown);
     TerraActuator(const TerraActuatorData *dataIn);
 
-    virtual void update(uint32_t now = millis()) override;
+    virtual void update() override;
 
     virtual bool getCanEnable() override;
 
@@ -112,7 +112,7 @@ protected:
     Signal<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS> _activateSignal; // Activation update signal
 
     virtual TerraData *allocateData() const override;
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 
     virtual void handleActivation();
 
@@ -140,7 +140,7 @@ public:
 protected:
     TerraDigitalPin _outputPin;                             // Digital output pin
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 
     virtual void _enableActuator(float intensity = 1.0f) override;
     virtual void _disableActuator() override;
@@ -161,7 +161,7 @@ public:
                            int classTypeIn = RelayPump);
     TerraRelayPumpActuator(const TerraPumpActuatorData *dataIn);
 
-    virtual void update(uint32_t now = millis()) override;
+    virtual void update() override;
 
     virtual bool getCanEnable() override;
 
@@ -189,7 +189,7 @@ protected:
     millis_t _pumpTimeStart;                                // Time millis pump was activated at
     millis_t _pumpTimeAccum;                                // Time millis pump has been accumulated up to
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 
     virtual void handleActivation() override;
 
@@ -218,16 +218,15 @@ protected:
     TerraAnalogPin _outputPin;                              // Analog/PWM output pin
     float _intensity;                                       // Current normalized output
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 
     virtual void _enableActuator(float intensity = 1.0f) override;
     virtual void _disableActuator() override;
 };
 
 // Variable/Throttled Pump Actuator
-// This actuator acts as a throttleable resource-transfer pump and attaches to both an input
-// and output reservoir. Pumps using this class have variable flow control but also can be
-// paired with a flow sensor for more precise pumping calculations.
+// This actuator acts as a throttleable resource-transfer pump and attaches to both an input and output
+// reservoir. Pumps using this class have variable flow control but also can be paired with a flow sensor for more precise pumping calculations.
 //class TerraVariablePumpActuator : public TerraVariableActuator, public TerraPumpObjectInterface, public TerraWaterFlowRateSensorAttachmentInterface {
 // TODO: Port alongside HydroVariablePumpActuator once Hydruino implements it.
 //};

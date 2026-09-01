@@ -10,47 +10,43 @@
 #include "TerraReservoirs.h"
 #include "TerraRails.h"
 
-SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_UnitsType unit, const String &name)
+SharedPtr<TerraRemoteSensor> TerraFactory::addRemoteSensor(Terra_SensorType reportedType, Terra_UnitsType unit)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(reportedType));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraRemoteSensor>(new TerraRemoteSensor(reportedType, positionIndex, unit));
-        if (name.length()) { sensor->setName(name); }
         if (getController()->registerObject(sensor)) { return sensor; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(uint8_t inputPin, bool activeLow, const String &name)
+SharedPtr<TerraLeakSensor> TerraFactory::addLeakIndicator(pintype_t inputPin, bool activeLow)
 {
-    if (!getController() || inputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(inputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Leak));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraLeakSensor>(new TerraLeakSensor(
             positionIndex, TerraDigitalPin(inputPin, Terra_PinMode_Digital_Input, activeLow)));
-        if (name.length()) { sensor->setName(name); }
         if (getController()->registerObject(sensor)) { return sensor; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(uint8_t inputPin,
+SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(pintype_t inputPin,
                                                                float rawMinimum, float rawMaximum,
-                                                               float levelMinimum, float levelMaximum,
-                                                               const String &name)
+                                                               float levelMinimum, float levelMaximum)
 {
-    if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
+    if (!getController() || !isValidPin(inputPin) || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Level));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraLevelSensor>(new TerraLevelSensor(
             positionIndex, TerraAnalogPin(inputPin, Terra_PinMode_Analog_Input)));
-        if (name.length()) { sensor->setName(name); }
         if (getController()->registerObject(sensor)) {
             TerraCalibrationData calibration(sensor->getId(), Terra_UnitsType_Percentile_100);
             calibration.setFromTwoPoints(rawMinimum, levelMinimum, rawMaximum, levelMaximum);
@@ -62,18 +58,17 @@ SharedPtr<TerraLevelSensor> TerraFactory::addAnalogLevelSensor(uint8_t inputPin,
     return nullptr;
 }
 
-SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(uint8_t inputPin,
+SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(pintype_t inputPin,
                                                                            float rawMinimum, float rawMaximum,
                                                                            float temperatureMinimum, float temperatureMaximum,
-                                                                           Terra_UnitsType unit, const String &name)
+                                                                           Terra_UnitsType unit)
 {
-    if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
+    if (!getController() || !isValidPin(inputPin) || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Temperature));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraTemperatureSensor>(new TerraTemperatureSensor(
             positionIndex, TerraAnalogPin(inputPin, Terra_PinMode_Analog_Input)));
-        if (name.length()) { sensor->setName(name); }
         if (getController()->registerObject(sensor)) {
             TerraCalibrationData calibration(sensor->getId(), unit);
             calibration.setFromTwoPoints(rawMinimum, temperatureMinimum, rawMaximum, temperatureMaximum);
@@ -86,18 +81,17 @@ SharedPtr<TerraTemperatureSensor> TerraFactory::addAnalogTemperatureSensor(uint8
     return nullptr;
 }
 
-SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(uint8_t inputPin,
+SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(pintype_t inputPin,
                                                                      float rawMinimum, float rawMaximum,
                                                                      float pressureMinimum, float pressureMaximum,
-                                                                     Terra_UnitsType unit, const String &name)
+                                                                     Terra_UnitsType unit)
 {
-    if (!getController() || inputPin == TERRA_INVALID_PIN || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
+    if (!getController() || !isValidPin(inputPin) || isFPEqual(rawMinimum, rawMaximum)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_SensorType_Pressure));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto sensor = SharedPtr<TerraPressureSensor>(new TerraPressureSensor(
             positionIndex, TerraAnalogPin(inputPin, Terra_PinMode_Analog_Input), unit));
-        if (name.length()) { sensor->setName(name); }
         if (getController()->registerObject(sensor)) {
             TerraCalibrationData calibration(sensor->getId(), unit);
             calibration.setFromTwoPoints(rawMinimum, pressureMinimum, rawMaximum, pressureMaximum);
@@ -109,136 +103,127 @@ SharedPtr<TerraPressureSensor> TerraFactory::addAnalogPressureSensor(uint8_t inp
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addPumpRelay(pintype_t outputPin, bool activeLow)
 {
-    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(outputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Pump));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayPumpActuator>(new TerraRelayPumpActuator(
             Terra_ActuatorType_Pump, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
-        if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addSumpPumpRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addSumpPumpRelay(pintype_t outputPin, bool activeLow)
 {
-    return addPumpRelay(outputPin, activeLow, name);
+    return addPumpRelay(outputPin, activeLow);
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addCirculatorRelay(pintype_t outputPin, bool activeLow)
 {
-    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(outputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Circulator));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayPumpActuator>(new TerraRelayPumpActuator(
             Terra_ActuatorType_Circulator, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
-        if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayPumpActuator> TerraFactory::addValveRelay(pintype_t outputPin, bool activeLow)
 {
-    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(outputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Valve));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayPumpActuator>(new TerraRelayPumpActuator(
             Terra_ActuatorType_Valve, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
-        if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayActuator> TerraFactory::addFanRelay(pintype_t outputPin, bool activeLow)
 {
-    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(outputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Fan));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayActuator>(new TerraRelayActuator(
             Terra_ActuatorType_Fan, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
-        if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraRelayActuator> TerraFactory::addHeaterRelay(uint8_t outputPin, bool activeLow, const String &name)
+SharedPtr<TerraRelayActuator> TerraFactory::addHeaterRelay(pintype_t outputPin, bool activeLow)
 {
-    if (!getController() || outputPin == TERRA_INVALID_PIN) { return nullptr; }
+    if (!getController() || !isValidPin(outputPin)) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ActuatorType_Heater));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto actuator = SharedPtr<TerraRelayActuator>(new TerraRelayActuator(
             Terra_ActuatorType_Heater, positionIndex, TerraDigitalPin(outputPin, Terra_PinMode_Digital_Output, activeLow)));
-        if (name.length()) { actuator->setName(name); }
         if (getController()->registerObject(actuator)) { return actuator; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraWaterReservoir> TerraFactory::addWaterReservoir(float maxVolume, const String &name)
+SharedPtr<TerraWaterReservoir> TerraFactory::addWaterReservoir(float maxVolume)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto reservoir = SharedPtr<TerraWaterReservoir>(new TerraWaterReservoir(positionIndex, maxVolume));
-        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraThermalReservoir> TerraFactory::addThermalReservoir(float maxTemperature, const String &name)
+SharedPtr<TerraThermalReservoir> TerraFactory::addThermalReservoir(float maxTemperature)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Thermal));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto reservoir = SharedPtr<TerraThermalReservoir>(new TerraThermalReservoir(positionIndex, maxTemperature));
-        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraInfiniteWaterReservoir> TerraFactory::addInfiniteWaterReservoir(bool alwaysFilled, const String &name)
+SharedPtr<TerraInfiniteWaterReservoir> TerraFactory::addInfiniteWaterReservoir(bool alwaysFilled)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Water));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto reservoir = SharedPtr<TerraInfiniteWaterReservoir>(new TerraInfiniteWaterReservoir(positionIndex, alwaysFilled));
-        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 
     return nullptr;
 }
 
-SharedPtr<TerraInfiniteThermalReservoir> TerraFactory::addInfiniteThermalReservoir(bool alwaysFilled, const String &name)
+SharedPtr<TerraInfiniteThermalReservoir> TerraFactory::addInfiniteThermalReservoir(bool alwaysFilled)
 {
     if (!getController()) { return nullptr; }
     tposi_t positionIndex = getController()->firstPositionOpen(TerraIdentity(Terra_ReservoirType_Thermal));
 
     if (positionIndex >= 0 && positionIndex < TERRA_POS_MAXSIZE) {
         auto reservoir = SharedPtr<TerraInfiniteThermalReservoir>(new TerraInfiniteThermalReservoir(positionIndex, alwaysFilled));
-        if (name.length()) { reservoir->setName(name); }
         if (getController()->registerObject(reservoir)) { return reservoir; }
     }
 

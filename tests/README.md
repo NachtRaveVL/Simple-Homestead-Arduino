@@ -1,6 +1,6 @@
 # Terraduino Tests
 
-Terraduino has host-side tests for controller logic and Arduino sketches for developer-side export and conversion checks.
+Terraduino currently has a small host-side hardening target plus Arduino sketches and broader test sources that are being brought forward with the current controller API.
 
 ## Run the host suite
 
@@ -10,14 +10,7 @@ From the repository root:
 ./tests/run_tests.sh
 ```
 
-The script performs these checks:
-
-1. Verifies that `src/TerraEnumTrie.h` matches the generated minimum enum decoder.
-2. Runs the source completeness validator.
-3. Syntax-checks every shipped example against the public API.
-4. Builds all production C++ sources with strict warnings, including `-Wfloat-equal -Werror`.
-5. Builds all host example wrappers and developer test wrappers.
-6. Runs the behavioral CTest suite.
+The script configures the host CMake build, builds the standalone hardening target, and runs CTest.
 
 An alternate build directory can be supplied as the first argument:
 
@@ -25,18 +18,20 @@ An alternate build directory can be supplied as the first argument:
 ./tests/run_tests.sh /tmp/terraduino-build
 ```
 
-## Behavioral coverage
+The host target uses strict warnings with `-Wall -Wextra -Wpedantic -Wfloat-equal -Werror` and does not require the Arduino dependency stack.
 
-The host suite covers water resources, cisterns, rain catchment, first flush, water routing, balancing, thermal storage, differential circulation, environmental observations, sensors, actuators, triggers, scheduler behavior, logging, publishing, local UI, remote control commands, persistence, factory reconstruction, pin-backed drivers, analog calibration, attachments, and enum/string conversion.
+## Host coverage
 
-Floating-point equality semantics use `isFPEqual`. Direct floating-point `==` and `!=` are rejected by the strict compiler flags.
+`host/test_hardening.cpp` exercises the standalone helpers in `TerraCoreLogic.h`, including timer rollover, binary debounce, balancer range handling, and binary record migration planning.
+
+The other host test sources remain in `tests/host` while their controller-facing APIs are brought into alignment. They are not currently part of the native CMake target because the production controller depends on the Arduino runtime and this branch does not contain a parallel host Arduino shim.
 
 ## Developer Arduino sketches
 
-`EnumConversionTests` checks forward and reverse conversion for all enum families.
+`EnumConversionTests` checks forward and reverse conversion for enum and unit families.
 
 `EnumTrieExportToCPP` emits the minimum decision-tree form used for enum decoding.
 
-`JSONExportTests` exercises the Arduino-facing JSON and binary persistence APIs, including cistern, attachment, pin-driver, thermal, environment, and controller settings.
+`JSONExportTests` exercises ArduinoJson serialization for current system, reservoir, sensor, actuator, and allocation data.
 
-These sketches still need an Arduino-compatible board/toolchain to execute as Arduino programs. The host build compile-checks their public API surface but does not pretend to execute the Arduino runtime.
+These sketches require an Arduino-compatible board/toolchain.

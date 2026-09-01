@@ -36,7 +36,7 @@ public:
     inline bool hasUserCalibrations() const { return _calibrationData.size(); };
 
 protected:
-    Map<tkey_t, TerraCalibrationData *, TERRA_MAX_OBJECTS> _calibrationData; // Loaded user calibration data
+    Map<tkey_t, TerraCalibrationData *, TERRA_CAL_CALIBS_MAXSIZE> _calibrationData; // Loaded user calibration data
 };
 
 // Object Registration Storage
@@ -44,8 +44,6 @@ protected:
 // stable attachment resolution in the same manner as the sibling controller libraries.
 class TerraObjectRegistration {
 public:
-    void clearObjects();
-
     // Adds object to system, returning success.
     bool registerObject(SharedPtr<TerraObject> object);
     // Removes object from system, returning success.
@@ -59,17 +57,8 @@ public:
     inline tposi_t firstPositionTaken(TerraIdentity id) const { return firstPosition(id, true); }
     inline tposi_t firstPositionOpen(TerraIdentity id) const { return firstPosition(id, false); }
 
-    // Updates registered system objects.
-    void updateObjects(uint32_t now = millis());
-
-    // Enumeration helpers retained for domain queries, not identity.
-    TerraObject *findFirstByType(Terra_ObjectType type) const;
-    uint8_t findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const;
-    TerraObject *objectAt(uint8_t index) const;
-    inline uint8_t objectCount() const { return (uint8_t)_objects.size(); }
-
 protected:
-    Map<tkey_t, SharedPtr<TerraObject>, TERRA_MAX_OBJECTS> _objects; // Shared object collection, keyed by TerraIdentity
+    Map<tkey_t, SharedPtr<TerraObject>, TERRA_SYS_OBJECTS_MAXSIZE> _objects; // Shared object collection, keyed by TerraIdentity
 
     SharedPtr<TerraObject> objectById_Col(const TerraIdentity &id) const;
 };

@@ -7,9 +7,9 @@ int main()
     Terraduino controller;
     controller.init();
 
-    auto source = controller.addInfiniteWaterReservoir(true, "Water Main");
-    auto destination = controller.addWaterReservoir(1000.0f, "Storage");
-    auto pump = controller.addPumpRelay(5, false, "Fill Pump");
+    auto source = controller.addInfiniteWaterReservoir(true);
+    auto destination = controller.addWaterReservoir(1000.0f);
+    auto pump = controller.addPumpRelay(5, false);
     assert(source && destination && pump);
 
     pump->getSourceReservoirAttachment().setObject(source);
@@ -17,7 +17,7 @@ int main()
     assert(pump->getSourceReservoirAttachment().getKey() == source->getKey());
     assert(pump->getDestinationReservoirAttachment().getKey() == destination->getKey());
 
-    auto temperature = controller.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius, "Temperature");
+    auto temperature = controller.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
     assert(temperature);
 
     TerraLinearEdgeBalancer balancer(temperature, 50.0f, 4.0f);

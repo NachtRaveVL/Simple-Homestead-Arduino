@@ -14,21 +14,20 @@ void setup()
 
     terraController.init();
 
-    auto reservoir = terraController.addWaterReservoir(5000.0f, "Main Reservoir");
+    auto reservoir = terraController.addWaterReservoir(5000.0f);
     auto volume = terraController.addRemoteSensor(Terra_SensorType_Level,
-                                                   Terra_UnitsType_LiqVolume_Liters,
-                                                   "Reservoir Volume");
+                                                   Terra_UnitsType_LiqVolume_Liters);
     reservoir->getWaterVolumeSensorAttachment().setObject(volume);
     volume->receiveReport(3175.0f, Terra_UnitsType_LiqVolume_Liters);
 
-    auto thermal = terraController.addThermalReservoir(90.0f, "Thermal Store");
+    auto thermal = terraController.addThermalReservoir(90.0f);
     auto temperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
-                                                        Terra_UnitsType_Temperature_Celsius,
-                                                        "Thermal Store Temperature");
+                                                        Terra_UnitsType_Temperature_Celsius);
     thermal->getMediumTemperatureSensorAttachment().setObject(temperature);
     temperature->receiveReport(58.0f, Terra_UnitsType_Temperature_Celsius);
 
-    Serial.println(terraController.exportSystemJSON().c_str());
+    terraController.saveToJSONStream(&Serial, false);
+    Serial.println();
 }
 
 void loop() { ; }

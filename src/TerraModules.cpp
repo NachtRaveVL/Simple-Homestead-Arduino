@@ -35,7 +35,7 @@ bool TerraCalibrations::setUserCalibrationData(const TerraCalibrationData *calib
     TERRA_SOFT_ASSERT(calibrationData, SFP(TStr_Err_InvalidParameter));
 
     if (calibrationData && calibrationData->ownerName[0]) {
-        tkey_t key = terraHashString(calibrationData->ownerName);
+        tkey_t key = stringHash(calibrationData->ownerName);
         auto iter = _calibrationData.find(key);
         bool retVal = false;
 
@@ -63,7 +63,7 @@ bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *cali
     TERRA_HARD_ASSERT(calibrationData, SFP(TStr_Err_InvalidParameter));
     if (!calibrationData) { return false; }
 
-    tkey_t key = terraHashString(calibrationData->ownerName);
+    tkey_t key = stringHash(calibrationData->ownerName);
     auto iter = _calibrationData.find(key);
     if (iter != _calibrationData.end()) {
         if (iter->second) { delete iter->second; }
@@ -75,33 +75,50 @@ bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *cali
 }
 
 
-void TerraObjectRegistration::clearObjects()
-{
-    while (_objects.size()) {
-        auto iter = _objects.begin();
-        if (iter->second) { iter->second->unresolve(); }
-        _objects.erase(iter);
-    }
-}
-
 bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 {
-    if (!object || object->getKey() == tkey_none || _objects.find(object->getKey()) != _objects.end()) { return false; }
-    _objects[object->getKey()] = object;
-    if (getScheduler()) { getScheduler()->setNeedsScheduling(); }
-    return true;
+    TERRA_SOFT_ASSERT(object && object->getId().posIndex >= 0 && object->getId().posIndex < TERRA_POS_MAXSIZE, SFP(TStr_Err_InvalidParameter));
+    if (object && _objects.find(object->getKey()) == _objects.end()) {
+        _objects[object->getKey()] = object;
+
+        if (object->isActuatorType() || object->isReservoirType()) {
+            if (getScheduler()) {
+                getScheduler()->setNeedsScheduling();
+            }
+        }
+        if (object->isSensorType()) {
+            if (getPublisher()) {
+                getPublisher()->setNeedsTabulation();
+            }
+        }
+
+        return true;
+    }
+    return false;
 }
 
 bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
 {
     if (!object) { return false; }
     auto iter = _objects.find(object->getKey());
-    if (iter == _objects.end() || iter->second.get() != object.get()) { return false; }
+    if (iter != _objects.end() && iter->second.get() == object.get()) {
+        object->unresolve();
+        _objects.erase(iter);
 
-    object->unresolve();
-    _objects.erase(iter);
-    if (getScheduler()) { getScheduler()->setNeedsScheduling(); }
-    return true;
+        if (object->isActuatorType() || object->isReservoirType()) {
+            if (getScheduler()) {
+                getScheduler()->setNeedsScheduling();
+            }
+        }
+        if (object->isSensorType()) {
+            if (getPublisher()) {
+                getPublisher()->setNeedsTabulation();
+            }
+        }
+
+        return true;
+    }
+    return false;
 }
 
 SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) const
@@ -131,7 +148,7 @@ SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) con
     } else {
         auto iter = _objects.find(id.key);
         if (iter != _objects.end()) {
-            if (id.type == Terra_ObjectType_Undefined || !id.keyString.length() || id.keyString == iter->second->getKeyString()) {
+            if (!id.keyString.length() || id.keyString == iter->second->getKeyString()) {
                 return iter->second;
             } else {
                 return objectById_Col(id);
@@ -176,39 +193,6 @@ tposi_t TerraObjectRegistration::firstPosition(TerraIdentity id, bool taken) con
     }
 
     return tposi_none;
-}
-
-TerraObject *TerraObjectRegistration::findFirstByType(Terra_ObjectType type) const
-{
-    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->getObjectType() == type) { return iter->second.get(); }
-    }
-    return nullptr;
-}
-
-uint8_t TerraObjectRegistration::findByType(Terra_ObjectType type, TerraObject **output, uint8_t capacity) const
-{
-    if (!output || !capacity) { return 0; }
-    uint8_t found = 0;
-    for (auto iter = _objects.begin(); iter != _objects.end() && found < capacity; ++iter) {
-        if (iter->second && iter->second->getObjectType() == type) { output[found++] = iter->second.get(); }
-    }
-    return found;
-}
-
-TerraObject *TerraObjectRegistration::objectAt(uint8_t index) const
-{
-    if (index >= _objects.size()) { return nullptr; }
-    auto iter = _objects.begin();
-    while (index--) { ++iter; }
-    return iter->second.get();
-}
-
-void TerraObjectRegistration::updateObjects(uint32_t now)
-{
-    for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
-        if (iter->second && iter->second->isEnabled()) { iter->second->update(now); }
-    }
 }
 
 

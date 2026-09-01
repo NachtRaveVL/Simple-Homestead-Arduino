@@ -15,9 +15,8 @@ void setup()
 
     terraController.init();
     storeTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
-                                                       Terra_UnitsType_Temperature_Celsius,
-                                                       "Store Temperature");
-    heatStore = terraController.addThermalReservoir(90.0f, "Hot Water Store");
+                                                       Terra_UnitsType_Temperature_Celsius);
+    heatStore = terraController.addThermalReservoir(90.0f);
     heatStore->getMediumTemperatureSensorAttachment().setObject(storeTemperature);
 
     terraController.launch();

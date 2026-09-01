@@ -7,27 +7,27 @@ int main()
     Terraduino controller;
     controller.init();
 
-    auto pump = controller.addPumpRelay(5, false, "Pump");
+    auto pump = controller.addPumpRelay(5, false);
     assert(pump);
     assert(pump->getOutputPin().isValid());
 
     TerraActivationHandle first = pump->enableActuator(Terra_DirectionMode_Forward, 0.4f);
     TerraActivationHandle second = pump->enableActuator(Terra_DirectionMode_Forward, 0.8f);
     pump->setEnableMode(Terra_EnableMode_Highest);
-    pump->update(100);
+    pump->update();
     assert(pump->isEnabled());
     assert(isFPEqual(pump->getDriveIntensity(), 1.0f));
 
     first.unset();
     second.unset();
-    pump->update(101);
+    pump->update();
     assert(!pump->isEnabled());
 
-    auto valve = controller.addValveRelay(7, true, "Valve");
+    auto valve = controller.addValveRelay(7, true);
     assert(valve);
     assert(valve->getActuatorType() == Terra_ActuatorType_Valve);
 
-    auto leak = controller.addLeakIndicator(9, true, "Leak");
+    auto leak = controller.addLeakIndicator(9, true);
     assert(leak);
     leak->setSimulatedState(true);
     assert(leak->takeMeasurement(true));

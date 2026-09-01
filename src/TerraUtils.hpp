@@ -214,7 +214,7 @@ Vector<TerraObject *, N> linksFilterActuators(Pair<uint8_t, Pair<TerraObject *, 
     Vector<TerraObject *, N> retVal;
 
     for (tposi_t linksIndex = 0; linksIndex < links.first && links.second[linksIndex].first; ++linksIndex) {
-        if (links.second[linksIndex].first->getObjectType() == Terra_ObjectType_Actuator) {
+        if (links.second[linksIndex].first->isActuatorType()) {
             retVal.push_back(links.second[linksIndex].first);
         }
     }

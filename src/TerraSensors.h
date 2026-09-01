@@ -44,6 +44,9 @@ public:
     virtual bool needsPolling(tframe_t allowance = 0) const;
     virtual void update() override;
 
+    virtual void setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t = 0) override;
+    virtual Terra_UnitsType getMeasurementUnits(uint8_t = 0) const override;
+
     void setMeasurement(float value, Terra_UnitsType units,
                         uint32_t timestamp = millis(), bool valid = true);
     bool isStale(uint32_t now = millis(), uint32_t staleAfterMs = 0) const;
@@ -72,7 +75,7 @@ protected:
     Signal<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS> _measurementSignal; // Measurement signal
 
     virtual TerraData *allocateData() const override;
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 };
 
 // Binary Sensor
@@ -105,7 +108,7 @@ protected:
     TerraDigitalPin _inputPin;                              // Digital input pin
     bool _usingISR;                                         // Using ISR flag
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 };
 
 // Analog Sensor
@@ -127,7 +130,7 @@ public:
 protected:
     TerraAnalogPin _inputPin;                               // Analog input pin
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 };
 
 class TerraTemperatureSensor : public TerraAnalogSensor {
@@ -240,7 +243,7 @@ protected:
     uint32_t _lastReportAt;                                 // Last report timestamp
     bool _hasReport;                                        // Any report received flag
 
-    virtual void saveToData(TerraData *dataOut) const override;
+    virtual void saveToData(TerraData *dataOut) override;
 };
 
 // Sensor Serialization Data
