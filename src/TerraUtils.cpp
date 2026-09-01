@@ -1264,13 +1264,13 @@ String systemModeToString(Terra_SystemMode systemMode, bool excludeSpecial)
 {
     switch (systemMode) {
         case Terra_SystemMode_Manual:
-            return SFP(TStr_Manual);
+            return SFP(TStr_Enum_Manual);
         case Terra_SystemMode_Automatic:
-            return SFP(TStr_Automatic);
+            return SFP(TStr_Enum_Automatic);
         case Terra_SystemMode_Disabled:
             return SFP(TStr_Disabled);
         case Terra_SystemMode_Count:
-           return !excludeSpecial ? SFP(TStr_Count) : String();
+           return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_SystemMode_Undefined:
             break;
     }
@@ -1287,7 +1287,7 @@ String measurementModeToString(Terra_MeasurementMode measurementMode, bool exclu
         case Terra_MeasurementMode_Scientific:
             return SFP(TStr_Enum_Scientific);
         case Terra_MeasurementMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_MeasurementMode_Undefined:
             break;
     }
@@ -1353,7 +1353,7 @@ String displayOutputModeToString(Terra_DisplayOutputMode displayOutMode, bool ex
             return retVal;
         }
         case Terra_DisplayOutputMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_DisplayOutputMode_Undefined:
             break;
     }
@@ -1454,7 +1454,7 @@ String controlInputModeToString(Terra_ControlInputMode controlInMode, bool exclu
         case Terra_ControlInputMode_RemoteControl:
             return SFP(TStr_Enum_RemoteControl);
         case Terra_ControlInputMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_ControlInputMode_Undefined:
             break;
     }
@@ -1465,17 +1465,17 @@ String actuatorTypeToString(Terra_ActuatorType actuatorType, bool excludeSpecial
 {
     switch (actuatorType) {
         case Terra_ActuatorType_Pump:
-            return SFP(TStr_Pump);
+            return SFP(TStr_Enum_Pump);
         case Terra_ActuatorType_Valve:
-            return SFP(TStr_Valve);
+            return SFP(TStr_Enum_Valve);
         case Terra_ActuatorType_Fan:
-            return SFP(TStr_Fan);
+            return SFP(TStr_Enum_Fan);
         case Terra_ActuatorType_Heater:
-            return SFP(TStr_Heater);
+            return SFP(TStr_Enum_Heater);
         case Terra_ActuatorType_Circulator:
-            return SFP(TStr_Circulator);
+            return SFP(TStr_Enum_Circulator);
         case Terra_ActuatorType_Count:
-            return !excludeSpecial ? SFP(TStr_Undefined) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_ActuatorType_Undefined:
             break;
     }
@@ -1486,31 +1486,31 @@ String sensorTypeToString(Terra_SensorType sensorType, bool excludeSpecial)
 {
     switch (sensorType) {
         case Terra_SensorType_Temperature:
-            return SFP(TStr_Temperature);
+            return SFP(TStr_Enum_Temperature);
         case Terra_SensorType_Humidity:
-            return SFP(TStr_Humidity);
+            return SFP(TStr_Enum_Humidity);
         case Terra_SensorType_Pressure:
-            return SFP(TStr_Pressure);
+            return SFP(TStr_Enum_Pressure);
         case Terra_SensorType_Rainfall:
-            return SFP(TStr_Rainfall);
+            return SFP(TStr_Enum_Rainfall);
         case Terra_SensorType_Flow:
-            return SFP(TStr_Flow);
+            return SFP(TStr_Enum_Flow);
         case Terra_SensorType_Level:
-            return SFP(TStr_Level);
+            return SFP(TStr_Enum_Level);
         case Terra_SensorType_WindSpeed:
-            return SFP(TStr_WindSpeed);
+            return SFP(TStr_Enum_WindSpeed);
         case Terra_SensorType_WindDirection:
-            return SFP(TStr_WindDirection);
+            return SFP(TStr_Enum_WindDirection);
         case Terra_SensorType_SolarRadiation:
-            return SFP(TStr_SolarRadiation);
+            return SFP(TStr_Enum_SolarRadiation);
         case Terra_SensorType_Voltage:
-            return SFP(TStr_Voltage);
+            return SFP(TStr_Enum_Voltage);
         case Terra_SensorType_Current:
-            return SFP(TStr_Current);
+            return SFP(TStr_Enum_Current);
         case Terra_SensorType_Leak:
-            return SFP(TStr_Leak);
+            return SFP(TStr_Enum_Leak);
         case Terra_SensorType_Count:
-            return !excludeSpecial ? SFP(TStr_Undefined) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_SensorType_Undefined:
             break;
     }
@@ -1521,11 +1521,11 @@ String reservoirTypeToString(Terra_ReservoirType reservoirType, bool excludeSpec
 {
     switch (reservoirType) {
         case Terra_ReservoirType_Water:
-            return SFP(TStr_Water);
+            return SFP(TStr_Enum_Water);
         case Terra_ReservoirType_Thermal:
-            return SFP(TStr_Thermal);
+            return SFP(TStr_Enum_Thermal);
         case Terra_ReservoirType_Count:
-            return !excludeSpecial ? SFP(TStr_Undefined) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_ReservoirType_Undefined:
             break;
     }
@@ -1572,7 +1572,7 @@ String railTypeToString(Terra_RailType railType, bool excludeSpecial)
         case Terra_RailType_DC48V:
             return SFP(TStr_Enum_DC48V);
         case Terra_RailType_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_RailType_Undefined:
             break;
     }
@@ -1597,7 +1597,7 @@ String pinModeToString(Terra_PinMode pinMode, bool excludeSpecial)
         case Terra_PinMode_Analog_Output:
             return SFP(TStr_Enum_AnalogOutput);
         case Terra_PinMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_PinMode_Undefined:
             break;
         default:
@@ -1626,7 +1626,7 @@ String enableModeToString(Terra_EnableMode enableMode, bool excludeSpecial)
         case Terra_EnableMode_AscOrder:
             return SFP(TStr_Enum_AscOrder);
         case Terra_EnableMode_Count:
-            return !excludeSpecial ? SFP(TStr_Count) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_EnableMode_Undefined:
             break;
         default:
@@ -1639,27 +1639,27 @@ String unitsCategoryToString(Terra_UnitsCategory unitsCategory, bool excludeSpec
 {
     switch (unitsCategory) {
         case Terra_UnitsCategory_Angle:
-            return SFP(TStr_Angle);
+            return SFP(TStr_Enum_Angle);
         case Terra_UnitsCategory_Distance:
-            return SFP(TStr_Distance);
+            return SFP(TStr_Enum_Distance);
         case Terra_UnitsCategory_Energy:
-            return SFP(TStr_Energy);
+            return SFP(TStr_Enum_Energy);
         case Terra_UnitsCategory_Irradiance:
-            return SFP(TStr_Irradiance);
+            return SFP(TStr_Enum_Irradiance);
         case Terra_UnitsCategory_LiqVolume:
-            return SFP(TStr_LiquidVolume);
+            return SFP(TStr_Enum_LiquidVolume);
         case Terra_UnitsCategory_LiqFlowRate:
-            return SFP(TStr_LiquidFlowRate);
+            return SFP(TStr_Enum_LiquidFlowRate);
         case Terra_UnitsCategory_Power:
-            return SFP(TStr_Power);
+            return SFP(TStr_Enum_Power);
         case Terra_UnitsCategory_Pressure:
-            return SFP(TStr_Pressure);
+            return SFP(TStr_Enum_Pressure);
         case Terra_UnitsCategory_Speed:
-            return SFP(TStr_Speed);
+            return SFP(TStr_Enum_Speed);
         case Terra_UnitsCategory_Temperature:
-            return SFP(TStr_Temperature);
+            return SFP(TStr_Enum_Temperature);
         case Terra_UnitsCategory_Count:
-            return !excludeSpecial ? SFP(TStr_Undefined) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_UnitsCategory_Undefined:
             break;
     }
@@ -1672,63 +1672,63 @@ String unitsTypeToSymbol(Terra_UnitsType unitsType, bool excludeSpecial)
         case Terra_UnitsType_Raw_1:
             return SFP(TStr_raw);
         case Terra_UnitsType_Percentile_100:
-            return SFP(TStr_Percent);
+            return SFP(TStr_Unit_Percent);
         case Terra_UnitsType_Angle_Degrees_360:
-            return SFP(TStr_deg);
+            return SFP(TStr_Unit_deg);
         case Terra_UnitsType_Angle_Radians_2pi:
-            return SFP(TStr_rad);
+            return SFP(TStr_Unit_rad);
         case Terra_UnitsType_Angle_Minutes_24hr:
-            return SFP(TStr_min);
+            return SFP(TStr_Unit_min);
         case Terra_UnitsType_Distance_Millimeters:
-            return SFP(TStr_mm);
+            return SFP(TStr_Unit_mm);
         case Terra_UnitsType_Distance_Inches:
-            return SFP(TStr_in);
+            return SFP(TStr_Unit_in);
         case Terra_UnitsType_Distance_Feet:
-            return SFP(TStr_ft);
+            return SFP(TStr_Unit_ft);
         case Terra_UnitsType_Distance_Meters:
-            return SFP(TStr_m);
+            return SFP(TStr_Unit_m);
         case Terra_UnitsType_LiqVolume_Gallons:
-            return SFP(TStr_gal);
+            return SFP(TStr_Unit_gal);
         case Terra_UnitsType_LiqVolume_Liters:
-            return SFP(TStr_L);
+            return SFP(TStr_Unit_L);
         case Terra_UnitsType_LiqFlowRate_GallonsPerMin:
-            return SFP(TStr_galPerMin);
+            return SFP(TStr_Unit_galPerMin);
         case Terra_UnitsType_LiqFlowRate_LitersPerMin:
-            return SFP(TStr_LPerMin);
+            return SFP(TStr_Unit_LPerMin);
         case Terra_UnitsType_Irradiance_WattsPerSquareMeter:
-            return SFP(TStr_WPerM2);
+            return SFP(TStr_Unit_WPerM2);
         case Terra_UnitsType_Energy_KilowattHours:
-            return SFP(TStr_kWh);
+            return SFP(TStr_Unit_kWh);
         case Terra_UnitsType_Power_Amperage:
-            return SFP(TStr_A);
+            return SFP(TStr_Unit_A);
         case Terra_UnitsType_Power_Wattage:
-            return SFP(TStr_W);
+            return SFP(TStr_Unit_W);
         case Terra_UnitsType_Power_Volts:
-            return SFP(TStr_V);
+            return SFP(TStr_Unit_V);
         case Terra_UnitsType_Pressure_Kilopascals:
-            return SFP(TStr_kPa);
+            return SFP(TStr_Unit_kPa);
         case Terra_UnitsType_Pressure_PSI:
-            return SFP(TStr_psi);
+            return SFP(TStr_Unit_psi);
         case Terra_UnitsType_Pressure_Hectopascals:
-            return SFP(TStr_hPa);
+            return SFP(TStr_Unit_hPa);
         case Terra_UnitsType_Speed_MillimetersPerHour:
-            return SFP(TStr_mmPerH);
+            return SFP(TStr_Unit_mmPerH);
         case Terra_UnitsType_Speed_InchesPerHour:
-            return SFP(TStr_inPerH);
+            return SFP(TStr_Unit_inPerH);
         case Terra_UnitsType_Speed_MetersPerSecond:
-            return SFP(TStr_mPerS);
+            return SFP(TStr_Unit_mPerS);
         case Terra_UnitsType_Speed_KilometersPerHour:
-            return SFP(TStr_kmPerH);
+            return SFP(TStr_Unit_kmPerH);
         case Terra_UnitsType_Speed_MilesPerHour:
-            return SFP(TStr_mph);
+            return SFP(TStr_Unit_mph);
         case Terra_UnitsType_Temperature_Celsius:
-            return SFP(TStr_C);
+            return SFP(TStr_Unit_C);
         case Terra_UnitsType_Temperature_Fahrenheit:
-            return SFP(TStr_F);
+            return SFP(TStr_Unit_F);
         case Terra_UnitsType_Temperature_Kelvin:
-            return SFP(TStr_K);
+            return SFP(TStr_Unit_K);
         case Terra_UnitsType_Count:
-            return !excludeSpecial ? SFP(TStr_Undefined) : String();
+            return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_UnitsType_Undefined:
             break;
     }
@@ -1742,7 +1742,7 @@ String positionIndexToString(tposi_t positionIndex, bool excludeSpecial)
         return String(positionIndex + TERRA_POS_EXPORT_BEGFROM);
     } else if (!excludeSpecial) {
         if (positionIndex == TERRA_POS_MAXSIZE) {
-            return SFP(TStr_Count);
+            return SFP(TStr_Enum_Count);
         } else {
             return SFP(TStr_Undefined);
         }
@@ -2061,21 +2061,25 @@ Terra_PinMode pinModeFromString(String pinModeStr)
         case 'e':
             return Terra_PinMode_Undefined;
         case 'i':
-            switch (pinModeStr.length() > 16 ? pinModeStr[16] : '\000') {
-                case 'd':
-                    return Terra_PinMode_Digital_Input_PullDown;
-                case 't':
-                    return Terra_PinMode_Digital_Input_Floating;
-                case 'u':
-                    return Terra_PinMode_Digital_Input_PullUp;
+            switch (pinModeStr.length() > 12 ? pinModeStr[12] : '\000') {
+                case '\000':
+                    return Terra_PinMode_Digital_Input;
+                case 'p':
+                    switch (pinModeStr.length() > 16 ? pinModeStr[16] : '\000') {
+                        case 'd':
+                            return Terra_PinMode_Digital_Input_PullDown;
+                        case 'u':
+                            return Terra_PinMode_Digital_Input_PullUp;
+                    }
+                    break;
             }
             break;
         case 'n':
             return Terra_PinMode_Analog_Input;
         case 'o':
             switch (pinModeStr.length() > 13 ? pinModeStr[13] : '\000') {
-                case 'o':
-                    return Terra_PinMode_Digital_Output_OpenDrain;
+                case '\000':
+                    return Terra_PinMode_Digital_Output;
                 case 'p':
                     return Terra_PinMode_Digital_Output_PushPull;
             }

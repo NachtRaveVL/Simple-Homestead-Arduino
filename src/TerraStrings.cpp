@@ -5,23 +5,6 @@
 
 #include "Terraduino.h"
 #include "TerraUtils.h"
-#include <ctype.h>
-
-static size_t terraStringLength(const String &value)
-{
-#if defined(ARDUINO)
-    return value.length();
-#else
-    return value.size();
-#endif
-}
-
-static char terraTrieChar(const String &value, size_t index)
-{
-    if (index >= terraStringLength(value)) { return '\0'; }
-    return (char)tolower((unsigned char)value[index]);
-}
-
 
 static char _terraBlank = '\0';
 const char *TStr_Blank = &_terraBlank;
@@ -774,16 +757,8 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "windSpeedSensor";
             return flashStr;
         }
-        case TStr_Unknown: {
+        case TStr_Enum_Unknown: {
             static const char flashStr[] PROGMEM = "Unknown";
-            return flashStr;
-        }
-        case TStr_Sensor: {
-            static const char flashStr[] PROGMEM = "Sensor";
-            return flashStr;
-        }
-        case TStr_Actuator: {
-            static const char flashStr[] PROGMEM = "Actuator";
             return flashStr;
         }
         case TStr_WaterReservoir: {
@@ -794,235 +769,211 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "ThermalReservoir";
             return flashStr;
         }
-        case TStr_PowerRail: {
-            static const char flashStr[] PROGMEM = "PowerRail";
-            return flashStr;
-        }
-        case TStr_Water: {
+        case TStr_Enum_Water: {
             static const char flashStr[] PROGMEM = "Water";
             return flashStr;
         }
-        case TStr_Thermal: {
+        case TStr_Enum_Thermal: {
             static const char flashStr[] PROGMEM = "Thermal";
             return flashStr;
         }
-        case TStr_Normal: {
+        case TStr_Enum_Normal: {
             static const char flashStr[] PROGMEM = "Normal";
             return flashStr;
         }
-        case TStr_Low: {
+        case TStr_Enum_Low: {
             static const char flashStr[] PROGMEM = "Low";
             return flashStr;
         }
-        case TStr_Reserve: {
+        case TStr_Enum_Reserve: {
             static const char flashStr[] PROGMEM = "Reserve";
             return flashStr;
         }
-        case TStr_High: {
+        case TStr_Enum_High: {
             static const char flashStr[] PROGMEM = "High";
             return flashStr;
         }
-        case TStr_Fault: {
+        case TStr_Enum_Fault: {
             static const char flashStr[] PROGMEM = "Fault";
             return flashStr;
         }
-        case TStr_Rainwater: {
+        case TStr_Enum_Rainwater: {
             static const char flashStr[] PROGMEM = "Rainwater";
             return flashStr;
         }
-        case TStr_Well: {
+        case TStr_Enum_Well: {
             static const char flashStr[] PROGMEM = "Well";
             return flashStr;
         }
-        case TStr_Municipal: {
+        case TStr_Enum_Municipal: {
             static const char flashStr[] PROGMEM = "Municipal";
             return flashStr;
         }
-        case TStr_Surface: {
+        case TStr_Enum_Surface: {
             static const char flashStr[] PROGMEM = "Surface";
             return flashStr;
         }
-        case TStr_Reclaimed: {
+        case TStr_Enum_Reclaimed: {
             static const char flashStr[] PROGMEM = "Reclaimed";
             return flashStr;
         }
-        case TStr_Stored: {
+        case TStr_Enum_Stored: {
             static const char flashStr[] PROGMEM = "Stored";
             return flashStr;
         }
-        case TStr_Tank: {
+        case TStr_Enum_Tank: {
             static const char flashStr[] PROGMEM = "Tank";
             return flashStr;
         }
-        case TStr_Reservoir: {
-            static const char flashStr[] PROGMEM = "Reservoir";
-            return flashStr;
-        }
-        case TStr_Binary: {
+        case TStr_Enum_Binary: {
             static const char flashStr[] PROGMEM = "Binary";
             return flashStr;
         }
-        case TStr_Analog: {
+        case TStr_Enum_Analog: {
             static const char flashStr[] PROGMEM = "Analog";
             return flashStr;
         }
-        case TStr_Temperature: {
+        case TStr_Enum_Temperature: {
             static const char flashStr[] PROGMEM = "Temperature";
             return flashStr;
         }
-        case TStr_Humidity: {
+        case TStr_Enum_Humidity: {
             static const char flashStr[] PROGMEM = "Humidity";
             return flashStr;
         }
-        case TStr_Pressure: {
+        case TStr_Enum_Pressure: {
             static const char flashStr[] PROGMEM = "Pressure";
             return flashStr;
         }
-        case TStr_Rainfall: {
+        case TStr_Enum_Rainfall: {
             static const char flashStr[] PROGMEM = "Rainfall";
             return flashStr;
         }
-        case TStr_Flow: {
+        case TStr_Enum_Flow: {
             static const char flashStr[] PROGMEM = "Flow";
             return flashStr;
         }
-        case TStr_Level: {
+        case TStr_Enum_Level: {
             static const char flashStr[] PROGMEM = "Level";
             return flashStr;
         }
-        case TStr_WindSpeed: {
+        case TStr_Enum_WindSpeed: {
             static const char flashStr[] PROGMEM = "WindSpeed";
             return flashStr;
         }
-        case TStr_WindDirection: {
+        case TStr_Enum_WindDirection: {
             static const char flashStr[] PROGMEM = "WindDirection";
             return flashStr;
         }
-        case TStr_SolarRadiation: {
+        case TStr_Enum_SolarRadiation: {
             static const char flashStr[] PROGMEM = "SolarRadiation";
             return flashStr;
         }
-        case TStr_Leak: {
+        case TStr_Enum_Leak: {
             static const char flashStr[] PROGMEM = "Leak";
             return flashStr;
         }
-        case TStr_Remote: {
+        case TStr_Enum_Remote: {
             static const char flashStr[] PROGMEM = "Remote";
             return flashStr;
         }
-        case TStr_Digital: {
+        case TStr_Enum_Digital: {
             static const char flashStr[] PROGMEM = "Digital";
             return flashStr;
         }
-        case TStr_Variable: {
+        case TStr_Enum_Variable: {
             static const char flashStr[] PROGMEM = "Variable";
             return flashStr;
         }
-        case TStr_Pump: {
+        case TStr_Enum_Pump: {
             static const char flashStr[] PROGMEM = "Pump";
             return flashStr;
         }
-        case TStr_Valve: {
+        case TStr_Enum_Valve: {
             static const char flashStr[] PROGMEM = "Valve";
             return flashStr;
         }
-        case TStr_Fan: {
+        case TStr_Enum_Fan: {
             static const char flashStr[] PROGMEM = "Fan";
             return flashStr;
         }
-        case TStr_Diverter: {
+        case TStr_Enum_Diverter: {
             static const char flashStr[] PROGMEM = "Diverter";
             return flashStr;
         }
-        case TStr_Heater: {
+        case TStr_Enum_Heater: {
             static const char flashStr[] PROGMEM = "Heater";
             return flashStr;
         }
-        case TStr_Circulator: {
+        case TStr_Enum_Circulator: {
             static const char flashStr[] PROGMEM = "Circulator";
             return flashStr;
         }
-        case TStr_SumpPump: {
+        case TStr_Enum_SumpPump: {
             static const char flashStr[] PROGMEM = "SumpPump";
             return flashStr;
         }
-        case TStr_LessThan: {
+        case TStr_Enum_LessThan: {
             static const char flashStr[] PROGMEM = "LessThan";
             return flashStr;
         }
-        case TStr_LessOrEqual: {
+        case TStr_Enum_LessOrEqual: {
             static const char flashStr[] PROGMEM = "LessOrEqual";
             return flashStr;
         }
-        case TStr_GreaterThan: {
+        case TStr_Enum_GreaterThan: {
             static const char flashStr[] PROGMEM = "GreaterThan";
             return flashStr;
         }
-        case TStr_GreaterOrEqual: {
+        case TStr_Enum_GreaterOrEqual: {
             static const char flashStr[] PROGMEM = "GreaterOrEqual";
             return flashStr;
         }
-        case TStr_Equal: {
+        case TStr_Enum_Equal: {
             static const char flashStr[] PROGMEM = "Equal";
             return flashStr;
         }
-        case TStr_NotEqual: {
+        case TStr_Enum_NotEqual: {
             static const char flashStr[] PROGMEM = "NotEqual";
             return flashStr;
         }
-        case TStr_Inactive: {
+        case TStr_Enum_Inactive: {
             static const char flashStr[] PROGMEM = "Inactive";
             return flashStr;
         }
-        case TStr_Active: {
+        case TStr_Enum_Active: {
             static const char flashStr[] PROGMEM = "Active";
             return flashStr;
         }
-        case TStr_DEBUG: {
-            static const char flashStr[] PROGMEM = "DEBUG";
-            return flashStr;
-        }
-        case TStr_INFO: {
-            static const char flashStr[] PROGMEM = "INFO";
-            return flashStr;
-        }
-        case TStr_WARN: {
-            static const char flashStr[] PROGMEM = "WARN";
-            return flashStr;
-        }
-        case TStr_ERROR: {
-            static const char flashStr[] PROGMEM = "ERROR";
-            return flashStr;
-        }
-        case TStr_RTC: {
+        case TStr_Enum_RTC: {
             static const char flashStr[] PROGMEM = "RTC";
             return flashStr;
         }
-        case TStr_Storage: {
+        case TStr_Enum_Storage: {
             static const char flashStr[] PROGMEM = "Storage";
             return flashStr;
         }
-        case TStr_Display: {
+        case TStr_Enum_Display: {
             static const char flashStr[] PROGMEM = "Display";
             return flashStr;
         }
-        case TStr_Network: {
+        case TStr_Enum_Network: {
             static const char flashStr[] PROGMEM = "Network";
             return flashStr;
         }
-        case TStr_Radio: {
+        case TStr_Enum_Radio: {
             static const char flashStr[] PROGMEM = "Radio";
             return flashStr;
         }
-        case TStr_IOExpander: {
+        case TStr_Enum_IOExpander: {
             static const char flashStr[] PROGMEM = "IOExpander";
             return flashStr;
         }
-        case TStr_Manual: {
+        case TStr_Enum_Manual: {
             static const char flashStr[] PROGMEM = "Manual";
             return flashStr;
         }
-        case TStr_Automatic: {
+        case TStr_Enum_Automatic: {
             static const char flashStr[] PROGMEM = "Automatic";
             return flashStr;
         }
@@ -1198,59 +1149,59 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "UpDownESP32Touch";
             return flashStr;
         }
-        case TStr_Raw: {
+        case TStr_Enum_Raw: {
             static const char flashStr[] PROGMEM = "Raw";
             return flashStr;
         }
-        case TStr_Percentile: {
+        case TStr_Enum_Percentile: {
             static const char flashStr[] PROGMEM = "Percentile";
             return flashStr;
         }
-        case TStr_LiquidVolume: {
+        case TStr_Enum_LiquidVolume: {
             static const char flashStr[] PROGMEM = "LiquidVolume";
             return flashStr;
         }
-        case TStr_LiquidFlowRate: {
+        case TStr_Enum_LiquidFlowRate: {
             static const char flashStr[] PROGMEM = "LiquidFlowRate";
             return flashStr;
         }
-        case TStr_Distance: {
+        case TStr_Enum_Distance: {
             static const char flashStr[] PROGMEM = "Distance";
             return flashStr;
         }
-        case TStr_RainRate: {
+        case TStr_Enum_RainRate: {
             static const char flashStr[] PROGMEM = "RainRate";
             return flashStr;
         }
-        case TStr_Power: {
+        case TStr_Enum_Power: {
             static const char flashStr[] PROGMEM = "Power";
             return flashStr;
         }
-        case TStr_Irradiance: {
+        case TStr_Enum_Irradiance: {
             static const char flashStr[] PROGMEM = "Irradiance";
             return flashStr;
         }
-        case TStr_Energy: {
+        case TStr_Enum_Energy: {
             static const char flashStr[] PROGMEM = "Energy";
             return flashStr;
         }
-        case TStr_Speed: {
+        case TStr_Enum_Speed: {
             static const char flashStr[] PROGMEM = "Speed";
             return flashStr;
         }
-        case TStr_Angle: {
+        case TStr_Enum_Angle: {
             static const char flashStr[] PROGMEM = "Angle";
             return flashStr;
         }
-        case TStr_Voltage: {
+        case TStr_Enum_Voltage: {
             static const char flashStr[] PROGMEM = "Voltage";
             return flashStr;
         }
-        case TStr_Current: {
+        case TStr_Enum_Current: {
             static const char flashStr[] PROGMEM = "Current";
             return flashStr;
         }
-        case TStr_Custom: {
+        case TStr_Enum_Custom: {
             static const char flashStr[] PROGMEM = "Custom";
             return flashStr;
         }
@@ -1282,24 +1233,16 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "DC48V";
             return flashStr;
         }
-        case TStr_Idle: {
+        case TStr_Enum_Idle: {
             static const char flashStr[] PROGMEM = "Idle";
             return flashStr;
         }
-        case TStr_Requested: {
+        case TStr_Enum_Requested: {
             static const char flashStr[] PROGMEM = "Requested";
             return flashStr;
         }
-        case TStr_Complete: {
+        case TStr_Enum_Complete: {
             static const char flashStr[] PROGMEM = "Complete";
-            return flashStr;
-        }
-        case TStr_PrimarySensor: {
-            static const char flashStr[] PROGMEM = "PrimarySensor";
-            return flashStr;
-        }
-        case TStr_SecondarySensor: {
-            static const char flashStr[] PROGMEM = "SecondarySensor";
             return flashStr;
         }
         case TStr_LevelSensor: {
@@ -1326,10 +1269,6 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "RainfallSensor";
             return flashStr;
         }
-        case TStr_RainRateSensor: {
-            static const char flashStr[] PROGMEM = "RainRateSensor";
-            return flashStr;
-        }
         case TStr_WindSpeedSensor: {
             static const char flashStr[] PROGMEM = "WindSpeedSensor";
             return flashStr;
@@ -1346,119 +1285,119 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "LeakSensor";
             return flashStr;
         }
-        case TStr_CountLabel: {
+        case TStr_Enum_Count: {
             static const char flashStr[] PROGMEM = "Count";
             return flashStr;
         }
-        case TStr_Percent: {
+        case TStr_Unit_Percent: {
             static const char flashStr[] PROGMEM = "%";
             return flashStr;
         }
-        case TStr_C: {
+        case TStr_Unit_C: {
             static const char flashStr[] PROGMEM = "C";
             return flashStr;
         }
-        case TStr_F: {
+        case TStr_Unit_F: {
             static const char flashStr[] PROGMEM = "F";
             return flashStr;
         }
-        case TStr_K: {
+        case TStr_Unit_K: {
             static const char flashStr[] PROGMEM = "K";
             return flashStr;
         }
-        case TStr_L: {
+        case TStr_Unit_L: {
             static const char flashStr[] PROGMEM = "L";
             return flashStr;
         }
-        case TStr_gal: {
+        case TStr_Unit_gal: {
             static const char flashStr[] PROGMEM = "gal";
             return flashStr;
         }
-        case TStr_m: {
+        case TStr_Unit_m: {
             static const char flashStr[] PROGMEM = "m";
             return flashStr;
         }
-        case TStr_ft: {
+        case TStr_Unit_ft: {
             static const char flashStr[] PROGMEM = "ft";
             return flashStr;
         }
-        case TStr_LPerMin: {
+        case TStr_Unit_LPerMin: {
             static const char flashStr[] PROGMEM = "L/min";
             return flashStr;
         }
-        case TStr_galPerMin: {
+        case TStr_Unit_galPerMin: {
             static const char flashStr[] PROGMEM = "gal/min";
             return flashStr;
         }
-        case TStr_kPa: {
+        case TStr_Unit_kPa: {
             static const char flashStr[] PROGMEM = "kPa";
             return flashStr;
         }
-        case TStr_psi: {
+        case TStr_Unit_psi: {
             static const char flashStr[] PROGMEM = "psi";
             return flashStr;
         }
-        case TStr_hPa: {
+        case TStr_Unit_hPa: {
             static const char flashStr[] PROGMEM = "hPa";
             return flashStr;
         }
-        case TStr_mm: {
+        case TStr_Unit_mm: {
             static const char flashStr[] PROGMEM = "mm";
             return flashStr;
         }
-        case TStr_in: {
+        case TStr_Unit_in: {
             static const char flashStr[] PROGMEM = "in";
             return flashStr;
         }
-        case TStr_mmPerH: {
+        case TStr_Unit_mmPerH: {
             static const char flashStr[] PROGMEM = "mm/h";
             return flashStr;
         }
-        case TStr_W: {
+        case TStr_Unit_W: {
             static const char flashStr[] PROGMEM = "W";
             return flashStr;
         }
-        case TStr_WPerM2: {
+        case TStr_Unit_WPerM2: {
             static const char flashStr[] PROGMEM = "W/m2";
             return flashStr;
         }
-        case TStr_kWh: {
+        case TStr_Unit_kWh: {
             static const char flashStr[] PROGMEM = "kWh";
             return flashStr;
         }
-        case TStr_mPerS: {
+        case TStr_Unit_mPerS: {
             static const char flashStr[] PROGMEM = "m/s";
             return flashStr;
         }
-        case TStr_kmPerH: {
+        case TStr_Unit_kmPerH: {
             static const char flashStr[] PROGMEM = "km/h";
             return flashStr;
         }
-        case TStr_mph: {
+        case TStr_Unit_mph: {
             static const char flashStr[] PROGMEM = "mph";
             return flashStr;
         }
-        case TStr_deg: {
+        case TStr_Unit_deg: {
             static const char flashStr[] PROGMEM = "deg";
             return flashStr;
         }
-        case TStr_V: {
+        case TStr_Unit_V: {
             static const char flashStr[] PROGMEM = "V";
             return flashStr;
         }
-        case TStr_A: {
+        case TStr_Unit_A: {
             static const char flashStr[] PROGMEM = "A";
             return flashStr;
         }
-        case TStr_inPerH: {
+        case TStr_Unit_inPerH: {
             static const char flashStr[] PROGMEM = "in/h";
             return flashStr;
         }
-        case TStr_rad: {
+        case TStr_Unit_rad: {
             static const char flashStr[] PROGMEM = "rad";
             return flashStr;
         }
-        case TStr_min: {
+        case TStr_Unit_min: {
             static const char flashStr[] PROGMEM = "min";
             return flashStr;
         }
@@ -1471,428 +1410,4 @@ const char *pgmAddrForStr(Terra_String strNum)
 bool terraStringIdEqualsIgnoreCase(const String &value, Terra_String stringId)
 {
     return terraStringEqualsIgnoreCase(value, SFP(stringId));
-}
-
-String terraObjectTypeToString(Terra_ObjectType value)
-{
-    switch (value) {
-        case Terra_ObjectType_Actuator: return SFP(TStr_Actuator);
-        case Terra_ObjectType_Sensor: return SFP(TStr_Sensor);
-        case Terra_ObjectType_Reservoir: return SFP(TStr_Reservoir);
-        case Terra_ObjectType_Rail: return String("Rail");
-        case Terra_ObjectType_Count: return SFP(TStr_CountLabel);
-        case Terra_ObjectType_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String TerraReservoirTypeToString(Terra_ReservoirType value)
-{
-    switch (value) {
-        case Terra_ReservoirType_Water: return SFP(TStr_Water);
-        case Terra_ReservoirType_Thermal: return SFP(TStr_Thermal);
-        case Terra_ReservoirType_Count: return SFP(TStr_CountLabel);
-        case Terra_ReservoirType_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String TerraReservoirStateToString(Terra_ResourceState value)
-{
-    switch (value) {
-        case Terra_ResourceState_Normal: return SFP(TStr_Normal);
-        case Terra_ResourceState_Low: return SFP(TStr_Low);
-        case Terra_ResourceState_High: return SFP(TStr_High);
-        case Terra_ResourceState_Count: return SFP(TStr_CountLabel);
-        case Terra_ResourceState_Unknown: return SFP(TStr_Unknown);
-    }
-    return SFP(TStr_Unknown);
-}
-
-String terraSensorTypeToString(Terra_SensorType value)
-{
-    switch (value) {
-        case Terra_SensorType_Temperature: return SFP(TStr_Temperature);
-        case Terra_SensorType_Humidity: return SFP(TStr_Humidity);
-        case Terra_SensorType_Pressure: return SFP(TStr_Pressure);
-        case Terra_SensorType_Rainfall: return SFP(TStr_Rainfall);
-        case Terra_SensorType_Flow: return SFP(TStr_Flow);
-        case Terra_SensorType_Level: return SFP(TStr_Level);
-        case Terra_SensorType_WindSpeed: return SFP(TStr_WindSpeed);
-        case Terra_SensorType_WindDirection: return SFP(TStr_WindDirection);
-        case Terra_SensorType_SolarRadiation: return SFP(TStr_SolarRadiation);
-        case Terra_SensorType_Voltage: return SFP(TStr_Voltage);
-        case Terra_SensorType_Current: return SFP(TStr_Current);
-        case Terra_SensorType_Leak: return SFP(TStr_Leak);
-        case Terra_SensorType_Count: return SFP(TStr_CountLabel);
-        case Terra_SensorType_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraActuatorTypeToString(Terra_ActuatorType value)
-{
-    switch (value) {
-        case Terra_ActuatorType_Pump: return SFP(TStr_Pump);
-        case Terra_ActuatorType_Valve: return SFP(TStr_Valve);
-        case Terra_ActuatorType_Fan: return SFP(TStr_Fan);
-        case Terra_ActuatorType_Heater: return SFP(TStr_Heater);
-        case Terra_ActuatorType_Circulator: return SFP(TStr_Circulator);
-        case Terra_ActuatorType_Count: return SFP(TStr_CountLabel);
-        case Terra_ActuatorType_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraMeasurementModeToString(Terra_MeasurementMode value)
-{
-    switch (value) {
-        case Terra_MeasurementMode_Imperial: return SFP(TStr_Enum_Imperial);
-        case Terra_MeasurementMode_Metric: return SFP(TStr_Enum_Metric);
-        case Terra_MeasurementMode_Scientific: return SFP(TStr_Enum_Scientific);
-        case Terra_MeasurementMode_Count: return SFP(TStr_CountLabel);
-        case Terra_MeasurementMode_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraEnableModeToString(Terra_EnableMode value)
-{
-    switch (value) {
-        case Terra_EnableMode_Highest: return SFP(TStr_Enum_Highest);
-        case Terra_EnableMode_Lowest: return SFP(TStr_Enum_Lowest);
-        case Terra_EnableMode_Average: return SFP(TStr_Enum_Average);
-        case Terra_EnableMode_Multiply: return SFP(TStr_Enum_Multiply);
-        case Terra_EnableMode_InOrder: return SFP(TStr_Enum_InOrder);
-        case Terra_EnableMode_RevOrder: return SFP(TStr_Enum_RevOrder);
-        case Terra_EnableMode_DescOrder: return SFP(TStr_Enum_DescOrder);
-        case Terra_EnableMode_AscOrder: return SFP(TStr_Enum_AscOrder);
-        case Terra_EnableMode_Count: return SFP(TStr_CountLabel);
-        case Terra_EnableMode_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraPinModeToString(Terra_PinMode value)
-{
-    switch (value) {
-        case Terra_PinMode_Digital_Input_Floating: return String("DigitalInputFloating");
-        case Terra_PinMode_Digital_Input_PullUp: return SFP(TStr_Enum_DigitalInputPullUp);
-        case Terra_PinMode_Digital_Input_PullDown: return SFP(TStr_Enum_DigitalInputPullDown);
-        case Terra_PinMode_Digital_Output_OpenDrain: return String("DigitalOutputOpenDrain");
-        case Terra_PinMode_Digital_Output_PushPull: return SFP(TStr_Enum_DigitalOutputPushPull);
-        case Terra_PinMode_Analog_Input: return SFP(TStr_Enum_AnalogInput);
-        case Terra_PinMode_Analog_Output: return SFP(TStr_Enum_AnalogOutput);
-        case Terra_PinMode_Count: return SFP(TStr_CountLabel);
-        case Terra_PinMode_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraRailTypeToString(Terra_RailType value)
-{
-    switch (value) {
-        case Terra_RailType_AC110V: return SFP(TStr_Enum_AC110V);
-        case Terra_RailType_AC220V: return SFP(TStr_Enum_AC220V);
-        case Terra_RailType_DC3V3: return SFP(TStr_Enum_DC3V3);
-        case Terra_RailType_DC5V: return SFP(TStr_Enum_DC5V);
-        case Terra_RailType_DC12V: return SFP(TStr_Enum_DC12V);
-        case Terra_RailType_DC24V: return SFP(TStr_Enum_DC24V);
-        case Terra_RailType_DC48V: return SFP(TStr_Enum_DC48V);
-        case Terra_RailType_Count: return SFP(TStr_CountLabel);
-        case Terra_RailType_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraTriggerStateToString(Terra_TriggerState value)
-{
-    switch (value) {
-        case Terra_TriggerState_Disabled: return SFP(TStr_Disabled);
-        case Terra_TriggerState_NotTriggered: return String("NotTriggered");
-        case Terra_TriggerState_Triggered: return String("Triggered");
-        case Terra_TriggerState_Count: return SFP(TStr_CountLabel);
-        case Terra_TriggerState_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-String terraSystemModeToString(Terra_SystemMode value)
-{
-    switch (value) {
-        case Terra_SystemMode_Manual: return SFP(TStr_Manual);
-        case Terra_SystemMode_Automatic: return SFP(TStr_Automatic);
-        case Terra_SystemMode_Disabled: return SFP(TStr_Disabled);
-        case Terra_SystemMode_Count: return SFP(TStr_CountLabel);
-        case Terra_SystemMode_Undefined: return SFP(TStr_Undefined);
-    }
-    return SFP(TStr_Undefined);
-}
-
-Terra_ObjectType terraObjectTypeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 2)) {
-        case 'd':
-            return Terra_ObjectType_Undefined;
-        case 'i':
-            switch (terraTrieChar(value, 3)) {
-                case 'l':
-                    return Terra_ObjectType_Rail;
-            }
-            break;
-        case 'n':
-            return Terra_ObjectType_Sensor;
-        case 's':
-            return Terra_ObjectType_Reservoir;
-        case 't':
-            return Terra_ObjectType_Actuator;
-        case 'u':
-            return Terra_ObjectType_Count;
-        case 'v':
-            return Terra_ObjectType_Environment;
-    }
-    return Terra_ObjectType_Undefined;
-}
-
-Terra_ReservoirType TerraReservoirTypeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            return Terra_ReservoirType_Count;
-        case 't':
-            return Terra_ReservoirType_Thermal;
-        case 'u':
-            return Terra_ReservoirType_Undefined;
-        case 'w':
-            return Terra_ReservoirType_Water;
-    }
-    return Terra_ReservoirType_Undefined;
-}
-
-Terra_ResourceState TerraReservoirStateFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            return Terra_ResourceState_Count;
-        case 'h':
-            return Terra_ResourceState_High;
-        case 'l':
-            return Terra_ResourceState_Low;
-        case 'n':
-            return Terra_ResourceState_Normal;
-        case 'u':
-            return Terra_ResourceState_Unknown;
-    }
-    return Terra_ResourceState_Unknown;
-}
-
-Terra_SensorType terraSensorTypeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            switch (terraTrieChar(value, 1)) {
-                case 'o':
-                    return Terra_SensorType_Count;
-                case 'u':
-                    return Terra_SensorType_Current;
-            }
-            break;
-        case 'f':
-            return Terra_SensorType_Flow;
-        case 'h':
-            return Terra_SensorType_Humidity;
-        case 'l':
-            switch (terraTrieChar(value, 2)) {
-                case 'a':
-                    return Terra_SensorType_Leak;
-                case 'v':
-                    return Terra_SensorType_Level;
-            }
-            break;
-        case 'p':
-            return Terra_SensorType_Pressure;
-        case 'r':
-            return Terra_SensorType_Rainfall;
-        case 's':
-            return Terra_SensorType_SolarRadiation;
-        case 't':
-            return Terra_SensorType_Temperature;
-        case 'u':
-            return Terra_SensorType_Undefined;
-        case 'v':
-            return Terra_SensorType_Voltage;
-        case 'w':
-            switch (terraTrieChar(value, 4)) {
-                case 'd':
-                    return Terra_SensorType_WindDirection;
-                case 's':
-                    return Terra_SensorType_WindSpeed;
-            }
-    }
-    return Terra_SensorType_Undefined;
-}
-
-Terra_ActuatorType terraActuatorTypeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 2)) {
-        case 'a':
-            return Terra_ActuatorType_Heater;
-        case 'd':
-            return Terra_ActuatorType_Undefined;
-        case 'l':
-            return Terra_ActuatorType_Valve;
-        case 'm':
-            return Terra_ActuatorType_Pump;
-        case 'n':
-            return Terra_ActuatorType_Fan;
-        case 'r':
-            return Terra_ActuatorType_Circulator;
-        case 'u':
-            return Terra_ActuatorType_Count;
-    }
-    return Terra_ActuatorType_Undefined;
-}
-
-Terra_MeasurementMode terraMeasurementModeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            return Terra_MeasurementMode_Count;
-        case 'i':
-            return Terra_MeasurementMode_Imperial;
-        case 'm':
-            return Terra_MeasurementMode_Metric;
-        case 's':
-            return Terra_MeasurementMode_Scientific;
-        case 'u':
-            return Terra_MeasurementMode_Undefined;
-    }
-    return Terra_MeasurementMode_Undefined;
-}
-
-Terra_EnableMode terraEnableModeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 2)) {
-        case 'c':
-            return Terra_EnableMode_AscOrder;
-        case 'd':
-            return Terra_EnableMode_Undefined;
-        case 'e':
-            return Terra_EnableMode_Average;
-        case 'g':
-            return Terra_EnableMode_Highest;
-        case 'l':
-            return Terra_EnableMode_Multiply;
-        case 'o':
-            return Terra_EnableMode_InOrder;
-        case 's':
-            return Terra_EnableMode_DescOrder;
-        case 'u':
-            return Terra_EnableMode_Count;
-        case 'v':
-            return Terra_EnableMode_RevOrder;
-        case 'w':
-            return Terra_EnableMode_Lowest;
-    }
-    return Terra_EnableMode_Undefined;
-}
-
-Terra_PinMode terraPinModeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 7)) {
-        case '\000':
-            return Terra_PinMode_Count;
-        case 'e':
-            return Terra_PinMode_Undefined;
-        case 'i':
-            switch (terraTrieChar(value, 16)) {
-                case 'd':
-                    return Terra_PinMode_Digital_Input_PullDown;
-                case 't':
-                    return Terra_PinMode_Digital_Input_Floating;
-                case 'u':
-                    return Terra_PinMode_Digital_Input_PullUp;
-            }
-            break;
-        case 'n':
-            return Terra_PinMode_Analog_Input;
-        case 'o':
-            switch (terraTrieChar(value, 13)) {
-                case 'o':
-                    return Terra_PinMode_Digital_Output_OpenDrain;
-                case 'p':
-                    return Terra_PinMode_Digital_Output_PushPull;
-            }
-            break;
-        case 'u':
-            return Terra_PinMode_Analog_Output;
-    }
-    return Terra_PinMode_Undefined;
-}
-
-Terra_RailType terraRailTypeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 2)) {
-        case '1':
-            switch (terraTrieChar(value, 0)) {
-                case 'a':
-                    return Terra_RailType_AC110V;
-                case 'd':
-                    return Terra_RailType_DC12V;
-            }
-            break;
-        case '2':
-            switch (terraTrieChar(value, 0)) {
-                case 'a':
-                    return Terra_RailType_AC220V;
-                case 'd':
-                    return Terra_RailType_DC24V;
-            }
-            break;
-        case '3':
-            return Terra_RailType_DC3V3;
-        case '4':
-            return Terra_RailType_DC48V;
-        case '5':
-            return Terra_RailType_DC5V;
-        case 'd':
-            return Terra_RailType_Undefined;
-        case 'u':
-            return Terra_RailType_Count;
-    }
-    return Terra_RailType_Undefined;
-}
-
-Terra_TriggerState terraTriggerStateFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'c':
-            return Terra_TriggerState_Count;
-        case 'd':
-            return Terra_TriggerState_Disabled;
-        case 'n':
-            return Terra_TriggerState_NotTriggered;
-        case 't':
-            return Terra_TriggerState_Triggered;
-        case 'u':
-            return Terra_TriggerState_Undefined;
-    }
-    return Terra_TriggerState_Undefined;
-}
-
-Terra_SystemMode terraSystemModeFromString(const String &value)
-{
-    switch (terraTrieChar(value, 0)) {
-        case 'a':
-            return Terra_SystemMode_Automatic;
-        case 'c':
-            return Terra_SystemMode_Count;
-        case 'd':
-            return Terra_SystemMode_Disabled;
-        case 'm':
-            return Terra_SystemMode_Manual;
-        case 'u':
-            return Terra_SystemMode_Undefined;
-    }
-    return Terra_SystemMode_Undefined;
 }
