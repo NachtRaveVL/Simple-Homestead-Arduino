@@ -10,8 +10,6 @@ Created by NachtRaveVL, 2026.
 
 Terraduino provides the common controller layer for water storage and transfer, thermal storage, environmental sensing, pumps, valves, heaters, shared power rails, scheduling, logging, and data publishing on Arduino-compatible microcontrollers.
 
-The library follows the same general controller/object design as Hydruino and Helioduino, with homestead-specific objects and scheduling behavior.
-
 Our Keep-It-Simple controller system:
 
 * Can operate entirely offline for normal local control.
@@ -60,14 +58,14 @@ The controller does not require every installation to use the same hardware. A s
 
 ### MCU Requirements
 
-There is no single minimum MCU for every build because networking, GUI support, object count, and storage options materially affect program and memory use.
+There is no single minimum MCU for every Terraduino build because enabled UI, networking, logging, sensor counts, reservoir counts, and automation complexity can change the program and memory requirements considerably.
 
-As a practical planning target:
+As a practical starting point:
 
 Minimum MCU: 256-512kB Flash, 16-24kB SRAM, 16MHz+  
 Recommended: 512kB-1MB+ Flash, 24-32kB+ SRAM, 32-48MHz+
 
-Modern 32-bit boards such as ESP32, RP2040/RP2350, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the easiest starting point for larger systems. Smaller supported MCUs may need networking, GUI support, debug output, or object limits reduced.
+Modern 32-bit boards such as Pico RP2040/RP2350, ESP32, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the natural starting point when tracking, logging, UI, and networking are expected to run together.
 
 Pin-limited systems can use multiplexers, I2C expanders, or remote nodes. Pumps, valves, heaters, and other loads require suitable external power drivers and protection.
 
@@ -161,25 +159,50 @@ The current native target is intentionally limited to the standalone hardening/c
 
 ## Setup
 
-### Header Defines
+#### Header Defines
 
-Terraduino uses the same opt-in build style as the sibling controller libraries. Prefer build flags when practical.
+There are several defines inside of the controller's main `Terraduino.h` header file that allow for more fine-tuned control of the controller. You may edit and uncomment these lines directly, or supply them via custom build flags. While editing the main header file isn't ideal, it is often easiest. Note that editing the controller's main header file directly will affect all projects compiled on your system using those modified controller files.
+
+Alternatively, you may also refer to https://forum.arduino.cc/index.php?topic=602603.0 on how to define custom build flags manually via modifying the `platform[.local].txt` file, or with the Arduino CLI (preferred way going forward).
+
+For the older `platform.local.txt` file override approach, create `platform.local.txt` alongside `platform.txt` located in `%applocaldata%\Arduino15\packages\{platform}\hardware\{arch}\{version}\` (replacing `%applocaldata%\Arduino15` with `~/Library/Arduino15` for macOS, and `~/.arduino15` for Linux), with the contents: `compiler.cpp.extra_flags=-Dname` (replacing `name` with the full name of the define below). Note that it will affect all builds for that platform until again changed or removed. Some build systems may require directly editing `platform.txt` and adding onto the end of its CPP build recipe, e.g. Teensy and `recipe.cpp.o.pattern=<bunch-of-stuff> -Dname`.
+
+From `Terraduino.h`:
 
 ```Arduino
-//#define TERRA_DISABLE_MULTITASKING
-//#define TERRA_DISABLE_GUI
-//#define TERRA_ENABLE_WIFI
-//#define TERRA_ENABLE_AT_WIFI
-//#define TERRA_ENABLE_ETHERNET
-//#define TERRA_ENABLE_MQTT
-//#define TERRA_ENABLE_GPS
-//#define TERRA_DISABLE_BUILTIN_DATA
+// Uncomment or -D this define to completely disable usage of any multitasking commands and libraries. Not recommended.
+//#define TERRA_DISABLE_MULTITASKING              // https://github.com/davetcc/TaskManagerIO
+
+// Uncomment or -D this define to disable usage of tcMenu library, which will disable all GUI control. Not recommended.
+//#define TERRA_DISABLE_GUI                       // https://github.com/davetcc/tcMenu
+
+// Uncomment or -D this define to enable usage of the platform WiFi library, which enables networking capabilities.
+//#define TERRA_ENABLE_WIFI                       // https://reference.arduino.cc/reference/en/libraries/wifi/
+
+// Uncomment or -D this define to enable usage of the external serial AT WiFi library, which enables networking capabilities.
+//#define TERRA_ENABLE_AT_WIFI                    // https://github.com/jandrassy/WiFiEspAT
+
+// Uncomment or -D this define to enable usage of the platform Ethernet library, which enables networking capabilities.
+//#define TERRA_ENABLE_ETHERNET                   // https://reference.arduino.cc/reference/en/libraries/ethernet/
+
+// Uncomment or -D this define to enable usage of the Arduino MQTT library, which enables IoT data publishing capabilities.
+//#define TERRA_ENABLE_MQTT                       // https://github.com/256dpi/arduino-mqtt
+
+// Uncomment or -D this define to enable usage of the Adafruit GPS library, which enables GPS capabilities.
+//#define TERRA_ENABLE_GPS                        // https://github.com/adafruit/Adafruit_GPS
+
+// Uncomment or -D this define to enable external data storage (SD card or EEPROM) to save on sketch size. Required for constrained devices.
+//#define TERRA_DISABLE_BUILTIN_DATA              // Disables library data existing in Flash, see DataWriter example for exporting details
+
+// Uncomment or -D this define to enable debug output (treats Serial output as attached to serial monitor, waiting on start for connection).
 //#define TERRA_ENABLE_DEBUG_OUTPUT
+
+// Uncomment or -D this define to enable verbose debug output (note: adds considerable size to compiled sketch).
 //#define TERRA_ENABLE_VERBOSE_DEBUG
+
+// Uncomment or -D this define to enable debug assertions (note: adds significant size to compiled sketch).
 //#define TERRA_ENABLE_DEBUG_ASSERTIONS
 ```
-
-Networking is optional. `TERRA_ENABLE_MQTT` adds the MQTT publisher, while WiFi/Ethernet selection determines the network transport available to the sketch.
 
 ### External Libraries
 
