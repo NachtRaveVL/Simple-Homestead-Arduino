@@ -35,7 +35,6 @@ Our Keep-It-Simple controller system:
 * Includes automatic reservoir scheduling through Assess, Fill, Condition, Distribute, and Settle stages.
 * Supports local and remote sensor measurements for environmental and infrastructure monitoring.
 * Actuator & Sensor pins can be multiplexed or expanded along with any control input pins through 8/16-bit i2c expanders for pin-limited controllers.
-* Library data can be built into onboard Flash or exported onto external storage to additionally save on compiled sketch size.
 
 Made primarily for Arduino microcontrollers / build environments, but should work with PlatformIO, Espressif, Teensy, STM32, Pico, and others - although one might experience turbulence until the bug reports get ironed out.
 

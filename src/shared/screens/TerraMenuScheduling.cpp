@@ -1,3 +1,4 @@
-/*  Terraduino UI Screen: Scheduling
-    // TODO: Implement Terraduino scheduling screen.
+/*  Terraduino: Scheduling menu screen scaffold.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraMenuScheduling.h"

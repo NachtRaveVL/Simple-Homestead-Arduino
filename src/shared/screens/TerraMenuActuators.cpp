@@ -1,3 +1,4 @@
-/*  Terraduino UI Screen: Actuators
-    // TODO: Implement Terraduino actuators screen.
+/*  Terraduino: Actuators menu screen scaffold.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraMenuActuators.h"

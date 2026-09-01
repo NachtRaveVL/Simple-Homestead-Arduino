@@ -1,3 +1,4 @@
-/*  Terraduino UI Screen: Information
-    // TODO: Implement Terraduino information screen.
+/*  Terraduino: Information menu screen scaffold.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraMenuInformation.h"

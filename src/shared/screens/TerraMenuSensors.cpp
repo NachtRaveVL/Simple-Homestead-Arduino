@@ -1,3 +1,4 @@
-/*  Terraduino UI Screen: Sensors
-    // TODO: Implement Terraduino sensors screen.
+/*  Terraduino: Sensors menu screen scaffold.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraMenuSensors.h"

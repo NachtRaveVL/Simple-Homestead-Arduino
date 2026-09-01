@@ -1,6 +1,7 @@
-/*  Terraduino UI support.
-    // TODO: Port Terraduino-specific menu behavior.
+/*  Terraduino: overview template scaffolding.
+    Copyright (C) 2026 NachtRaveVL
 */
-#ifndef TerraOverviews_hpp
-#define TerraOverviews_hpp
+#ifndef TerraOverviews_HPP
+#define TerraOverviews_HPP
+// UI stub: Domain-specific overview drawing is intentionally not implemented yet.
 #endif

@@ -1,3 +1,7 @@
-/*  Terraduino UI support.
-    // TODO: Port Terraduino-specific menu behavior.
+/*  Terraduino: overview screens.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraduinoUI.h"
+#ifdef TERRA_USE_GUI
+
+#endif
