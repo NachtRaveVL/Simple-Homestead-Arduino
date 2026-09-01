@@ -134,7 +134,7 @@ bool TerraPublisher::beginPublishingToMQTTClient(MQTTClient &client)
         _mqttClient = &client;
         _mqttClient->setClockSource(&mqttNow);
         if (!_mqttClient->connected()) {
-            String unPw = SFP(TStr_public);
+            String unPw = String(F("public"));
             _mqttClient->connect(Terraduino::_activeInstance->getSystemName().c_str(),
                                  unPw.c_str(), unPw.c_str());
         }

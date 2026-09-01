@@ -81,22 +81,6 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "null";
             return flashStr;
         }
-        case TStr_Empty: {
-            static const char flashStr[] PROGMEM = "";
-            return flashStr;
-        }
-        case TStr_public: {
-            static const char flashStr[] PROGMEM = "public";
-            return flashStr;
-        }
-        case TStr_In: {
-            static const char flashStr[] PROGMEM = " in ";
-            return flashStr;
-        }
-        case TStr_HARD: {
-            static const char flashStr[] PROGMEM = " HARD";
-            return flashStr;
-        }
         case TStr_Default_SystemName: {
             static const char flashStr[] PROGMEM = "Terraduino";
             return flashStr;
@@ -247,74 +231,6 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Log_Field_Vol_Measured: {
             static const char flashStr[] PROGMEM = "  Act. pumped vol.: ";
-            return flashStr;
-        }
-        case TStr_System: {
-            static const char flashStr[] PROGMEM = "system";
-            return flashStr;
-        }
-        case TStr_RTCLog: {
-            static const char flashStr[] PROGMEM = "rtc";
-            return flashStr;
-        }
-        case TStr_Initialized: {
-            static const char flashStr[] PROGMEM = "initialized";
-            return flashStr;
-        }
-        case TStr_Launched: {
-            static const char flashStr[] PROGMEM = "launched";
-            return flashStr;
-        }
-        case TStr_Suspended: {
-            static const char flashStr[] PROGMEM = "suspended";
-            return flashStr;
-        }
-        case TStr_RouteFault: {
-            static const char flashStr[] PROGMEM = "route fault";
-            return flashStr;
-        }
-        case TStr_SourceUnavailable: {
-            static const char flashStr[] PROGMEM = "source unavailable";
-            return flashStr;
-        }
-        case TStr_SourceReserveProtected: {
-            static const char flashStr[] PROGMEM = "source reserve protected";
-            return flashStr;
-        }
-        case TStr_DestinationTargetReached: {
-            static const char flashStr[] PROGMEM = "destination target reached";
-            return flashStr;
-        }
-        case TStr_ContinuingFillToStopLevel: {
-            static const char flashStr[] PROGMEM = "continuing fill to stop level";
-            return flashStr;
-        }
-        case TStr_DestinationRequestsFill: {
-            static const char flashStr[] PROGMEM = "destination requests fill";
-            return flashStr;
-        }
-        case TStr_WithinDestinationBand: {
-            static const char flashStr[] PROGMEM = "within destination band";
-            return flashStr;
-        }
-        case TStr_MaxContinuousRuntimeExceeded: {
-            static const char flashStr[] PROGMEM = "maximum continuous runtime exceeded";
-            return flashStr;
-        }
-        case TStr_RemoteSensorInvalid: {
-            static const char flashStr[] PROGMEM = "remote sensor reported invalid data";
-            return flashStr;
-        }
-        case TStr_RemoteSensorStale: {
-            static const char flashStr[] PROGMEM = "remote sensor stale";
-            return flashStr;
-        }
-        case TStr_RouteFlowOutsideLimits: {
-            static const char flashStr[] PROGMEM = "route flow outside limits";
-            return flashStr;
-        }
-        case TStr_UnexpectedFlowWhileIdle: {
-            static const char flashStr[] PROGMEM = "unexpected flow while route idle";
             return flashStr;
         }
         case TStr_Key_ActiveLow: {
