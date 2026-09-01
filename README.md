@@ -164,7 +164,20 @@ From Terraduino.h:
 //#define TERRA_ENABLE_DEBUG_ASSERTIONS
 ```
 
-Unlike Hydruino and Helioduino, the current `develop` version of `shared/TerraduinoUI.h` does not yet expose the sibling libraries' additional UI feature-switch defines. UI-specific build flags should therefore only be documented here once they actually exist in the Terraduino UI implementation.
+From shared/TerraduinoUI.h:
+```Arduino
+// Uncomment or -D this define to enable usage of the XPT2046_Touchscreen library, in place of the Adafruit FT6206 library.
+//#define TERRA_UI_ENABLE_XPT2046TS               // https://github.com/PaulStoffregen/XPT2046_Touchscreen
+
+// Uncomment or -D this define to enable usage of the StChromaArt LDTC framebuffer capable canvas in place of default U8g2Drawable canvas (STM32/mbed only, note: requires advanced setup)
+//#define TERRA_UI_ENABLE_STCHROMA_LDTC
+
+// Uncomment or -D this define to enable usage of the StChromaArt BSP touch screen interrogator in place of the default AdaLibTouchInterrogator (STM32/mbed only, note: requires advanced setup, see tcMenu_Extra_BspUserSettings.h)
+//#define TERRA_UI_ENABLE_BSP_TOUCH
+
+// Uncomment or -D this define to enable usage of the debug menu 
+//#define TERRA_UI_ENABLE_DEBUG_MENU
+```
 
 #### External Libraries
 
@@ -172,23 +185,34 @@ Terraduino uses the following controller-side libraries depending on the enabled
 
 * **ArduinoJson** for JSON configuration data.
 * **ArxContainer** and **ArxSmartPtr** for container and shared-pointer support on Arduino targets.
-* **DHT sensor library** and **OneWire** for supported environmental/sensor paths.
+* **DHT sensor library** and **Adafruit Unified Sensor** for DHT environmental sensors.
 * **I2C_EEPROM** for external I2C EEPROM storage.
 * **RTClib** and **Time** for RTC and system time handling.
-* **SolarCalculator** for sunrise/sunset and daily environmental timing where used.
-* **TaskManagerIO** and **IoAbstraction** for multitasking and I/O support when multitasking is enabled.
+* **SolarCalculator** for offline solar position, sunrise, sunset, and transit calculations.
+* **TaskManagerIO**, **IoAbstraction**, and **SimpleCollections** for multitasking and I/O support when multitasking is enabled.
 * **Adafruit GPS** when GPS support is enabled.
 * **MQTT** when MQTT publishing is enabled.
 * **SD** plus the platform SPI/Wire support for local storage and buses.
 * **WiFi101**, **WiFiNINA_Generic**, **WiFiEspAT**, or **Ethernet** when the matching optional network path is enabled.
 
-Networking is optional. An offline Terraduino system does not need WiFi, Ethernet, or MQTT for normal reservoir, sensor, actuator, scheduling, or local logging behavior.
+Networking is optional. An offline Terraduino system does not need a WiFi, Ethernet, or MQTT library.
 
 #### External UI Libraries
 
-Terraduino follows the same tcMenu-based UI architecture as the controller family, but the Terraduino-specific UI layer on `develop` is still being ported toward Hydruino/Helioduino parity.
+The optional tcMenu UI layer can use the same display and input libraries across the controller family:
 
-The controller already carries the family display/control-input modes, but the current shared Terraduino UI wrapper remains a placeholder. Do not document Hydruino/Helioduino-specific UI feature defines or imply complete UI feature parity until the corresponding Terraduino implementation exists.
+* **tcMenu** for the menu, remote-control, and display abstraction layer.
+* **Adafruit GFX**, **Adafruit ILI9341**, and **Adafruit ST7735 and ST7789 Library** for supported color displays.
+* **Adafruit FT6206**, **Adafruit TouchScreen**, and optional **XPT2046_Touchscreen** for touch input.
+* **LiquidCrystalIO** for character LCD displays.
+* **U8g2** for monochrome OLED and LCD displays.
+* **TFT_eSPI** for supported advanced TFT configurations.
+* **tcUnicodeHelper** for Unicode-capable tcMenu display paths.
+
+* **U8g2** custom display setups use the selected U8g2 device class and are statically linked to that display configuration.
+* **TFT_eSPI** uses its `TFT_eSPI\User_Setup.h` configuration and therefore requires a rebuild when that hardware setup changes.
+* **BSP LCD / BSP Touch** support can use the included ChromaArt/BSP adapter layer on supported STM32/mbed targets. This is an advanced hardware-specific path.
+* **ST7789 custom TFT / TFT_eSPI** setups use statically configured screen dimensions and require a rebuild when those values change.
 
 ### Initialization
 
@@ -425,7 +449,7 @@ Serial UART devices can include Bluetooth-AT modules, ESP-AT WiFi modules, GPS m
 
 ## Example Usage
 
-A small system follows the same lifecycle used by the other controller libraries:
+Below are several examples of controller usage.
 
 ```Arduino
 #include <Terraduino.h>
