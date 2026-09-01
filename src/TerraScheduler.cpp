@@ -354,13 +354,42 @@ void TerraTracking::update()
     #endif
 
     if (!getController() || getController()->getSystemMode() != Terra_SystemMode_Automatic) {
-        if (stage != Init || actuatorReqs.size()) { reset(); }
+        if (stage != Init || actuatorReqs.size()) {
+            switch (stage) {
+                case Assess: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_AssessmentSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(unixNow() - stageStart)));
+                } break;
+                case Fill: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_FillSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(unixNow() - stageStart)));
+                } break;
+                case Condition: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_ConditioningSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(unixNow() - stageStart)));
+                } break;
+                case Distribute: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_DistributionSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(unixNow() - stageStart)));
+                } break;
+                case Settle: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_SettlingSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(unixNow() - stageStart)));
+                } break;
+                default:
+                    break;
+            }
+            reset();
+        }
         return;
     }
 
     time_t time = unixNow();
 
     if (!canProcessAfter || time >= canProcessAfter) {
+        auto stageWas = stage;
+        auto stageStartWas = stageStart;
+
         switch (stage) {
             case Init: {
                 stage = Assess; stageStart = time;
@@ -568,6 +597,58 @@ void TerraTracking::update()
 
             default:
                 break;
+        }
+
+        if (stageWas != stage) {
+            switch (stageWas) {
+                case Assess: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_AssessmentSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(time - stageStartWas)));
+                } break;
+                case Fill: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_FillSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(time - stageStartWas)));
+                } break;
+                case Condition: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_ConditioningSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(time - stageStartWas)));
+                } break;
+                case Distribute: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_DistributionSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(time - stageStartWas)));
+                } break;
+                case Settle: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_SettlingSequence), SFP(TStr_Log_HasEnded));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Measured), timeSpanToString(TimeSpan(time - stageStartWas)));
+                } break;
+                default:
+                    break;
+            }
+
+            switch (stage) {
+                case Assess: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_AssessmentSequence), SFP(TStr_Log_HasBegan));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Start), localTime(stageStart).timestamp(DateTime::TIMESTAMP_TIME));
+                } break;
+                case Fill: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_FillSequence), SFP(TStr_Log_HasBegan));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Start), localTime(stageStart).timestamp(DateTime::TIMESTAMP_TIME));
+                } break;
+                case Condition: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_ConditioningSequence), SFP(TStr_Log_HasBegan));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Start), localTime(stageStart).timestamp(DateTime::TIMESTAMP_TIME));
+                } break;
+                case Distribute: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_DistributionSequence), SFP(TStr_Log_HasBegan));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Start), localTime(stageStart).timestamp(DateTime::TIMESTAMP_TIME));
+                } break;
+                case Settle: {
+                    getLogger()->logProcess(reservoir.get(), SFP(TStr_Log_SettlingSequence), SFP(TStr_Log_HasBegan));
+                    getLogger()->logMessage(SFP(TStr_Log_Field_Time_Start), localTime(stageStart).timestamp(DateTime::TIMESTAMP_TIME));
+                } break;
+                default:
+                    break;
+            }
         }
     }
 

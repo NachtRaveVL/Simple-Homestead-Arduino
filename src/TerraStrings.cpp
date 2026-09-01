@@ -161,12 +161,28 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "System uptime";
             return flashStr;
         }
+        case TStr_Log_AssessmentSequence: {
+            static const char flashStr[] PROGMEM = " assessment sequence";
+            return flashStr;
+        }
         case TStr_Log_CalculatedPumping: {
             static const char flashStr[] PROGMEM = " pumping request:";
             return flashStr;
         }
-        case TStr_Log_MeasuredPumping: {
-            static const char flashStr[] PROGMEM = " pumping result:";
+        case TStr_Log_ConditioningSequence: {
+            static const char flashStr[] PROGMEM = " conditioning sequence";
+            return flashStr;
+        }
+        case TStr_Log_DistributionSequence: {
+            static const char flashStr[] PROGMEM = " distribution sequence";
+            return flashStr;
+        }
+        case TStr_Log_FillSequence: {
+            static const char flashStr[] PROGMEM = " fill sequence";
+            return flashStr;
+        }
+        case TStr_Log_HasBegan: {
+            static const char flashStr[] PROGMEM = " has began";
             return flashStr;
         }
         case TStr_Log_HasDisabled: {
@@ -175,6 +191,18 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Log_HasEnabled: {
             static const char flashStr[] PROGMEM = " has enabled";
+            return flashStr;
+        }
+        case TStr_Log_HasEnded: {
+            static const char flashStr[] PROGMEM = " has ended";
+            return flashStr;
+        }
+        case TStr_Log_MeasuredPumping: {
+            static const char flashStr[] PROGMEM = " pumping result:";
+            return flashStr;
+        }
+        case TStr_Log_SettlingSequence: {
+            static const char flashStr[] PROGMEM = " settling sequence";
             return flashStr;
         }
         case TStr_Log_Prefix_Info: {
@@ -203,6 +231,10 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Log_Field_Time_Measured: {
             static const char flashStr[] PROGMEM = "  Elapsed time: ";
+            return flashStr;
+        }
+        case TStr_Log_Field_Time_Start: {
+            static const char flashStr[] PROGMEM = "  Start time: ";
             return flashStr;
         }
         case TStr_Log_Field_Vol_Calculated: {
