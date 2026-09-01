@@ -21,10 +21,10 @@ TerraData *_allocateDataFromBaseDecode(const TerraData &baseDecode)
         retVal = _allocateDataForObjType(baseDecode.id.object.idType, baseDecode.id.object.classType);
     }
 
-    TERRA_SOFT_ASSERT(retVal, SFP(TStr_Err_UnknownDataDecode));
+    TERRA_SOFT_ASSERT(retVal, F("Unknown data decode"));
     if (retVal) {
         retVal->id = baseDecode.id;
-        TERRA_SOFT_ASSERT(retVal->_version >= baseDecode._version, SFP(TStr_Err_DataVersionMismatch));
+        TERRA_SOFT_ASSERT(retVal->_version >= baseDecode._version, F("Data version mismatch"));
         retVal->_revision = baseDecode._revision;
         return retVal;
     }
@@ -91,35 +91,6 @@ TerraData *_allocateDataForObjType(int8_t idType, int8_t classType)
 
     return nullptr;
 }
-
-TerraObjectData::TerraObjectData()
-    : TerraData(), name{0}, enabled(true)
-{
-    _size = sizeof(*this);
-}
-
-TerraObjectData::TerraObjectData(const TerraIdentity &idIn, tid_t classType)
-    : TerraData(idIn), name{0}, enabled(true)
-{
-    id.object.classType = classType;
-    _size = sizeof(*this);
-}
-
-void TerraObjectData::toJSONObject(JsonObject &objectOut) const
-{
-    TerraData::toJSONObject(objectOut);
-    if (name[0]) { objectOut["name"] = name; }
-    if (!enabled) { objectOut["enabled"] = false; }
-}
-
-void TerraObjectData::fromJSONObject(JsonObjectConst &objectIn)
-{
-    TerraData::fromJSONObject(objectIn);
-    const char *nameStr = objectIn["name"] | nullptr;
-    if (nameStr && nameStr[0]) { strncpy(name, nameStr, TERRA_NAME_MAXSIZE); }
-    enabled = objectIn["enabled"] | enabled;
-}
-
 
 TerraSystemData::TerraSystemData()
     : TerraData('T','S','Y','S', 1),

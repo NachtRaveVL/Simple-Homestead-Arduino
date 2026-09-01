@@ -260,7 +260,7 @@ void TerraTriggerSubData::toJSONObject(JsonObject &objectOut) const
     if (measurementRow) { objectOut[SFP(TStr_Key_MeasurementRow)] = measurementRow; }
     objectOut[SFP(TStr_Key_DetriggerTol)] = detriggerTol;
     objectOut[SFP(TStr_Key_DetriggerDelay)] = detriggerDelay;
-    objectOut[SFP(TStr_Key_MeasurementUnits)] = (int)measurementUnits;
+    if (measurementUnits != Terra_UnitsType_Undefined) { objectOut[SFP(TStr_Key_MeasurementUnits)] = unitsTypeToSymbol(measurementUnits); }
     if (type == TerraTrigger::MeasureValue) {
         objectOut[SFP(TStr_Key_Tolerance)] = dataAs.measureValue.tolerance;
         objectOut[SFP(TStr_Key_TriggerBelow)] = dataAs.measureValue.triggerBelow;
@@ -282,7 +282,7 @@ void TerraTriggerSubData::fromJSONObject(JsonObjectConst &objectIn)
     measurementRow = objectIn[SFP(TStr_Key_MeasurementRow)] | measurementRow;
     detriggerTol = objectIn[SFP(TStr_Key_DetriggerTol)] | detriggerTol;
     detriggerDelay = objectIn[SFP(TStr_Key_DetriggerDelay)] | detriggerDelay;
-    measurementUnits = (Terra_UnitsType)(objectIn[SFP(TStr_Key_MeasurementUnits)] | (int)measurementUnits);
+    measurementUnits = unitsTypeFromSymbol(objectIn[SFP(TStr_Key_MeasurementUnits)]);
     if (type == TerraTrigger::MeasureValue) {
         dataAs.measureValue.tolerance = objectIn[SFP(TStr_Key_Tolerance)] | dataAs.measureValue.tolerance;
         dataAs.measureValue.triggerBelow = objectIn[SFP(TStr_Key_TriggerBelow)] | dataAs.measureValue.triggerBelow;

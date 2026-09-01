@@ -239,8 +239,8 @@ TerraSensorData::TerraSensorData()
 void TerraSensorData::toJSONObject(JsonObject &objectOut) const
 {
     TerraObjectData::toJSONObject(objectOut);
-    objectOut[SFP(TStr_Key_MeasurementUnits)] = (int)measurementUnits;
-    if (reportedType != Terra_SensorType_Undefined) { objectOut[SFP(TStr_Key_ReportedType)] = (int)reportedType; }
+    if (measurementUnits != Terra_UnitsType_Undefined) { objectOut[SFP(TStr_Key_MeasurementUnits)] = unitsTypeToSymbol(measurementUnits); }
+    if (reportedType != Terra_SensorType_Undefined) { objectOut[SFP(TStr_Key_ReportedType)] = sensorTypeToString(reportedType); }
     if (inputPin.isSet()) {
         JsonObject pinObj = objectOut.createNestedObject(SFP(TStr_Key_InputPin));
         inputPin.toJSONObject(pinObj);
@@ -251,8 +251,8 @@ void TerraSensorData::toJSONObject(JsonObject &objectOut) const
 void TerraSensorData::fromJSONObject(JsonObjectConst &objectIn)
 {
     TerraObjectData::fromJSONObject(objectIn);
-    measurementUnits = (Terra_UnitsType)(objectIn[SFP(TStr_Key_MeasurementUnits)] | (int)measurementUnits);
-    reportedType = (Terra_SensorType)(objectIn[SFP(TStr_Key_ReportedType)] | (int)reportedType);
+    measurementUnits = unitsTypeFromSymbol(objectIn[SFP(TStr_Key_MeasurementUnits)]);
+    reportedType = sensorTypeFromString(objectIn[SFP(TStr_Key_ReportedType)]);
     JsonObjectConst pinObj = objectIn[SFP(TStr_Key_InputPin)].as<JsonObjectConst>();
     if (!pinObj.isNull()) { inputPin.fromJSONObject(pinObj); }
     staleAfterMs = objectIn[SFP(TStr_Key_StaleAfterMs)] | staleAfterMs;

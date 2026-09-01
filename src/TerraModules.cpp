@@ -144,7 +144,7 @@ SharedPtr<TerraObject> TerraObjectRegistration::objectById(TerraIdentity id) con
 
 SharedPtr<TerraObject> TerraObjectRegistration::objectById_Col(const TerraIdentity &id) const
 {
-    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_HashingCollision));
+    TERRA_SOFT_ASSERT(false, F("Hashing collision"));
 
     for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
         if (id.keyString == iter->second->getKeyString()) {

@@ -101,16 +101,8 @@ const char *pgmAddrForStr(Terra_String strNum)
             static const char flashStr[] PROGMEM = "Assertion failure";
             return flashStr;
         }
-        case TStr_Err_DataVersionMismatch: {
-            static const char flashStr[] PROGMEM = "Data version mismatch";
-            return flashStr;
-        }
         case TStr_Err_ExportFailure: {
             static const char flashStr[] PROGMEM = "Export failure";
-            return flashStr;
-        }
-        case TStr_Err_HashingCollision: {
-            static const char flashStr[] PROGMEM = "Hashing collision";
             return flashStr;
         }
         case TStr_Err_ImportFailure: {
@@ -151,18 +143,6 @@ const char *pgmAddrForStr(Terra_String strNum)
         }
         case TStr_Err_OperationFailure: {
             static const char flashStr[] PROGMEM = "Operation failure";
-            return flashStr;
-        }
-        case TStr_Err_RTCDefaultAddressOnly: {
-            static const char flashStr[] PROGMEM = "RTClib only supports the default I2C RTC address";
-            return flashStr;
-        }
-        case TStr_Err_SumpLevelInvalid: {
-            static const char flashStr[] PROGMEM = "sump level invalid";
-            return flashStr;
-        }
-        case TStr_Err_UnknownDataDecode: {
-            static const char flashStr[] PROGMEM = "Unknown data decode";
             return flashStr;
         }
         case TStr_Err_UnsupportedOperation: {
