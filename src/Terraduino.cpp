@@ -1043,10 +1043,10 @@ void Terraduino::setSystemName(String systemName)
     }
 }
 
-void Terraduino::setTimeZoneOffset(int8_t hoursOffset)
+void Terraduino::setTimeZoneOffset(float hoursOffset)
 {
     TERRA_SOFT_ASSERT(_systemData, SFP(TStr_Err_NotYetInitialized));
-    if (_systemData && _systemData->timeZoneOffset != hoursOffset) {
+    if (_systemData && !isFPEqual(_systemData->timeZoneOffset, hoursOffset)) {
         _systemData->timeZoneOffset = hoursOffset;
 
         setNeedsRedraw();

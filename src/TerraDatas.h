@@ -34,7 +34,7 @@ struct TerraSystemData : public TerraData {
     Terra_DisplayOutputMode dispOutMode;                    // System display output mode
     Terra_ControlInputMode ctrlInMode;                      // System control input mode 
     char systemName[TERRA_NAME_MAXSIZE];                    // System name
-    int16_t timeZoneOffset;                                 // Timezone offset from UTC, in whole hours
+    float timeZoneOffset;                                   // Timezone offset from UTC, in fractional hours
     uint16_t pollingInterval;                               // Sensor polling interval, in milliseconds
     Terra_Autosave autosaveEnabled;                         // Autosave enabled
     Terra_Autosave autosaveFallback;                        // Autosave fallback
