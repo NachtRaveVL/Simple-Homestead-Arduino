@@ -1172,7 +1172,7 @@ Pair<uint8_t, const pintype_t *> Terraduino::getControlInputPins() const
             case Terra_ControlInputMode_Matrix2x2UpDownButtonsOkL:
             case Terra_ControlInputMode_ResistiveTouch:
                 return make_pair((uint8_t)4, (const pintype_t *)_ctrlInputPins);
-            #ifdef TERRA_ENABLE_XPT2046TS
+            #ifdef TERRA_UI_ENABLE_XPT2046TS
                 case Terra_ControlInputMode_TouchScreen:
             #endif
             case Terra_ControlInputMode_TFTTouch:
