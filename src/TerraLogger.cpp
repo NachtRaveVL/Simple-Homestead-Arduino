@@ -87,23 +87,19 @@ bool TerraLogger::beginLoggingToWiFiStorage(String logFilePrefix)
     if (hasLoggerData() && !loggerData()->logToWiFiStorage) {
         String logFilename = getYYMMDDFilename(logFilePrefix, SFP(TStr_txt));
         #if TERRA_SYS_LEAVE_FILES_OPEN
-            auto &logFile = _logFileWS ? *_logFileWS : *(_logFileWS = new WiFiStorageFile(WiFiStorage.open(logFilename.c_str())));
+            _logFilename = logFilename;
+            if (!_logFileWS) { _logFileWS = new WiFiStorageFile(WiFiStorage.open(_logFilename.c_str())); }
         #else
             auto logFile = WiFiStorage.open(logFilename.c_str());
+            logFile.close();
+            _logFilename = logFilename;
         #endif
 
-        if (logFile) {
-            #if !TERRA_SYS_LEAVE_FILES_OPEN
-                logFile.close();
-            #endif
+        strncpy(loggerData()->logFilePrefix, logFilePrefix.c_str(), 16);
+        loggerData()->logToWiFiStorage = true;
+        Terraduino::_activeInstance->_systemData->bumpRevisionIfNeeded();
 
-            strncpy(loggerData()->logFilePrefix, logFilePrefix.c_str(), 16);
-            loggerData()->logToWiFiStorage = true;
-            _logFilename = logFilename;
-            Terraduino::_activeInstance->_systemData->bumpRevisionIfNeeded();
-
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -193,7 +189,7 @@ void TerraLogger::log(const TerraLogEvent &event)
             auto logFile = WiFiStorage.open(_logFilename.c_str());
         #endif
 
-        if (logFile) {
+        {
             auto logFileStream = TerraWiFiStorageFileStream(logFile, logFile.size());
 
             logFileStream.print(event.timestamp);
@@ -203,8 +199,8 @@ void TerraLogger::log(const TerraLogEvent &event)
             logFileStream.print(event.suffix1);
             logFileStream.println(event.suffix2);
 
+            logFileStream.flush();
             #if !TERRA_SYS_LEAVE_FILES_OPEN
-                logFileStream.flush();
                 logFile.close();
             #endif
         }
@@ -247,6 +243,11 @@ Signal<const TerraLogEvent, TERRA_LOG_SIGNAL_SLOTS> &TerraLogger::getLogSignal()
 void TerraLogger::notifyDateChanged()
 {
     if (isLoggingEnabled()) {
+        #if TERRA_SYS_LEAVE_FILES_OPEN
+            #ifdef TERRA_USE_WIFI_STORAGE
+                if (_logFileWS) { _logFileWS->close(); delete _logFileWS; _logFileWS = nullptr; }
+            #endif
+        #endif
         _logFilename = getYYMMDDFilename(charsToString(loggerData()->logFilePrefix, 16), SFP(TStr_txt));
         cleanupOldestLogs();
     }

@@ -94,25 +94,21 @@ bool TerraPublisher::beginPublishingToWiFiStorage(String dataFilePrefix)
     if (hasPublisherData() && !publisherData()->pubToWiFiStorage) {
         String dataFilename = getYYMMDDFilename(dataFilePrefix, SFP(TStr_csv));
         #if TERRA_SYS_LEAVE_FILES_OPEN
-            auto &dataFile = _dataFileWS ? *_dataFileWS : *(_dataFileWS = new WiFiStorageFile(WiFiStorage.open(dataFilename.c_str())));
+            _dataFilename = dataFilename;
+            if (!_dataFileWS) { _dataFileWS = new WiFiStorageFile(WiFiStorage.open(_dataFilename.c_str())); }
         #else
             auto dataFile = WiFiStorage.open(dataFilename.c_str());
+            dataFile.close();
+            _dataFilename = dataFilename;
         #endif
 
-        if (dataFile) {
-            #if !TERRA_SYS_LEAVE_FILES_OPEN
-                dataFile.close();
-            #endif
+        strncpy(publisherData()->dataFilePrefix, dataFilePrefix.c_str(), 16);
+        publisherData()->pubToWiFiStorage = true;
 
-            strncpy(publisherData()->dataFilePrefix, dataFilePrefix.c_str(), 16);
-            publisherData()->pubToWiFiStorage = true;
-            _dataFilename = dataFilename;
+        setNeedsTabulation();
+        Terraduino::_activeInstance->_systemData->bumpRevisionIfNeeded();
 
-            setNeedsTabulation();
-            Terraduino::_activeInstance->_systemData->bumpRevisionIfNeeded();
-
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -180,6 +176,7 @@ void TerraPublisher::notifyDateChanged()
 {
     if (isPublishingEnabled()) {
         _dataFilename = getYYMMDDFilename(charsToString(publisherData()->dataFilePrefix, 16), SFP(TStr_csv));
+        resetDataFile();
         cleanupOldestData();
     }
 }
@@ -279,7 +276,7 @@ void TerraPublisher::publish(time_t timestamp)
             auto dataFile = WiFiStorage.open(_dataFilename.c_str());
         #endif
 
-        if (dataFile) {
+        {
             auto dataFileStream = TerraWiFiStorageFileStream(dataFile, dataFile.size());
             dataFileStream.print(timestamp);
 
@@ -289,6 +286,7 @@ void TerraPublisher::publish(time_t timestamp)
             }
 
             dataFileStream.println();
+            dataFileStream.flush();
             #if !TERRA_SYS_LEAVE_FILES_OPEN
                 dataFile.close();
             #endif
@@ -452,7 +450,7 @@ void TerraPublisher::resetDataFile()
             auto dataFile = WiFiStorage.open(_dataFilename.c_str());
         #endif
 
-        if (dataFile) {
+        {
             auto dataFileStream = TerraWiFiStorageFileStream(dataFile);
             TerraSensor *lastSensor = nullptr;
             uint8_t measurementRow = 0;
@@ -479,6 +477,10 @@ void TerraPublisher::resetDataFile()
             }
 
             dataFileStream.println();
+            dataFileStream.flush();
+            #if !TERRA_SYS_LEAVE_FILES_OPEN
+                dataFile.close();
+            #endif
         }
     }
 

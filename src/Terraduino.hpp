@@ -85,6 +85,7 @@ inline void Terraduino::performAutosave()
                 #ifdef TERRA_USE_WIFI_STORAGE
                     saveToWiFiStorage(RAW);
                 #endif
+                break;
             case Terra_Autosave_Disabled:
                 break;
         }

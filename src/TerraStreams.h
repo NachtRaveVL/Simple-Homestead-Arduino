@@ -35,7 +35,7 @@ public:
 
 protected:
     I2C_eeprom *_eeprom;
-    uint16_t _readAddress, _writeAddress, _endAddress;
+    uint32_t _readAddress, _writeAddress, _endAddress;
 };
 
 
@@ -62,7 +62,7 @@ protected:
 
 class TerraWiFiStorageFileStream : public Stream {
 public:
-    TerraWiFiStorageFileStream(WiFiStorageFile file, uintptr_t seekPos = 0);
+    TerraWiFiStorageFileStream(WiFiStorageFile file, uint32_t seekPos = 0);
     virtual ~TerraWiFiStorageFileStream();
 
     virtual int available() override;
@@ -80,9 +80,9 @@ protected:
     WiFiStorageFile _file;
     uint8_t _buffer[TERRA_WIFISTREAM_BUFFER_SIZE];
     size_t _bufferOffset;
-    uintptr_t _bufferFileOffset;
+    uint32_t _bufferFileOffset;
     WiFiStorageFileDirection _bufferDirection;
-    uintptr_t _readOffset, _writeOffset, _endOffset;
+    uint32_t _readOffset, _writeOffset, _endOffset;
 
     void prepareReadBuffer();
     void prepareWriteBuffer();
