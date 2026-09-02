@@ -808,6 +808,11 @@ void Terraduino::commonPostSave()
     if (_systemData) {
         _systemData->unsetModified();
     }
+    #ifdef TERRA_USE_GUI
+        if (_uiData) {
+            _uiData->unsetModified();
+        }
+    #endif
 
     if (hasUserCalibrations()) {
         for (auto iter = _calibrationData.begin(); iter != _calibrationData.end(); ++iter) {
