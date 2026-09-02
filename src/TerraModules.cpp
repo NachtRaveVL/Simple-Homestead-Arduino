@@ -15,10 +15,11 @@ TerraCalibrations::~TerraCalibrations()
 
 void TerraCalibrations::clearUserCalibrations()
 {
-    for (auto iter = _calibrationData.begin(); iter != _calibrationData.end(); ++iter) {
+    while (_calibrationData.size()) {
+        auto iter = _calibrationData.begin();
         if (iter->second) { delete iter->second; }
+        _calibrationData.erase(iter);
     }
-    _calibrationData.clear();
 }
 
 const TerraCalibrationData *TerraCalibrations::getUserCalibrationData(tkey_t key) const
@@ -77,7 +78,7 @@ bool TerraCalibrations::dropUserCalibrationData(const TerraCalibrationData *cali
 
 bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 {
-    TERRA_SOFT_ASSERT(object->getId().posIndex >= 0 && object->getId().posIndex < TERRA_POS_MAXSIZE, SFP(TStr_Err_InvalidParameter));
+    TERRA_SOFT_ASSERT(object && object->getId().posIndex >= 0 && object->getId().posIndex < TERRA_POS_MAXSIZE, SFP(TStr_Err_InvalidParameter));
     if (object && _objects.find(object->getKey()) == _objects.end()) {
         _objects[object->getKey()] = object;
 
@@ -99,6 +100,9 @@ bool TerraObjectRegistration::registerObject(SharedPtr<TerraObject> object)
 
 bool TerraObjectRegistration::unregisterObject(SharedPtr<TerraObject> object)
 {
+    TERRA_SOFT_ASSERT(object, SFP(TStr_Err_InvalidParameter));
+    if (!object) { return false; }
+
     auto iter = _objects.find(object->getKey());
     if (iter != _objects.end()) {
         _objects.erase(iter);

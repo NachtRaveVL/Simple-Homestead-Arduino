@@ -7,6 +7,10 @@ int main()
     Terraduino controller;
     controller.init();
 
+    SharedPtr<TerraObject> nullObject;
+    assert(!controller.registerObject(nullObject));
+    assert(!controller.unregisterObject(nullObject));
+
     auto first = controller.addWaterReservoir(1000.0f);
     auto second = controller.addWaterReservoir(1000.0f);
     assert(first && second);
@@ -27,6 +31,11 @@ int main()
     assert(measurement && measurement->isSingleType());
     assert(getMeasurementUnits(measurement) == Terra_UnitsType_LiqVolume_Liters);
 
+    TerraCalibrationData calibration(level->getId(), Terra_UnitsType_LiqVolume_Liters);
+    calibration.setFromTwoPoints(0.0f, 0.0f, 1.0f, 1000.0f);
+    level->setUserCalibrationData(&calibration);
+    assert(controller.hasUserCalibrations());
+    assert(level->getUserCalibrationData() != nullptr);
     TerraData *saved = first->newSaveData();
     assert(saved && saved->isObjectData());
     TerraObject *restored = newObjectFromData(static_cast<TerraObjectData *>(saved));

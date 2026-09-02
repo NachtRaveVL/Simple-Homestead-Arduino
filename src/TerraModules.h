@@ -20,7 +20,7 @@ struct TerraCalibrationData;
 // Stores user calibration data, which calibrates sensor output into usable values.
 class TerraCalibrations {
 public:
-    virtual ~TerraCalibrations();
+    ~TerraCalibrations();
     void clearUserCalibrations();
 
     // Adds/updates user calibration data to the store, returning success flag.
