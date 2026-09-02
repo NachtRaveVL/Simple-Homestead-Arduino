@@ -1,7 +1,10 @@
-/*  Terraduino: overview template scaffolding.
+/*  Terraduino: Overview Screens.
     Copyright (C) 2026 NachtRaveVL
 */
-#ifndef TerraOverviews_HPP
-#define TerraOverviews_HPP
-// UI stub: Domain-specific overview drawing is intentionally not implemented yet.
+
+#include "TerraduinoUI.h"
+#ifdef TERRA_USE_GUI
+
+#include "screens/TerraOverviewGFX.hpp"
+
 #endif

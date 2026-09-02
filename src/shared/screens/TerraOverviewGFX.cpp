@@ -1,2 +1,8 @@
-/*  Terraduino: GFX overview scaffold. */
-#include "TerraOverviewGFX.h"
+/*  Terraduino: AdafruitGFX Overview Screen.
+    Copyright (C) 2026 NachtRaveVL
+*/
+
+#include "../TerraduinoUI.h"
+#ifdef TERRA_USE_GUI
+
+#endif

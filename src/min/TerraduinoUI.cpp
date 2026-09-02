@@ -1,5 +1,6 @@
-/*  Terraduino: Minimal/RO UI scaffold.
+/*  Terraduino: Simple automation controller for homestead resource and environmental systems.
     Copyright (C) 2026 NachtRaveVL
+    Terraduino Minimal/RO UI
 */
 
 #include "TerraduinoUI.h"
@@ -12,72 +13,618 @@ TerraduinoMinUI::TerraduinoMinUI(String deviceUUID, UIControlSetup uiControlSetu
 TerraduinoMinUI::~TerraduinoMinUI()
 { ; }
 
-void TerraduinoMinUI::allocateStandardControls() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateESP32TouchControl() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateResistiveTouchControl() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateTouchscreenControl() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateTFTTouchControl() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateLCDDisplay() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSSD1305Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSSD1305x32AdaDisplay() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSSD1305x64AdaDisplay() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSSD1306Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSH1106Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateCustomOLEDDisplay() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateSSD1607Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateIL3820Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateIL3820V2Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateST7735Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateST7789Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateILI9341Display() { /* UI stub: device allocation intentionally deferred. */ }
-void TerraduinoMinUI::allocateTFTDisplay() { /* UI stub: device allocation intentionally deferred. */ }
+void TerraduinoMinUI::allocateStandardControls()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_input, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_input) {
+        auto ctrlInMode = controller->getControlInputMode();
+        auto ctrlInPins = controller->getControlInputPins();
+        switch (ctrlInMode) {
+            case Terra_ControlInputMode_RotaryEncoderOk:
+            case Terra_ControlInputMode_RotaryEncoderOkLR: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Encoder, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputRotary(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.encoder.encoderSpeed);
+            } break;
+
+            case Terra_ControlInputMode_UpDownButtonsOk:
+            case Terra_ControlInputMode_UpDownButtonsOkLR: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Buttons, SFP(TStr_Err_InvalidParameter));
+                if (!_uiCtrlSetup.ctrlCfgAs.buttons.isDFRobotShield) {
+                    _input = new TerraInputUpDownButtons(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.buttons.repeatSpeed);
+                } else {
+                    _input = new TerraInputUpDownButtons(true, _uiCtrlSetup.ctrlCfgAs.buttons.repeatSpeed);
+                }
+            } break;
+
+            case Terra_ControlInputMode_AnalogJoystickOk: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Joystick, SFP(TStr_Err_InvalidParameter));
+                if (_uiData) {
+                    _input = new TerraInputJoystick(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.joystick.repeatDelay, _uiCtrlSetup.ctrlCfgAs.joystick.decreaseDivisor,
+                                                    _uiData->joystickCalib[0], _uiData->joystickCalib[1], _uiData->joystickCalib[2]);
+                } else {
+                    _input = new TerraInputJoystick(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.joystick.repeatDelay, _uiCtrlSetup.ctrlCfgAs.joystick.decreaseDivisor);
+                }
+            } break;
+
+            case Terra_ControlInputMode_Matrix2x2UpDownButtonsOkL: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Matrix, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputMatrix2x2(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.matrix.repeatDelay, _uiCtrlSetup.ctrlCfgAs.matrix.repeatInterval);
+            } break;
+
+            case Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOk:
+            case Terra_ControlInputMode_Matrix3x4Keyboard_OptRotEncOkLR: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Matrix, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputMatrix3x4(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.matrix.repeatDelay, _uiCtrlSetup.ctrlCfgAs.matrix.repeatInterval,
+                                                 _uiCtrlSetup.ctrlCfgAs.matrix.encoderSpeed);
+            } break;
+
+            case Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOk:
+            case Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOkLR: {
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Matrix, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputMatrix4x4(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.matrix.repeatDelay, _uiCtrlSetup.ctrlCfgAs.matrix.repeatInterval,
+                                                 _uiCtrlSetup.ctrlCfgAs.matrix.encoderSpeed);
+            } break;
+
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(!(ctrlInMode >= Terra_ControlInputMode_RotaryEncoderOk && ctrlInMode <= Terra_ControlInputMode_Matrix4x4Keyboard_OptRotEncOkLR) || _input, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateESP32TouchControl()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_input, SFP(TStr_Err_AlreadyInitialized));
+    #ifndef ESP32
+        TERRA_SOFT_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
+    #endif
+
+    if (controller && !_input) {
+        auto ctrlInMode = controller->getControlInputMode();
+        auto ctrlInPins = controller->getControlInputPins();
+        switch (ctrlInMode) {
+            case Terra_ControlInputMode_UpDownESP32TouchOk:
+            case Terra_ControlInputMode_UpDownESP32TouchOkLR:
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::ESP32Touch, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputESP32TouchKeys(ctrlInPins, _uiCtrlSetup.ctrlCfgAs.espTouch.repeatSpeed, _uiCtrlSetup.ctrlCfgAs.espTouch.switchThreshold,
+                                                      _uiCtrlSetup.ctrlCfgAs.espTouch.highVoltage, _uiCtrlSetup.ctrlCfgAs.espTouch.lowVoltage, _uiCtrlSetup.ctrlCfgAs.espTouch.attenuation);
+                break;
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(!(ctrlInMode >= Terra_ControlInputMode_UpDownESP32TouchOk && ctrlInMode <= Terra_ControlInputMode_UpDownESP32TouchOkLR) || _input, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateResistiveTouchControl()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_input, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_input) {
+        auto ctrlInMode = controller->getControlInputMode();
+        auto ctrlInPins = controller->getControlInputPins();
+        switch (ctrlInMode) {
+            case Terra_ControlInputMode_ResistiveTouch:
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_NotYetInitialized));
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Touchscreen, SFP(TStr_Err_InvalidParameter));
+                _input = new TerraInputResistiveTouch(ctrlInPins, _display, _uiDispSetup.getDisplayRotation(), _uiCtrlSetup.ctrlCfgAs.touchscreen.orient);
+                break;
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(ctrlInMode != Terra_ControlInputMode_ResistiveTouch || _input, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateTouchscreenControl()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_input, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_input) {
+        auto ctrlInMode = controller->getControlInputMode();
+        auto ctrlInPins = controller->getControlInputPins();
+        switch (ctrlInMode) {
+            case Terra_ControlInputMode_TouchScreen:
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_NotYetInitialized));
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Touchscreen, SFP(TStr_Err_InvalidParameter));
+                #ifdef TERRA_UI_ENABLE_XPT2046TS
+                    TERRA_SOFT_ASSERT(ctrlInPins.first && ctrlInPins.second && isValidPin(ctrlInPins.second[0]), SFP(TStr_Err_InvalidPinOrType));
+                #endif
+                _input = new TerraInputTouchscreen(ctrlInPins, _display, _uiDispSetup.getDisplayRotation(), _uiCtrlSetup.ctrlCfgAs.touchscreen.orient);
+                break;
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(ctrlInMode != Terra_ControlInputMode_TouchScreen || _input, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateTFTTouchControl()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_input, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_input) {
+        auto ctrlInMode = controller->getControlInputMode();
+        auto ctrlInPins = controller->getControlInputPins();
+        auto dispOutMode = controller->getDisplayOutputMode();
+        switch (ctrlInMode) {
+            case Terra_ControlInputMode_TFTTouch:
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_NotYetInitialized));
+                TERRA_SOFT_ASSERT(dispOutMode == Terra_DisplayOutputMode_TFT, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(_uiCtrlSetup.ctrlCfgType == UIControlSetup::Touchscreen, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(ctrlInPins.first && ctrlInPins.second && isValidPin(ctrlInPins.second[0]), SFP(TStr_Err_InvalidPinOrType));
+                #ifdef TOUCH_CS
+                    TERRA_SOFT_ASSERT(ctrlInPins.first && ctrlInPins.second && ctrlInPins.second[0] == TOUCH_CS, SFP(TStr_Err_NotConfiguredProperly));
+                #else
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
+                #endif
+                _input = new TerraInputTFTTouch(ctrlInPins, (TerraDisplayTFTeSPI *)_display, _uiDispSetup.getDisplayRotation(), _uiCtrlSetup.ctrlCfgAs.touchscreen.orient, TERRA_UI_TFTTOUCH_USES_RAW);
+                break;
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(ctrlInMode != Terra_ControlInputMode_TFTTouch || _input, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateLCDDisplay()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        TERRA_SOFT_ASSERT(!(dispOutMode >= Terra_DisplayOutputMode_LCD16x2_EN && dispOutMode <= Terra_DisplayOutputMode_LCD20x4_RS) || displaySetup.cfgType == DeviceSetup::I2CSetup, SFP(TStr_Err_InvalidParameter));
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_LCD16x2_EN:
+            case Terra_DisplayOutputMode_LCD16x2_RS:
+            case Terra_DisplayOutputMode_LCD20x4_EN:
+            case Terra_DisplayOutputMode_LCD20x4_RS:
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::LCD, SFP(TStr_Err_InvalidParameter));
+                if (!_uiDispSetup.dispCfgAs.lcd.isDFRobotShield) {
+                    _display = new TerraDisplayLiquidCrystal(dispOutMode, displaySetup.cfgAs.i2c, _uiDispSetup.dispCfgAs.lcd.ledMode);
+                } else {
+                    _display = new TerraDisplayLiquidCrystal(true, displaySetup.cfgAs.i2c, _uiDispSetup.dispCfgAs.lcd.ledMode);
+                }
+                break;
+            default: break;
+        }
+        TERRA_SOFT_ASSERT(!(dispOutMode >= Terra_DisplayOutputMode_LCD16x2_EN && dispOutMode <= Terra_DisplayOutputMode_LCD20x4_RS) || _display, SFP(TStr_Err_AllocationFailure));
+    }
+}
+
+void TerraduinoMinUI::allocateSSD1305Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SSD1305: {
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305Wire(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305Wire1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateSSD1305x32AdaDisplay()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SSD1305_x32Ada: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x32AdaWire(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x32AdaWire1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x32AdaSPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x32AdaSPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateSSD1305x64AdaDisplay()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SSD1305_x64Ada: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x64AdaWire(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x64AdaWire1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x64AdaSPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1305x64AdaSPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateSSD1306Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SSD1306: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1306Wire(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1306Wire1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1306SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1306SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateSH1106Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SH1106: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE) {
+                    _display = TerraDisplayU8g2OLED::allocateSH1106Wire(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::I2CSetup && displaySetup.cfgAs.i2c.wire == TERRA_USE_WIRE1) {
+                    _display = TerraDisplayU8g2OLED::allocateSH1106Wire1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSH1106SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup && displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSH1106SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateCustomOLEDDisplay()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_CustomOLED: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgType == DeviceSetup::I2CSetup) {
+                    _display = TerraDisplayU8g2OLED::allocateCustomOLEDI2C(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgType == DeviceSetup::SPISetup) {
+                    _display = TerraDisplayU8g2OLED::allocateCustomOLEDSPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateSSD1607Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_SSD1607: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1607SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateSSD1607SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateIL3820Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_IL3820: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateIL3820SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateIL3820SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateIL3820V2Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_IL3820_V2: {
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI) {
+                    _display = TerraDisplayU8g2OLED::allocateIL3820V2SPI(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else if (displaySetup.cfgAs.spi.spi == TERRA_USE_SPI1) {
+                    _display = TerraDisplayU8g2OLED::allocateIL3820V2SPI1(displaySetup, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                } else {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_InvalidParameter));
+                }
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateST7735Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_ST7735: {
+                TERRA_SOFT_ASSERT(displaySetup.cfgType == DeviceSetup::SPISetup, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                _display = new TerraDisplayAdafruitGFX<Adafruit_ST7735>(displaySetup.cfgAs.spi, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.st77Kind, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateST7789Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        // Display driver setup
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_ST7789: {
+                TERRA_SOFT_ASSERT(displaySetup.cfgType == DeviceSetup::SPISetup, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                _display = new TerraDisplayAdafruitGFX<Adafruit_ST7789>(displaySetup.cfgAs.spi, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.st77Kind, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateILI9341Display()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_ILI9341: {
+                TERRA_SOFT_ASSERT(displaySetup.cfgType == DeviceSetup::SPISetup, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::Pixel, SFP(TStr_Err_InvalidParameter));
+                _display = new TerraDisplayAdafruitGFX<Adafruit_ILI9341>(displaySetup.cfgAs.spi, _uiDispSetup.dispCfgAs.gfx.rotation, _uiDispSetup.dispCfgAs.gfx.dcPin, _uiDispSetup.dispCfgAs.gfx.resetPin);
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
+
+void TerraduinoMinUI::allocateTFTDisplay()
+{
+    auto controller = getController();
+    TERRA_HARD_ASSERT(controller, SFP(TStr_Err_InitializationFailure));
+    TERRA_SOFT_ASSERT(!_display, SFP(TStr_Err_AlreadyInitialized));
+
+    if (controller && !_display) {
+        auto dispOutMode = controller->getDisplayOutputMode();
+        auto displaySetup = controller->getDisplaySetup();
+
+        switch (dispOutMode) {
+            case Terra_DisplayOutputMode_TFT: {
+                TERRA_SOFT_ASSERT(displaySetup.cfgType == DeviceSetup::SPISetup, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(_uiDispSetup.dispCfgType == UIDisplaySetup::TFT, SFP(TStr_Err_InvalidParameter));
+                TERRA_SOFT_ASSERT(!(bool)TERRA_USE_SPI || displaySetup.cfgAs.spi.spi == TERRA_USE_SPI, SFP(TStr_Err_InvalidParameter));
+                #ifdef TFT_CS
+                    TERRA_SOFT_ASSERT(displaySetup.cfgAs.spi.cs == TFT_CS, SFP(TStr_Err_NotConfiguredProperly));
+                #else
+                    TERRA_HARD_ASSERT(false, SFP(TStr_Err_NotConfiguredProperly));
+                #endif
+                _display = new TerraDisplayTFTeSPI(displaySetup.cfgAs.spi, _uiDispSetup.dispCfgAs.tft.rotation, _uiDispSetup.dispCfgAs.tft.st77Kind);
+                TERRA_SOFT_ASSERT(_display, SFP(TStr_Err_AllocationFailure));
+            } break;
+            default: break;
+        }
+    }
+}
 
 void TerraduinoMinUI::addSerialRemote(UARTDeviceSetup rcSetup)
 {
-    auto remoteControl = new TerraRemoteSerialControl(rcSetup);
+    TerraRemoteControl *remoteControl = new TerraRemoteSerialControl(rcSetup);
+    TERRA_SOFT_ASSERT(remoteControl, SFP(TStr_Err_AllocationFailure));
+
     if (remoteControl && remoteControl->getConnection()) {
         if (!_remoteServer) { _remoteServer = new TcMenuRemoteServer(getApplicationInfo()); }
         if (_remoteServer) { _remoteServer->addConnection(remoteControl->getConnection()); }
         _remotes.push_back(remoteControl);
-    } else if (remoteControl) { delete remoteControl; }
+    } else {
+        if (remoteControl) { delete remoteControl; }
+    }
 }
 
 void TerraduinoMinUI::addSimhubRemote(UARTDeviceSetup rcSetup)
 {
-    auto remoteControl = new TerraRemoteSimhubControl(rcSetup, TERRA_UI_SIMHUB_STATUS_MENU_ID);
+    TerraRemoteControl *remoteControl = new TerraRemoteSimhubControl(rcSetup, TERRA_UI_SIMHUB_STATUS_MENU_ID);
+    TERRA_SOFT_ASSERT(remoteControl, SFP(TStr_Err_AllocationFailure));
+
     if (remoteControl && remoteControl->getConnection()) {
         if (!_remoteServer) { _remoteServer = new TcMenuRemoteServer(getApplicationInfo()); }
         if (_remoteServer) { _remoteServer->addConnection(remoteControl->getConnection()); }
         _remotes.push_back(remoteControl);
-    } else if (remoteControl) { delete remoteControl; }
+    } else {
+        if (remoteControl) { delete remoteControl; }
+    }
 }
 
 void TerraduinoMinUI::addWiFiRemote(uint16_t rcServerPort)
 {
-#ifdef TERRA_USE_WIFI
-    auto remoteControl = new TerraRemoteWiFiControl(rcServerPort);
+    TerraRemoteControl *remoteControl = 
+    #ifdef TERRA_USE_WIFI
+        new TerraRemoteWiFiControl(rcServerPort);
+        TERRA_SOFT_ASSERT(remoteControl, SFP(TStr_Err_AllocationFailure));
+    #else
+        nullptr;
+        TERRA_SOFT_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
+    #endif
+
     if (remoteControl && remoteControl->getConnection()) {
         if (!_remoteServer) { _remoteServer = new TcMenuRemoteServer(getApplicationInfo()); }
         if (_remoteServer) { _remoteServer->addConnection(remoteControl->getConnection()); }
         _remotes.push_back(remoteControl);
-    } else if (remoteControl) { delete remoteControl; }
-#else
-    (void)rcServerPort;
-#endif
+    } else {
+        if (remoteControl) { delete remoteControl; }
+    }
 }
 
 void TerraduinoMinUI::addEthernetRemote(uint16_t rcServerPort)
 {
-#ifdef TERRA_USE_ETHERNET
-    auto remoteControl = new TerraRemoteEthernetControl(rcServerPort);
+    TerraRemoteControl *remoteControl = 
+    #ifdef TERRA_USE_ETHERNET
+        new TerraRemoteEthernetControl(rcServerPort);
+        TERRA_SOFT_ASSERT(remoteControl, SFP(TStr_Err_AllocationFailure));
+    #else
+        nullptr;
+        TERRA_SOFT_ASSERT(false, SFP(TStr_Err_UnsupportedOperation));
+    #endif
+
     if (remoteControl && remoteControl->getConnection()) {
         if (!_remoteServer) { _remoteServer = new TcMenuRemoteServer(getApplicationInfo()); }
         if (_remoteServer) { _remoteServer->addConnection(remoteControl->getConnection()); }
         _remotes.push_back(remoteControl);
-    } else if (remoteControl) { delete remoteControl; }
-#else
-    (void)rcServerPort;
-#endif
+    } else {
+        if (remoteControl) { delete remoteControl; }
+    }
 }
 
 bool TerraduinoMinUI::isFullUI()
