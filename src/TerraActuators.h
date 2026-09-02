@@ -84,7 +84,7 @@ public:
     // Transformation methods that convert from calibration units to normalized driving intensity/driver value
     inline float calibrationInvTransform(float value) const { return _calibrationData ? _calibrationData->inverseTransform(value) : value; }
     inline void calibrationInvTransform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { if (valueInOut && _calibrationData) { _calibrationData->inverseTransform(valueInOut, unitsOut); } }
-    inline TerraSingleMeasurement calibrationInvTransform(TerraSingleMeasurement measurement) { return _calibrationData ? TerraSingleMeasurement(_calibrationData->inverseTransform(measurement.value), _calibrationData->calibrationUnits, measurement.timestamp, measurement.frame) : measurement; }
+    inline TerraSingleMeasurement calibrationInvTransform(TerraSingleMeasurement measurement) { return _calibrationData ? TerraSingleMeasurement(_calibrationData->inverseTransform(measurement.value), Terra_UnitsType_Raw_1, measurement.timestamp, measurement.frame) : measurement; }
     inline void calibrationInvTransform(TerraSingleMeasurement *measurementInOut) const { if (measurementInOut && _calibrationData) { _calibrationData->inverseTransform(measurementInOut); } }
 
     inline float getCalibratedValue() const { return calibrationTransform(getDriveIntensity()); }

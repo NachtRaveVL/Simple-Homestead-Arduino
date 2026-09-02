@@ -91,7 +91,7 @@ struct TerraCalibrationData : public TerraData {
     inline void inverseTransform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { *valueInOut = inverseTransform(*valueInOut);
                                                                                                  if (unitsOut) { *unitsOut = Terra_UnitsType_Raw_1; } }
     // Inverse transforms measurement from calibrated (or transformed) measurement back into raw (or initial) measurement.
-    inline TerraSingleMeasurement inverseTransform(TerraSingleMeasurement measurement) { return TerraSingleMeasurement(inverseTransform(measurement.value), calibrationUnits, measurement.timestamp, measurement.frame); }
+    inline TerraSingleMeasurement inverseTransform(TerraSingleMeasurement measurement) { return TerraSingleMeasurement(inverseTransform(measurement.value), Terra_UnitsType_Raw_1, measurement.timestamp, measurement.frame); }
     // Inverse transforms measurement in-place from calibrated (or transformed) measurement back into raw (or initial) measurement.
     inline void inverseTransform(TerraSingleMeasurement *measurementInOut) const { inverseTransform(&measurementInOut->value, &measurementInOut->units); }
 
