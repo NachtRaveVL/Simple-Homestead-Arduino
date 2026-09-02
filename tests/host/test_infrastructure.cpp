@@ -29,7 +29,7 @@ int main()
 
     TerraData *saved = first->newSaveData();
     assert(saved && saved->isObjectData());
-    TerraObject *restored = TerraFactory::newObjectFromData(static_cast<TerraObjectData *>(saved));
+    TerraObject *restored = newObjectFromData(static_cast<TerraObjectData *>(saved));
     assert(restored);
     assert(restored->getId() == first->getId());
     delete restored;

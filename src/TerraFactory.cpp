@@ -255,21 +255,3 @@ SharedPtr<TerraRegulatedRail> TerraFactory::addRegulatedPowerRail(Terra_RailType
 
     return nullptr;
 }
-
-TerraObject *TerraFactory::newObjectFromData(const TerraObjectData *dataIn)
-{
-    if (!dataIn || !dataIn->isObjectData()) { return nullptr; }
-
-    switch ((Terra_ObjectType)dataIn->id.object.idType) {
-        case Terra_ObjectType_Actuator:
-            return newActuatorObjectFromData(static_cast<const TerraActuatorData *>(dataIn));
-        case Terra_ObjectType_Sensor:
-            return newSensorObjectFromData(static_cast<const TerraSensorData *>(dataIn));
-        case Terra_ObjectType_Reservoir:
-            return newReservoirObjectFromData(static_cast<const TerraReservoirData *>(dataIn));
-        case Terra_ObjectType_Rail:
-            return newRailObjectFromData(static_cast<const TerraRailData *>(dataIn));
-        default:
-            return nullptr;
-    }
-}

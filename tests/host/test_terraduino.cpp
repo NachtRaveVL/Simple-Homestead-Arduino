@@ -24,7 +24,7 @@ int main()
     auto *reservoirData = static_cast<TerraWaterReservoirData *>(data);
     assert(reservoirData->volumeSensor[0]);
 
-    TerraObject *restored = TerraFactory::newObjectFromData(reservoirData);
+    TerraObject *restored = newObjectFromData(reservoirData);
     assert(restored);
     auto *restoredReservoir = static_cast<TerraWaterReservoir *>(restored);
     assert(restoredReservoir->getWaterVolumeSensorAttachment().getKey() == volume->getKey());

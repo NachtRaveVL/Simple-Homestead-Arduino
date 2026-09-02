@@ -87,9 +87,6 @@ public:
                                                   int maxActiveAtOnce = 2);
     SharedPtr<TerraRegulatedRail> addRegulatedPowerRail(Terra_RailType railType,
                                                         float maxPower);
-
-    // Creates an object from persisted data (return ownership transfer - user code must delete or wrap returned object).
-    static TerraObject *newObjectFromData(const TerraObjectData *dataIn);
 };
 
 #endif // /ifndef TerraFactory_H
