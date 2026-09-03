@@ -8,9 +8,11 @@ Licensed under the non-restrictive MIT license.
 
 Created by NachtRaveVL, 2026.
 
+This project is part of a four-library controller family: **Simple-Hydroponics-Arduino (Hydruino)**, **Simple-SolarTracker-Arduino (Helioduino)**, **Simple-Homestead-Arduino (Terraduino)**, and **Simple-AstroTracker-Arduino (Astruino)**.
+
 This controller manages water storage and transfer, thermal storage, environmental sensing, pumps, valves, heaters, shared power rails, scheduling, logging, publishing, and persistent configuration for physical property infrastructure.
 
-Our Keep-It-Simple controller system:
+The Keep-It-Simple controller system:
 
 * Can be used entirely offline with RTC module and optional GPS module (or known static location) for accurate time keeping, or used online through enabled on-board WiFi/Ethernet or external ESP-AT WiFi module.
   * Uses [SolarCalculator](https://github.com/jpb10/SolarCalculator), inspired by the NOAA Solar Calculator, for fine offline calculations of the sun's solar position (including sunrise, sunset, & transit times), accurate until 2100.
@@ -36,17 +38,17 @@ Our Keep-It-Simple controller system:
 * Supports local and remote sensor measurements for environmental and infrastructure monitoring.
 * Actuator & Sensor pins can be multiplexed or expanded along with any control input pins through 8/16-bit i2c expanders for pin-limited controllers.
 
-Made primarily for Arduino microcontrollers / build environments, but should work with PlatformIO, Espressif, Teensy, STM32, Pico, and others - although one might experience turbulence until the bug reports get ironed out.
+Designed primarily for Arduino and Arduino-compatible build environments. PlatformIO, Espressif, Teensy, STM32, Pico, and other supported toolchains may also be used.
 
-*If you value the work that we do, our small team always appreciates a subscription to our [Patreon](www.patreon.com/nachtrave).*
+*If this work is useful, project support is always appreciated through [Patreon](www.patreon.com/nachtrave).*
 
 ## About
 
-We want to make homestead resource automation more accessible to DIY'ers by utilizing the widely-available low-cost IoT and IoT-like microcontrollers (MCUs) of today.
+The goal is to make homestead resource automation more accessible to DIY builders by using widely available, low-cost microcontrollers (MCUs).
 
-With the advances in miniaturization technology bringing us even more compact MCUs at even lower costs, it becomes a lot more possible to use one of these small devices to monitor reservoirs, move water, manage stored heat, record weather measurements, control equipment, and coordinate property infrastructure. Homestead automation is a strong application for these devices, especially as a data logger, process monitor, and local supervisory controller.
+Modern low-cost MCUs provide enough processing power, memory, and I/O to monitor reservoirs, move water, manage stored heat, record weather measurements, and coordinate property equipment. Homestead resource automation is a strong fit for these devices as a local controller, data logger, and process monitor. Commercial controller systems can cost hundreds or thousands of dollars, while DIY systems can be built for substantially less.
 
-Terraduino is a MCU-based solution primarily written for Arduino and Arduino-like MCU devices. It allows one to combine widely available pumps, valves, relays, sensors, heaters, storage tanks, thermal stores, and other low-cost hardware into a functional DIY property automation system. A small sump or cistern controller and a larger multi-reservoir homestead system can use the same controller without requiring cloud services or a fixed hardware design.
+Terraduino is written primarily for Arduino and Arduino-compatible MCUs. It combines pumps, valves, relays, sensors, heaters, storage tanks, thermal stores, and other widely available low-cost hardware into a functional DIY property automation system. The physical implementation remains open to the builder.
 
 ## Controller Setup
 
@@ -60,17 +62,17 @@ Minimum planning target: 256–512kB Flash, 16–24kB SRAM, 16MHz+
 
 Recommended: 512kB–1MB+ Flash, 24–32kB+ SRAM, 32–48MHz+
 
-Modern 32-bit boards such as Pico RP2040/RP2350, ESP32, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the natural starting point when monitoring, logging, UI, and networking are expected to run together.
+Modern 32-bit boards such as Pico RP2040/RP2350, ESP32, Teensy 3.5+, STM32, GIGA, and Portenta-class devices are the natural starting point when automation, logging, UI, and networking are expected to run together.
 
-Terraduino systems may need to service numerous sensors, pumps, valves, heaters, reservoirs, rails, and timed processes concurrently. Sensor polling, actuator response, control-loop activity, display load, and communication traffic can therefore matter more than Flash size alone when selecting the MCU.
+Terraduino systems may need to service numerous sensors, pumps, valves, heaters, reservoirs, rails, and timed processes concurrently. Sensor polling, actuator response, control-loop activity, display load, logging, and communication traffic can therefore matter more than Flash size alone when selecting the MCU.
 
 ### Installation
 
-The easiest way to install this controller is to utilize the Arduino IDE library manager, or through a package manager such as PlatformIO. Otherwise, simply download this controller and extract its files into a `Simple-Homestead-Arduino` folder in your Arduino custom libraries folder, typically found in your `[My ]Documents\Arduino\libraries` folder (Windows), or `~/Documents/Arduino/libraries/` folder (Linux/OSX).
+Installation through the Arduino IDE Library Manager or a package manager such as PlatformIO is the simplest option. Manual installation consists of extracting the library into a `Simple-Homestead-Arduino` directory under the Arduino custom libraries directory, typically `[My ]Documents\Arduino\libraries` on Windows or `~/Documents/Arduino/libraries/` on Linux/macOS.
 
-From there, you can make a local copy of one of the example sketches based on the kind of system setup you want to use. If you are unsure of which, we recommend the Basic Homestead Example, as it is the smallest complete system example. The Full System Example is the larger reference implementation for a more complete property controller.
+The Basic Homestead Example is the recommended starting point because it is the smallest complete system. The Full System Example is the larger integrated reference.
 
-Storage constrained MCUs (< 512kB Flash, particularly <= 256kB) may need further setup file/max-sizes tweaking, and possibly external storage hardware (such as EEPROM or SD Card - see the Data Writer example for more details). Modern MCUs with lots of Flash storage can instead use larger reservoir, sensor, networking, logging, and UI configurations together.
+Storage-constrained MCUs (< 512kB Flash, particularly <= 256kB) may require smaller feature sets, adjusted max-size defines, or external EEPROM/SD storage; see the Data Writer Example. Modern MCUs with larger Flash and SRAM can enable more of the controller at once.
 
 ### Reservoirs and Scheduling
 
@@ -82,7 +84,7 @@ The scheduler automatically coordinates reservoir processes through Assess, Fill
 
 ### Host Tests
 
-Core logic and source-data checks can be run without an Arduino connected:
+Host-side tests can be run with CMake:
 
 ```sh
 cmake -S tests -B build-host
@@ -94,11 +96,11 @@ ctest --test-dir build-host --output-on-failure
 
 #### Header Defines
 
-There are several defines inside of the controller's main `Terraduino[UI].h` header file that allow for more fine-tuned control of the controller. You may edit and uncomment these lines directly, or supply them via custom build flags. While editing the main header file isn't ideal, it is often easiest. Note that editing the controller's main header file directly will affect all projects compiled on your system using those modified controller files.
+Several defines inside the controller's main `Terraduino[UI].h` header file provide fine-grained control over optional features and build behavior. These may be edited directly or supplied through custom build flags. Editing the main header is often the simplest approach, but affects every project compiled against that modified library.
 
-Alternatively, you may also refer to <https://forum.arduino.cc/index.php?topic=602603.0> on how to define custom build flags manually via modifying the platform[.local].txt file, or with the Arduino CLI (preferred way going forward).
+Custom build flags can also be supplied through the Arduino CLI or the older `platform.local.txt` override approach. See <https://forum.arduino.cc/index.php?topic=602603.0> for additional details.
 
-For the older platform.local.txt file override approach, create platform.local.txt alongside platform.txt located in %applocaldata%\Arduino15\packages\{platform}\hardware\{arch}\{version}\ (replacing %applocaldata%\Arduino15 with ~/Library/Arduino15 for OSX, and ~/.arduino15 for Linux), with the contents: `compiler.cpp.extra_flags=-Dname` (replacing `name` with full name of below define). Note that it will affect all builds for that platform until again changed/removed. Some build systems may require directly editing platform.txt and adding onto the end of its CPP build recipe, e.g. Teensy & `recipe.cpp.o.pattern=<bunch-of-stuff> -Dname`.
+For the older `platform.local.txt` override, create `platform.local.txt` alongside `platform.txt` in `%applocaldata%\Arduino15\packages\{platform}\hardware\{arch}\{version}\` (replace `%applocaldata%\Arduino15` with `~/Library/Arduino15` on macOS or `~/.arduino15` on Linux) and add `compiler.cpp.extra_flags=-Dname`, replacing `name` with the required define. This affects all builds for that platform until changed or removed. Some build systems, including Teensy, may instead require editing `platform.txt` and appending the define to the C++ build recipe.
 
 From Terraduino.h:
 ```Arduino
@@ -171,7 +173,7 @@ Networking is optional. An offline Terraduino system does not need a WiFi, Ether
 
 #### External UI Libraries
 
-The optional tcMenu UI layer can use the same display and input libraries across the controller family:
+The optional tcMenu UI layer can use the following display and input libraries as required by the selected hardware:
 
 * **tcMenu** for the menu, remote-control, and display abstraction layer.
 * **Adafruit GFX**, **Adafruit ILI9341**, and **Adafruit ST7735 and ST7789 Library** for supported color displays.
@@ -192,7 +194,7 @@ There are several initialization mode settings exposed through this controller t
 
 #### Class Instantiation
 
-The controller's class object must first be instantiated, commonly at the top of the sketch where pin setups are defined (or exposed through some other mechanism), which makes a call to the controller's class constructor. The constructor allows one to set the module's various devices and how they are connected, with defaults providing no device specified.
+Instantiate the controller object before `setup()`, typically near the sketch's pin and device configuration. The constructor accepts optional hardware-device setup values; defaults select no external devices.
 
 From Terraduino.h, in class Terraduino:
 ```Arduino
@@ -211,7 +213,7 @@ From Terraduino.h, in class Terraduino:
 
 #### Controller Initialization
 
-Additionally, a call is expected to be provided to the controller class object's `init[From…](…)` method, commonly called inside of the sketch's `setup()` function. This allows one to set the controller's system type (Manual, Automatic, or Disabled), units of measurement (Metric, Imperial, or Scientific), control input mode, and display output mode. The default mode of the controller, if left unspecified, is an Automatic system set to Metric units, without any input control or output display.
+Call the controller object's `init[From…](…)` method from `setup()` to initialize a new system or load a saved configuration. For a new system, `init()` selects the system mode, measurement mode, control-input mode, and display-output mode. Defaults select an Automatic system using the default measurement units with control input and display output disabled.
 
 From Terraduino.h, in class Terraduino:
 ```Arduino
@@ -262,11 +264,11 @@ From Terraduino.h, in class Terraduino:
 
 ### Event Logging & Data Publishing
 
-The controller can, after initialization, be set to produce logs and data files that can be further used by other applications. Log entries are timestamped and can keep track of when transfers are performed, when devices enable/disable, scheduler stage changes, etc., while data files can be read into plotting applications or exported to a database for further processing. The passed file prefix is typically the subfolder that such files should reside under and is appended with the year, month, and date (in YYMMDD format).
+After initialization, the controller can write timestamped system logs and sensor data for external analysis. Log entries record controller events, while data files can be imported into plotting tools or databases. File prefixes are typically used as subfolders and are appended with the date in `YYMMDD` format.
 
-Note: You can also get the same logging output sent to the Serial device by defining `TERRA_ENABLE_DEBUG_OUTPUT`, described above in Header Defines.
+Serial logging output can also be enabled with `TERRA_ENABLE_DEBUG_OUTPUT`, described above under Header Defines.
 
-Note: Files on FAT32-based SD cards are limited to 8 character file/folder names and a 3 character extension.
+FAT32-based SD cards use 8.3 filenames, limiting file/folder names to eight characters plus a three-character extension.
 
 From Terraduino.h, in class Terraduino:
 ```Arduino
@@ -441,7 +443,7 @@ Below are several examples of controller usage.
 
 ### Basic Homestead System Example
 
-The Basic Homestead Example shows how a small Terraduino system can be setup using a water reservoir and sensor without requiring the surrounding features of a larger property controller. In this sketch only that which you actually use is built into the final compiled binary, making it an ideal lean starting point.
+The Basic Homestead Example shows how a small Terraduino system can be set up with a water reservoir and remote level sensor. Only the objects used by the sketch are built into the final binary, making it a lean starting point.
 
 ```Arduino
 #include <Terraduino.h>
@@ -471,7 +473,7 @@ void loop()
 
 ### Main System Examples
 
-The supplied examples cover the main Terraduino system roles. New users should start with the Basic Homestead Example above, then use the Full System Example as the larger integrated reference.
+The supplied examples cover the main Terraduino system roles. The Basic Homestead Example above is the recommended starting point; the remaining examples provide focused references for additional controller features.
 
 * **BasicHomestead** - Minimal controller lifecycle with water/thermal reservoirs and measurements.
 * **FullSystem** - Integrated water transfer, thermal storage, remote data, scheduler operation, and console/debug logging.
@@ -482,10 +484,10 @@ The supplied examples cover the main Terraduino system roles. New users should s
 
 ### Data Writer Example
 
-The Data Writer Example builds a small controller configuration and exports it through the same `TerraData` / ArduinoJson persistence path used by normal controller saves.
+The Data Writer Example demonstrates JSON persistence through the normal controller data model.
 
-This Example initializes the controller, creates example water and thermal reservoirs with attached remote sensors, and writes the resulting pretty-print JSON configuration to the Serial device.
+It initializes a small system, creates water and thermal reservoirs with attached remote sensors, and writes the resulting configuration as pretty-print JSON.
 
-The same save/load paths can be used with EEPROM, SD card, WiFiStorage, JSON streams, or binary streams when the matching storage path is enabled.
+The same persistence path can be used with EEPROM, SD card, WiFiStorage, JSON streams, or binary streams when the matching storage path is enabled.
 
-Note: Again, you can get logging output sent to the Serial device by defining `TERRA_ENABLE_DEBUG_OUTPUT`, described above in Header Defines.
+Serial logging output can also be enabled with `TERRA_ENABLE_DEBUG_OUTPUT`, described above under Header Defines.
