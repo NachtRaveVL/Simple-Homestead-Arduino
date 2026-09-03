@@ -39,6 +39,14 @@ set(TERRADUINO_SRC
 
 add_library(terraduino_host STATIC ${TERRADUINO_SRC})
 target_include_directories(terraduino_host PUBLIC ../src)
+target_include_directories(terraduino_host SYSTEM PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/host/shims
+)
+target_compile_definitions(terraduino_host PUBLIC
+    ARDUINO=10819
+    TERRA_DISABLE_GUI
+    TERRA_DISABLE_MULTITASKING
+)
 
 add_executable(test_automation host/test_automation.cpp)
 target_link_libraries(test_automation PRIVATE terraduino_host)
