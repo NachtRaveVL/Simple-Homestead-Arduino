@@ -17,8 +17,27 @@ void TerraCalibrations::clearUserCalibrations()
 {
     while (_calibrationData.size()) {
         auto iter = _calibrationData.begin();
-        if (iter->second) { delete iter->second; }
-        _calibrationData.erase(iter);
+        tkey_t key = iter->first;
+
+        if (iter->second && getController()) {
+            TerraIdentity ownerId(iter->second->ownerName);
+            ownerId.posIndex = 0;
+            auto owner = getController()->objectById(ownerId);
+
+            if (owner) {
+                if (owner->isSensorType()) {
+                    static_pointer_cast<TerraSensor>(owner)->setUserCalibrationData(nullptr);
+                } else if (owner->isActuatorType()) {
+                    static_pointer_cast<TerraActuator>(owner)->setUserCalibrationData(nullptr);
+                }
+            }
+        }
+
+        iter = _calibrationData.find(key);
+        if (iter != _calibrationData.end()) {
+            if (iter->second) { delete iter->second; }
+            _calibrationData.erase(iter);
+        }
     }
 }
 

@@ -36,6 +36,10 @@ int main()
     level->setUserCalibrationData(&calibration);
     assert(controller.hasUserCalibrations());
     assert(level->getUserCalibrationData() != nullptr);
+    controller.clearUserCalibrations();
+    assert(!controller.hasUserCalibrations());
+    assert(level->getUserCalibrationData() == nullptr);
+    assert(controller.getUserCalibrationData(level->getKey()) == nullptr);
     TerraData *saved = first->newSaveData();
     assert(saved && saved->isObjectData());
     TerraObject *restored = newObjectFromData(static_cast<TerraObjectData *>(saved));

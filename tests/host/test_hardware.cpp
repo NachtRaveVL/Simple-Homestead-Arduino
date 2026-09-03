@@ -11,6 +11,13 @@ int main()
     assert(pump);
     assert(pump->getOutputPin().isValid());
 
+    TerraCalibrationData calibration(pump->getId(), Terra_UnitsType_Raw_1);
+    calibration.setFromTwoPoints(0.0f, 0.0f, 1.0f, 1.0f);
+    pump->setUserCalibrationData(&calibration);
+    assert(pump->getUserCalibrationData() != nullptr);
+    controller.clearUserCalibrations();
+    assert(pump->getUserCalibrationData() == nullptr);
+
     TerraActivationHandle first = pump->enableActuator(Terra_DirectionMode_Forward, 0.4f);
     TerraActivationHandle second = pump->enableActuator(Terra_DirectionMode_Forward, 0.8f);
     pump->setEnableMode(Terra_EnableMode_Highest);
