@@ -3,117 +3,138 @@
     Terraduino Drivers
 */
 
-#include "TerraDrivers.h"
-#include "TerraUtils.h"
+#include "Terraduino.h"
+#include <math.h>
 
 TerraCallbackInputDriver::TerraCallbackInputDriver(TerraReadCallback callback,
                                                    void *context,
-                                                   Terra_Unit unit)
-    : _callback(callback), _context(context), _unit(unit) { }
+                                                   Terra_UnitsType units)
+    : _callback(callback), _context(context), _units(units)
+{ ; }
 
-void TerraCallbackInputDriver::setCallback(TerraReadCallback callback, void *context) {
+void TerraCallbackInputDriver::setCallback(TerraReadCallback callback, void *context)
+{
     _callback = callback;
     _context = context;
 }
 
-TerraMeasurement TerraCallbackInputDriver::read(uint32_t now) {
-    if (!_callback) return TerraMeasurement(0.0f, _unit, now, false);
+TerraSingleMeasurement TerraCallbackInputDriver::read(uint32_t now)
+{
+    if (!_callback) { return TerraSingleMeasurement(0.0f, _units, now, tframe_none); }
     float value = _callback(_context);
-    return TerraMeasurement(value, _unit, now, !isnan(value));
+    return TerraSingleMeasurement(value, _units, now, isnan(value) ? tframe_none : 1);
 }
 
-TerraAnalogInputDriver::TerraAnalogInputDriver(uint8_t pin, Terra_Unit unit)
-    : _pin(pin), _unit(unit), _rawMinimum(0.0f), _rawMaximum(1023.0f),
-      _valueMinimum(0.0f), _valueMaximum(100.0f), _calibrated(false) { }
+TerraAnalogInputDriver::TerraAnalogInputDriver(pintype_t pin, uint8_t bitRes)
+    : _pin(pin, Terra_PinMode_Analog_Input, bitRes)
+{ ; }
 
-void TerraAnalogInputDriver::begin() {
-    _pin.begin();
+void TerraAnalogInputDriver::begin()
+{
+    _pin.init();
 }
 
-bool TerraAnalogInputDriver::setCalibration(float rawMinimum, float rawMaximum,
-                                            float valueMinimum, float valueMaximum) {
-    if (isFPEqual(rawMinimum, rawMaximum)) return false;
-    _rawMinimum = rawMinimum;
-    _rawMaximum = rawMaximum;
-    _valueMinimum = valueMinimum;
-    _valueMaximum = valueMaximum;
-    _calibrated = true;
+TerraSingleMeasurement TerraAnalogInputDriver::read(uint32_t now)
+{
+    return TerraSingleMeasurement(_pin.analogRead(), Terra_UnitsType_Raw_1, now, 1);
+}
+
+bool TerraAnalogInputDriver::getPinData(TerraPinData &dataOut) const
+{
+    if (!_pin.isValid()) { return false; }
+    _pin.saveToData(&dataOut);
     return true;
 }
 
-TerraMeasurement TerraAnalogInputDriver::read(uint32_t now) {
-    float raw = (float)_pin.read();
-    float value = _calibrated
-        ? terraMapFloat(raw, _rawMinimum, _rawMaximum, _valueMinimum, _valueMaximum)
-        : raw;
-    return TerraMeasurement(value, _unit, now, true);
+TerraDigitalInputDriver::TerraDigitalInputDriver(pintype_t pin,
+                                                 bool activeLow,
+                                                 Terra_PinMode pinMode,
+                                                 Terra_UnitsType units)
+    : _pin(pin, pinMode, activeLow), _units(units)
+{ ; }
+
+void TerraDigitalInputDriver::begin()
+{
+    _pin.init();
 }
 
-bool TerraAnalogInputDriver::getPinSetup(TerraPinSetup &setup) const {
-    setup = TerraPinSetup(_pin.getPin(), Terra_PinMode_Analog_Input, false);
-    return setup.isValid();
+TerraSingleMeasurement TerraDigitalInputDriver::read(uint32_t now)
+{
+    return TerraSingleMeasurement(_pin.isActive() ? 1.0f : 0.0f, _units, now, 1);
 }
 
-bool TerraAnalogInputDriver::getCalibration(float &rawMinimum, float &rawMaximum,
-                                            float &valueMinimum, float &valueMaximum) const {
-    if (!_calibrated) return false;
-    rawMinimum = _rawMinimum;
-    rawMaximum = _rawMaximum;
-    valueMinimum = _valueMinimum;
-    valueMaximum = _valueMaximum;
+bool TerraDigitalInputDriver::getPinData(TerraPinData &dataOut) const
+{
+    if (!_pin.isValid()) { return false; }
+    _pin.saveToData(&dataOut);
     return true;
-}
-
-TerraDigitalInputDriver::TerraDigitalInputDriver(const TerraPinSetup &setup, Terra_Unit unit)
-    : _pin(setup), _unit(unit) { }
-
-void TerraDigitalInputDriver::begin() {
-    _pin.begin();
-}
-
-TerraMeasurement TerraDigitalInputDriver::read(uint32_t now) {
-    return TerraMeasurement(_pin.read() ? 1.0f : 0.0f, _unit, now, true);
 }
 
 TerraCallbackOutputDriver::TerraCallbackOutputDriver(TerraWriteCallback callback, void *context)
-    : _callback(callback), _context(context) { }
+    : _callback(callback), _context(context)
+{ ; }
 
-void TerraCallbackOutputDriver::setCallback(TerraWriteCallback callback, void *context) {
+void TerraCallbackOutputDriver::setCallback(TerraWriteCallback callback, void *context)
+{
     _callback = callback;
     _context = context;
 }
 
-bool TerraCallbackOutputDriver::write(float value) {
-    if (!_callback) return false;
-    _callback(_context, terraClamp(value, 0.0f, 1.0f));
+bool TerraCallbackOutputDriver::write(float value)
+{
+    if (!_callback) { return false; }
+    _callback(_context, value < 0.0f ? 0.0f : value > 1.0f ? 1.0f : value);
     return true;
 }
 
-TerraDigitalOutputDriver::TerraDigitalOutputDriver(const TerraPinSetup &setup)
-    : _pin(setup) { }
+TerraDigitalOutputDriver::TerraDigitalOutputDriver(pintype_t pin, bool activeLow)
+    : _pin(pin, Terra_PinMode_Digital_Output, activeLow)
+{ ; }
 
-void TerraDigitalOutputDriver::begin() {
-    _pin.begin();
+void TerraDigitalOutputDriver::begin()
+{
+    _pin.init();
 }
 
-bool TerraDigitalOutputDriver::write(float value) {
-    _pin.write(value >= 0.5f);
-    return _pin.getSetup().isValid();
+bool TerraDigitalOutputDriver::write(float value)
+{
+    if (!_pin.isValid()) { return false; }
+    if (value >= 0.5f) { _pin.activate(); }
+    else { _pin.deactivate(); }
+    return true;
 }
 
-TerraAnalogOutputDriver::TerraAnalogOutputDriver(uint8_t pin, int maximumRaw)
-    : _pin(pin), _maximumRaw(maximumRaw > 0 ? maximumRaw : 255) { }
+bool TerraDigitalOutputDriver::getPinData(TerraPinData &dataOut) const
+{
+    if (!_pin.isValid()) { return false; }
+    _pin.saveToData(&dataOut);
+    return true;
+}
+
+TerraAnalogOutputDriver::TerraAnalogOutputDriver(pintype_t pin, uint8_t bitRes)
+    : _pin(pin, Terra_PinMode_Analog_Output, bitRes)
+{ ; }
 
 void TerraAnalogOutputDriver::begin()
 {
-    _pin.begin();
+    _pin.init();
 }
 
 bool TerraAnalogOutputDriver::write(float value)
 {
-    if (_pin.getPin() == TERRA_INVALID_PIN) return false;
-    const float normalized = terraClamp(value, 0.0f, 1.0f);
-    const int raw = (int)(normalized * (float)_maximumRaw + 0.5f);
-    _pin.write(raw);
+    if (!_pin.isValid()) { return false; }
+    _pin.analogWrite(value < 0.0f ? 0.0f : value > 1.0f ? 1.0f : value);
     return true;
+}
+
+bool TerraAnalogOutputDriver::getPinData(TerraPinData &dataOut) const
+{
+    if (!_pin.isValid()) { return false; }
+    _pin.saveToData(&dataOut);
+    return true;
+}
+
+int TerraAnalogOutputDriver::getMaximumRaw() const
+{
+    return _pin.bitRes.bits && _pin.bitRes.bits < 16 ? (1 << _pin.bitRes.bits) - 1 : 255;
 }

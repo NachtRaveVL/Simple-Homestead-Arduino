@@ -6,108 +6,81 @@
 #ifndef TerraCoreLogic_H
 #define TerraCoreLogic_H
 
-#include "TerraTypes.h"
+#include "Terraduino.h"
 
-struct TerraTransferDecision {
-    bool shouldRun;                                         // Transfer/circulation command state
-    Terra_RouteState state;                                 // Evaluated route state
-    const char *reason;
+// Returns elapsed unsigned time while remaining safe across 32-bit timer rollover.
+inline uint32_t terraElapsedTime(uint32_t now, uint32_t start)
+{
+    return (uint32_t)(now - start);
+}
 
-    TerraTransferDecision(bool run = false, Terra_RouteState stateIn = Terra_RouteState_Idle, const char *reasonIn = "idle")
-        : shouldRun(run), state(stateIn), reason(reasonIn) { }
+// Returns true once the requested unsigned duration has elapsed.
+inline bool terraHasElapsed(uint32_t now, uint32_t start, uint32_t duration)
+{
+    return terraElapsedTime(now, start) >= duration;
+}
+
+// Converts a signed actuator value into reverse, stopped, or forward direction.
+inline int terraDirectionForValue(float value, float epsilon = FLT_EPSILON)
+{
+    return fabsf(value) <= epsilon ? 0 : value > 0.0f ? 1 : -1;
+}
+
+// Applies a minimum stable time before accepting a changed binary sensor state.
+inline bool terraUpdateStableBinaryState(bool acceptedState, bool sampledState, uint32_t now,
+                                         uint16_t stableTimeMillis, bool &pendingState,
+                                         bool &hasPendingState, uint32_t &pendingStateStart)
+{
+    if (sampledState == acceptedState) {
+        hasPendingState = false;
+    } else if (!stableTimeMillis) {
+        hasPendingState = false;
+        return sampledState;
+    } else if (!hasPendingState || pendingState != sampledState) {
+        pendingState = sampledState;
+        pendingStateStart = now;
+        hasPendingState = true;
+    } else if (terraHasElapsed(now, pendingStateStart, stableTimeMillis)) {
+        hasPendingState = false;
+        return sampledState;
+    }
+
+    return acceptedState;
+}
+
+// Resolves a measured value as too low, balanced, or too high around the target range.
+inline int terraBalancingStateForValue(float value, float targetSetpoint, float targetRange)
+{
+    const float halfTargetRange = fabsf(targetRange) * 0.5f;
+    if (value < targetSetpoint - halfTargetRange) { return 0; }
+    if (value > targetSetpoint + halfTargetRange) { return 2; }
+    return 1;
+}
+
+// Converts a balancing state into positive, neutral, or negative correction direction.
+inline int terraBalancingCorrectionForState(int balancingState)
+{
+    if (balancingState == 0) { return 1; }
+    if (balancingState == 2) { return -1; }
+    return 0;
+}
+
+// Binary record copy/skip plan used for append-only serialized data migrations.
+struct TerraBinaryDataReadPlan
+{
+    size_t copyBytes;                                       // Bytes that can be copied into the current data structure
+    size_t skipBytes;                                       // Unknown trailing bytes that must be skipped in the serialized record
 };
 
-inline Terra_ResourceState terraClassifyResourceState(float level, float reserveLevel, float lowLevel, float highLevel, bool fault = false) {
-    if (fault) return Terra_ResourceState_Fault;
-    if (level <= reserveLevel) return Terra_ResourceState_Reserve;
-    if (level <= lowLevel) return Terra_ResourceState_Low;
-    if (level >= highLevel) return Terra_ResourceState_High;
-    return Terra_ResourceState_Normal;
+// Builds a safe copy plan for older, current, or newer append-only binary records.
+inline TerraBinaryDataReadPlan terraBinaryDataReadPlan(size_t serializedSize, size_t currentSize, size_t baseSize)
+{
+    if (serializedSize < baseSize || currentSize < baseSize) { return {0, 0}; }
+
+    const size_t serializedRemaining = serializedSize - baseSize;
+    const size_t currentRemaining = currentSize - baseSize;
+    const size_t copyBytes = serializedRemaining < currentRemaining ? serializedRemaining : currentRemaining;
+    return {copyBytes, serializedRemaining - copyBytes};
 }
 
-inline TerraTransferDecision terraEvaluateWaterTransfer(bool sourceAvailable,
-                                                        float sourceLevel,
-                                                        float sourceReserve,
-                                                        float destinationLevel,
-                                                        float destinationStart,
-                                                        float destinationStop,
-                                                        bool routeFault = false,
-                                                        bool currentlyRunning = false) {
-    if (routeFault) return TerraTransferDecision(false, Terra_RouteState_Fault, "route fault");
-    if (!sourceAvailable) return TerraTransferDecision(false, Terra_RouteState_Idle, "source unavailable");
-    if (sourceLevel <= sourceReserve) return TerraTransferDecision(false, Terra_RouteState_Idle, "source reserve protected");
-    if (destinationLevel >= destinationStop) return TerraTransferDecision(false, Terra_RouteState_Complete, "destination target reached");
-    if (currentlyRunning) return TerraTransferDecision(true, Terra_RouteState_Active, "continuing fill to stop level");
-    if (destinationLevel <= destinationStart) return TerraTransferDecision(true, Terra_RouteState_Requested, "destination requests fill");
-    return TerraTransferDecision(false, Terra_RouteState_Idle, "within destination band");
-}
-
-inline float terraCisternTransferLiters(float sourceStoredLiters,
-                                        float sourceReserveLiters,
-                                        float destinationStoredLiters,
-                                        float destinationTargetLiters,
-                                        float requestedLiters) {
-    if (requestedLiters <= 0.0f) return 0.0f;
-    const float sourceAvailable = sourceStoredLiters > sourceReserveLiters ? sourceStoredLiters - sourceReserveLiters : 0.0f;  // Source volume available above reserve
-    const float destinationRoom = destinationTargetLiters > destinationStoredLiters ? destinationTargetLiters - destinationStoredLiters : 0.0f;  // Destination room below target
-    const float sourceLimited = sourceAvailable < requestedLiters ? sourceAvailable : requestedLiters;  // Source-limited transfer request
-    return destinationRoom < sourceLimited ? destinationRoom : sourceLimited;
-}
-
-inline bool terraThermalLoopShouldRun(float collectorTemp,
-                                      float storeTemp,
-                                      float onDifferential,
-                                      float offDifferential,
-                                      float maxStoreTemp,
-                                      bool currentlyRunning) {
-    if (storeTemp >= maxStoreTemp) return false;
-    float delta = collectorTemp - storeTemp;                // Temperature differential
-    return currentlyRunning ? delta > offDifferential : delta >= onDifferential;
-}
-
-inline bool terraFreezeRisk(float temperatureC, float thresholdC = 0.0f) {
-    return temperatureC <= thresholdC;
-}
-
-inline float terraResolveActuatorRequests(const float *requests, uint8_t count, Terra_EnableMode mode) {
-    if (!requests || !count) return 0.0f;
-
-    switch (mode) {
-        case Terra_EnableMode_Highest: {
-            float value = requests[0];                      // Intermediate aggregated value
-            for (uint8_t i = 1; i < count; ++i) if (requests[i] > value) value = requests[i];
-            return value;
-        }
-        case Terra_EnableMode_Lowest: {
-            float value = requests[0];                      // Intermediate aggregated value
-            for (uint8_t i = 1; i < count; ++i) if (requests[i] < value) value = requests[i];
-            return value;
-        }
-        case Terra_EnableMode_Average: {
-            float value = 0.0f;                             // Intermediate aggregated value
-            for (uint8_t i = 0; i < count; ++i) value += requests[i];
-            return value / (float)count;
-        }
-        case Terra_EnableMode_Multiply: {
-            float value = requests[0];                      // Intermediate aggregated value
-            for (uint8_t i = 1; i < count; ++i) value *= requests[i];
-            return value;
-        }
-        case Terra_EnableMode_RevOrder:
-            return requests[count - 1];
-        case Terra_EnableMode_InOrder:
-            return requests[0];
-        case Terra_EnableMode_Undefined:
-        case Terra_EnableMode_Count:
-        default:
-            return requests[0];
-    }
-}
-
-inline bool terraFlowFault(bool commandedOn, float flowRate, float minimumFlow, float maximumFlow = 0.0f) {
-    if (!commandedOn) return flowRate > minimumFlow;
-    if (flowRate < minimumFlow) return true;
-    return maximumFlow > 0.0f && flowRate > maximumFlow;
-}
-
-#endif
+#endif // /ifndef TerraCoreLogic_H

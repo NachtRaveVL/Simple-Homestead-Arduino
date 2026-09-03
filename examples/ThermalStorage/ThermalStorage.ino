@@ -1,39 +1,35 @@
 // Simple-Homestead-Arduino Thermal Storage Example
 //
-// Demonstrates differential circulation between a heat source and a thermal store. The
-// library decides when circulation is useful, while independent hardware temperature and
-// pressure protection remains responsible for installation safety.
+// Demonstrates the canonical thermal reservoir with a temperature sensor attachment.
+// Independent hardware temperature and pressure protection remains responsible for safety.
 
 #include <Terraduino.h>
 
-TerraThermalStore heatStore(0, "Hot Water Store");
-TerraThermalLoop collectorLoop(0, "Collector Loop");
-TerraThermalBalancer thermalBalancer;
+Terraduino terraController;
+SharedPtr<TerraRemoteSensor> storeTemperature;
+SharedPtr<TerraThermalReservoir> heatStore;
 
 void setup()
 {
     Serial.begin(115200);
 
-    heatStore.setTargetRange(45.0f, 65.0f);
-    heatStore.setAbsoluteMaximum(90.0f);
-    collectorLoop.configure(8.0f, 3.0f, 80.0f);
+    terraController.init();
+    storeTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
+                                                       Terra_UnitsType_Temperature_Celsius);
+    heatStore = terraController.addThermalReservoir(90.0f);
+    heatStore->getMediumTemperatureSensorAttachment().setObject(storeTemperature);
+
+    terraController.launch();
 }
 
 void loop()
 {
-    // Replace these values with collector and storage temperature sensors.
-    float collectorTemperatureC = 72.0f;
-    float storeTemperatureC = 52.0f;
-    heatStore.setTemperature(storeTemperatureC);
+    // Replace with the installed temperature sensor driver.
+    storeTemperature->receiveReport(52.0f, Terra_UnitsType_Temperature_Celsius);
 
-    bool circulate = thermalBalancer.evaluate(collectorLoop, collectorTemperatureC, storeTemperatureC);
-    if (circulate) {
-        // Command a suitable external circulation-pump controller here.
-    }
+    terraController.update();
 
-    if (heatStore.isSafetyLimitExceeded()) {
-        Serial.println(F("Thermal store safety limit exceeded"));
-    }
-
+    Serial.print(F("Thermal store level, %: "));
+    Serial.println(heatStore->getLevel(true), 1);
     delay(1000);
 }

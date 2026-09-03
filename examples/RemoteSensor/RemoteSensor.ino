@@ -6,28 +6,32 @@
 
 #include <Terraduino.h>
 
-TerraRemoteSensor barnTemperature(Terra_SensorType_Temperature,
-                                  Terra_Unit_Celsius,
-                                  0,
-                                  "Barn Temperature");
+Terraduino terraController;
+SharedPtr<TerraRemoteSensor> barnTemperature;
 
 void onRemoteMessage(float temperatureC)
 {
-    barnTemperature.receiveReport(temperatureC, Terra_Unit_Celsius, millis(), true);
+    if (barnTemperature) {
+        barnTemperature->receiveReport(temperatureC, Terra_UnitsType_Temperature_Celsius, millis(), true);
+    }
 }
 
 void setup()
 {
     Serial.begin(115200);
-    barnTemperature.setStaleAfter(5UL * 60UL * 1000UL);
+    terraController.init();
+    barnTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
+                                                       Terra_UnitsType_Temperature_Celsius);
+    if (barnTemperature) { barnTemperature->setStaleAfter(5UL * 60UL * 1000UL); }
+    terraController.launch();
 }
 
 void loop()
 {
     // Call onRemoteMessage(value) from the selected transport handler.
-    barnTemperature.update(millis());
+    terraController.update();
 
-    if (!barnTemperature.isOnline(millis())) {
+    if (barnTemperature && !barnTemperature->isOnline(millis())) {
         Serial.println(F("Remote barn sensor is stale or offline"));
     }
 

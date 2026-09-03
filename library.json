@@ -1,6 +1,6 @@
 {
     "name": "Simple-Homestead-Arduino",
-    "version": "0.7.1.0",
+    "version": "0.7.2",
     "keywords": "homestead,water,rainwater,rainwater-harvesting,cistern,well,thermal,weather,weather-station,environment,resource-management,scheduler,logging,diy,automation,controller,monitor,system",
     "description": "Terraduino: Simple automation controller for homestead resource and environmental systems using Arduino-compatible microcontrollers.",
     "license": "MIT",
@@ -23,20 +23,6 @@
             "base": "examples/BasicHomestead",
             "files": [
                 "BasicHomestead.ino"
-            ]
-        },
-        {
-            "name": "CisternManagement",
-            "base": "examples/CisternManagement",
-            "files": [
-                "CisternManagement.ino"
-            ]
-        },
-        {
-            "name": "RainwaterCollection",
-            "base": "examples/RainwaterCollection",
-            "files": [
-                "RainwaterCollection.ino"
             ]
         },
         {
@@ -68,13 +54,6 @@
             ]
         },
         {
-            "name": "UISetup",
-            "base": "examples/UISetup",
-            "files": [
-                "UISetup.ino"
-            ]
-        },
-        {
             "name": "DataWriter",
             "base": "examples/DataWriter",
             "files": [
@@ -82,15 +61,6 @@
             ]
         }
     ],
-    "frameworks": [
-        "arduino"
-    ],
-    "platforms": [
-        "avr",
-        "sam",
-        "samd",
-        "teensy",
-        "espressif8266",
-        "espressif32"
-    ]
+    "frameworks": "arduino",
+    "platforms": "*"
 }

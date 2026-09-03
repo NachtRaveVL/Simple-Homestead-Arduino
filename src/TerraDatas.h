@@ -6,170 +6,138 @@
 #ifndef TerraDatas_H
 #define TerraDatas_H
 
-#include "TerraTypes.h"
-#include "TerraDefines.h"
-#include "TerraEnvironment.h"
-#include "TerraPins.h"
-#include "TerraAttachments.h"
+struct TerraSystemData;
+struct TerraCalibrationData;
 
-struct TerraObjectData {
-    uint32_t key;                                           // Object key
-    Terra_ObjectType objectType;                            // Object type
-    TerraString name;                                       // Display name
-    bool enabled;                                           // Enabled state
-    TerraAttachment attachments[TERRA_MAX_ATTACHMENTS];     // Object attachment records
-    uint8_t attachmentCount;                                // Attachment record count
+#include "Terraduino.h"
+#include "TerraData.h"
+#include "TerraScheduler.h"
+#include "TerraPublisher.h"
+#include "TerraLogger.h"
 
-    TerraObjectData();
-    virtual ~TerraObjectData() { }
-    virtual TerraString toJSON() const;
-    virtual bool fromJSON(const TerraString &json);
+// Autosave Enumeration
+enum Terra_Autosave : signed char {
+    Terra_Autosave_EnabledToSDCardJson,                     // Autosave to SD card in Json
+    Terra_Autosave_EnabledToSDCardRaw,                      // Autosave to SD card in binary
+    Terra_Autosave_EnabledToEEPROMJson,                     // Autosave to EEPROM in Json
+    Terra_Autosave_EnabledToEEPROMRaw,                      // Autosave to EEPROM in binary
+    Terra_Autosave_EnabledToWiFiStorageJson,                // Autosave to WiFiStorage in Json
+    Terra_Autosave_EnabledToWiFiStorageRaw,                 // Autosave to WiFiStorage in binary
+    Terra_Autosave_Disabled = -1                            // Autosave disabled
+};
+
+// User System Setup Data
+// id: TSYS. User system setup data.
+struct TerraSystemData : public TerraData {
+    Terra_SystemMode systemMode;                            // Controller operating mode
+    Terra_MeasurementMode measureMode;                      // System measurement mode
+    Terra_DisplayOutputMode dispOutMode;                    // System display output mode
+    Terra_ControlInputMode ctrlInMode;                      // System control input mode 
+    char systemName[TERRA_NAME_MAXSIZE];                    // System name
+    float timeZoneOffset;                                   // Timezone offset from UTC, in fractional hours
+    uint16_t pollingInterval;                               // Sensor polling interval, in milliseconds
+    Terra_Autosave autosaveEnabled;                         // Autosave enabled
+    Terra_Autosave autosaveFallback;                        // Autosave fallback
+    uint16_t autosaveInterval;                              // Autosave interval, in minutes
+    char wifiSSID[TERRA_NAME_MAXSIZE];                      // WiFi SSID
+    uint8_t wifiPassword[TERRA_NAME_MAXSIZE];               // WiFi password (xor encrypted)
+    uint32_t wifiPasswordSeed;                              // Seed for WiFi password one-time pad
+    uint8_t macAddress[6];                                  // Ethernet MAC address
+    double latitude;                                        // System latitude
+    double longitude;                                       // System longitude
+    double altitude;                                        // System altitude
+
+    TerraSchedulerSubData scheduler;                        // Scheduler subdata
+    TerraLoggerSubData logger;                              // Logger subdata
+    TerraPublisherSubData publisher;                        // Publisher subdata
+
+    TerraSystemData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
 
-struct TerraSensorData : public TerraObjectData {
-    Terra_SensorType sensorType;                            // Sensor type
-    Terra_SensorType reportedType;                          // Reported measurement type
-    Terra_Unit unit;                                        // Measurement unit
-    uint32_t updateIntervalMs;                              // Controller update interval, milliseconds
-    uint32_t staleAfterMs;                                  // Remote stale timeout, milliseconds
-    bool hasPinDriver;                                      // Pin-backed driver configured flag
-    TerraPinSetup pinSetup;                                 // Saved pin setup
-    bool driverCalibrated;                                  // Driver calibration available flag
-    float driverRawMinimum;                                 // Driver raw calibration minimum
-    float driverRawMaximum;                                 // Driver raw calibration maximum
-    float driverValueMinimum;                               // Driver calibrated minimum
-    float driverValueMaximum;                               // Driver calibrated maximum
-    bool sensorCalibrated;                                  // Sensor calibration available flag
-    float sensorRawMinimum;                                 // Sensor raw calibration minimum
-    float sensorRawMaximum;                                 // Sensor raw calibration maximum
-    float sensorValueMinimum;                               // Sensor calibrated minimum
-    float sensorValueMaximum;                               // Sensor calibrated maximum
+// Calibration Data
+// id: HCAL. User calibration data.
+// This class essentially controls a simple Ax+B linear transformation mapping, and is
+// used to 'convert' values from one coordinate system into another, or in our case used
+// for storing custom user curve/offset correction/mapping data.
+// See setFrom* methods to set calibrated data in various formats.
+struct TerraCalibrationData : public TerraData {
+    char ownerName[TERRA_NAME_MAXSIZE];                     // Owner object name this calibration belongs to (actuator/sensor)
+    Terra_UnitsType calibrationUnits;                       // Calibration output units
+    float multiplier, offset;                               // Ax + B value transform coefficients
 
-    TerraSensorData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
+    TerraCalibrationData();
+    TerraCalibrationData(TerraIdentity ownerId,
+                         Terra_UnitsType calibrationUnits = Terra_UnitsType_Undefined);
 
-struct TerraActuatorData : public TerraObjectData {
-    Terra_ActuatorType actuatorType;                        // Actuator type
-    Terra_EnableMode enableMode;                            // Actuator request aggregation mode
-    uint32_t maxContinuousMs;                               // Maximum continuous runtime, milliseconds
-    bool hasPinDriver;                                      // Pin-backed driver configured flag
-    TerraPinSetup pinSetup;                                 // Saved pin setup
-    int maximumRaw;                                         // Maximum raw output value
-    float sumpStartPercent;                                 // Sump pump start level, percent
-    float sumpStopPercent;                                  // Sump pump stop level, percent
-    float sumpAlarmPercent;                                 // Sump high-water alarm level, percent
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 
-    TerraActuatorData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
+    // Transforms value from raw (or initial) value into calibrated (or transformed) value.
+    inline float transform(float value) const { return (value * multiplier) + offset; }
+    // Transforms value in-place from raw (or initial) value into calibrated (or transformed) value, with optional units write out.
+    inline void transform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { *valueInOut = transform(*valueInOut);
+                                                                                          if (unitsOut) { *unitsOut = calibrationUnits; } }
+    // Transforms measurement from raw (or initial) measurement into calibrated (or transformed) measurement.
+    inline TerraSingleMeasurement transform(TerraSingleMeasurement measurement) const { return TerraSingleMeasurement(transform(measurement.value), calibrationUnits, measurement.timestamp, measurement.frame); }
+    // Transforms measurement in-place from raw (or initial) measurement into calibrated (or transformed) measurement.
+    inline void transform(TerraSingleMeasurement *measurementInOut) const { transform(&measurementInOut->value, &measurementInOut->units); }
 
-struct TerraResourceData : public TerraObjectData {
-    Terra_ResourceType resourceType;                        // Resource type
-    float level;                                            // Normalized resource level, percent
-    float reserveLevel;                                     // Protected reserve level, percent
-    float lowLevel;                                         // Low threshold, percent
-    float highLevel;                                        // High threshold, percent
+    // Inverse transforms value from calibrated (or transformed) value back into raw (or initial) value.
+    inline float inverseTransform(float value) const { return (value - offset) / multiplier; }
+    // Inverse transforms value in-place from calibrated (or transformed) value back into raw (or initial) value, with optional units write out.
+    inline void inverseTransform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { *valueInOut = inverseTransform(*valueInOut);
+                                                                                                 if (unitsOut) { *unitsOut = Terra_UnitsType_Raw_1; } }
+    // Inverse transforms measurement from calibrated (or transformed) measurement back into raw (or initial) measurement.
+    inline TerraSingleMeasurement inverseTransform(TerraSingleMeasurement measurement) const { return TerraSingleMeasurement(inverseTransform(measurement.value), Terra_UnitsType_Raw_1, measurement.timestamp, measurement.frame); }
+    // Inverse transforms measurement in-place from calibrated (or transformed) measurement back into raw (or initial) measurement.
+    inline void inverseTransform(TerraSingleMeasurement *measurementInOut) const { inverseTransform(&measurementInOut->value, &measurementInOut->units); }
 
-    TerraResourceData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
+    // Sets linear calibration curvature from two points.
+    // Measured normalized raw values should be between 0.0 and 1.0, and represents
+    // the normalized voltage signal measurement from the analogRead() function (after
+    // taking into account appropiate bit resolution conversion). Calibrated-to values
+    // are what each measurement-at value should map out to.
+    // For example, if your sensor should treat 0v (aka 0.0) as a value of 2 and treat 5v
+    // (aka 1.0, or MCU max voltage) as a value of 10, you would pass 0.0, 2.0, 1.0, 10.0.
+    // The final calculated curvature transform, for this example, would be y = 8x + 2.
+    void setFromTwoPoints(float point1RawMeasuredAt,        // What normalized value point 1 measured in at [0.0,1.0]
+                          float point1CalibratedTo,         // What value point 1 should be mapped to
+                          float point2RawMeasuredAt,        // What normalized value point 2 measured in at [0.0,1.0]
+                          float point2CalibratedTo);        // What value point 2 should be mapped to
 
-struct TerraWaterStorageData : public TerraResourceData {
-    Terra_WaterStorageType storageType;                     // Water storage type
-    float capacityLiters;                                   // Storage capacity, liters
-    float fillStartPercent;                                 // Fill-start threshold, percent
-    float fillStopPercent;                                  // Fill-stop threshold, percent
-    float overflowPercent;                                  // Overflow safety threshold, percent
+    // Sets linear calibration curvature from two voltages.
+    // Wrapper to setFromTwoPoints, used when raw voltage values are easier to work with.
+    inline void setFromTwoVoltages(float point1VoltsAt,     // What raw voltage value point 1 measured in at [0.0,aRef]
+                                   float point1CalibTo,     // What value point 1 should be mapped to
+                                   float point2VoltsAt,     // What raw voltage value point 2 measured in at [0.0,aRef]
+                                   float point2CalibTo,     // What value point 2 should be mapped to
+                                   float analogRefVolts) {  // aRef: Value of aRef pin (use 5 for 5v MCUs, 3.3 for 3.3v MCUs)
+        setFromTwoPoints(point1VoltsAt / analogRefVolts, point1CalibTo,
+                         point2VoltsAt / analogRefVolts, point2CalibTo);
+    }
 
-    TerraWaterStorageData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
+    // Sets linear calibration curvature from known output range.
+    // Wrapper to setFromTwoPoints, used when data uses the entire intensity range with a known min/max value at each end.
+    // E.g. will map 0v (aka 0.0) to min value and 5v (aka 1.0, or MCU max voltage) to max value.
+    inline void setFromRange(float min, float max) { setFromTwoPoints(0.0, min, 1.0, max); }
 
-struct TerraCisternData : public TerraWaterStorageData {
-    TerraCisternData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
+    // Sets linear calibration curvature from known output scale.
+    // Similar to setFromTwoPoints, but when data has a known max intensity.
+    // E.g. will map 0v to 0 and 5v (aka 1.0, or MCU max voltage) to scale value.
+    inline void setFromScale(float scale) { setFromRange(0.0, scale); }
 
-struct TerraWaterSourceData : public TerraObjectData {
-    Terra_WaterSourceType sourceType;                       // Water source type
-    uint8_t priority;                                       // Source priority
-    bool available;                                         // Configured source availability
-    float level;                                            // Normalized resource level, percent
-    float reserveLevel;                                     // Protected reserve level, percent
-    float maximumFlowLpm;                                   // Maximum source flow, liters per minute
-
-    TerraWaterSourceData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-struct TerraWaterRouteData : public TerraObjectData {
-    uint32_t sourceKey;                                     // Source object key
-    uint32_t destinationKey;                                // Destination object key
-    float destinationStartPercent;                          // Destination fill-start threshold, percent
-    float destinationStopPercent;                           // Destination fill-stop threshold, percent
-    float minimumFlowLpm;                                   // Minimum expected flow, liters per minute
-    float maximumFlowLpm;                                   // Maximum source flow, liters per minute
-    Terra_RouteState routeState;                            // Current route state
-
-    TerraWaterRouteData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-struct TerraRainCatchmentData : public TerraObjectData {
-    float areaSquareMeters;                  ///< Effective catchment area
-    float collectionEfficiency;              ///< Fraction of rainfall reaching storage
-
-    TerraRainCatchmentData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-struct TerraThermalStoreData : public TerraResourceData {
-    float temperatureC;                                     // Temperature, degrees Celsius
-    float minimumTargetC;                                   // Minimum target temperature, degrees Celsius
-    float maximumTargetC;                                   // Maximum target temperature, degrees Celsius
-    float absoluteMaximumC;                                 // Absolute safety limit, degrees Celsius
-
-    TerraThermalStoreData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
+    // Sets linear calibration curvature from typical servo ranges.
+    // Wrapper to setFromTwoPoints, used for specifying servo degree operation ranges using the typical 2.5% and 12.5% phase lengths that hobbyist servos operate at.
+    // E.g. will map 2.5% (servo min/neg position/speed) to minDegrees and 12.5% (servo max/pos position/speed) to maxDegrees.
+    inline void setFromServo(float minDegrees, float maxDegrees) { setFromTwoPoints(0.025f, minDegrees, 0.125f, maxDegrees); }
 };
 
 
-struct TerraThermalLoopData : public TerraObjectData {
-    float onDifferentialC;                                  // Circulation-on temperature differential
-    float offDifferentialC;                                 // Circulation-off temperature differential
-    float maxStoreTempC;                                    // Maximum storage temperature
+// Internal use, but must contain all ways for all data types to be new'ed
+extern TerraData *_allocateDataFromBaseDecode(const TerraData &baseDecode);
+extern TerraData *_allocateDataForObjType(int8_t idType, int8_t classType);
 
-    TerraThermalLoopData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-struct TerraPowerRailData : public TerraObjectData {
-    Terra_RailType railType;                                // Power rail type
-    float nominalVoltage;                                   // Nominal rail voltage
-
-    TerraPowerRailData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-struct TerraEnvironmentData : public TerraObjectData {
-    TerraWeatherSnapshot weather;                           // Weather
-
-    TerraEnvironmentData();
-    TerraString toJSON() const;
-    bool fromJSON(const TerraString &json);
-};
-
-#endif
+#endif // /ifndef TerraDatas_H

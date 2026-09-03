@@ -2,25 +2,45 @@
 
 # Controller and core types
 Terraduino	KEYWORD1
+TerraIdentity	KEYWORD1
 TerraObject	KEYWORD1
+TerraSubObject	KEYWORD1
 TerraFactory	KEYWORD1
 TerraScheduler	KEYWORD1
-TerraScheduledTask	KEYWORD1
+TerraProcess	KEYWORD1
+TerraTracking	KEYWORD1
 TerraLogger	KEYWORD1
+TerraLogEvent	KEYWORD1
 TerraPublisher	KEYWORD1
-TerraPublishChannel	KEYWORD1
-TerraModule	KEYWORD1
-TerraModuleRegistry	KEYWORD1
+TerraDataColumn	KEYWORD1
+TerraCalibrations	KEYWORD1
+TerraObjectRegistration	KEYWORD1
+TerraPinHandlers	KEYWORD1
 TerraSystemData	KEYWORD1
-TerraSystemSetup	KEYWORD1
-TerraDeviceSetup	KEYWORD1
-TerraNetworkSetup	KEYWORD1
+TerraCalibrationData	KEYWORD1
+TerraData	KEYWORD1
+TerraSubData	KEYWORD1
+
+# Common setup/data types
+I2CDeviceSetup	KEYWORD1
+SPIDeviceSetup	KEYWORD1
+UARTDeviceSetup	KEYWORD1
+DeviceSetup	KEYWORD1
+BitResolution	KEYWORD1
+Location	KEYWORD1
+Twilight	KEYWORD1
 
 # Measurements, pins, and drivers
 TerraMeasurement	KEYWORD1
-TerraPinSetup	KEYWORD1
+TerraBinaryMeasurement	KEYWORD1
+TerraSingleMeasurement	KEYWORD1
+TerraDoubleMeasurement	KEYWORD1
+TerraTripleMeasurement	KEYWORD1
+TerraMeasurementData	KEYWORD1
+TerraPin	KEYWORD1
 TerraDigitalPin	KEYWORD1
 TerraAnalogPin	KEYWORD1
+TerraPinData	KEYWORD1
 TerraInputDriver	KEYWORD1
 TerraOutputDriver	KEYWORD1
 TerraCallbackInputDriver	KEYWORD1
@@ -30,10 +50,19 @@ TerraCallbackOutputDriver	KEYWORD1
 TerraDigitalOutputDriver	KEYWORD1
 TerraAnalogOutputDriver	KEYWORD1
 
+# Activations and attachments
+TerraActivation	KEYWORD1
+TerraActivationHandle	KEYWORD1
+TerraDLinkObject	KEYWORD1
+TerraAttachment	KEYWORD1
+TerraActuatorAttachment	KEYWORD1
+TerraSensorAttachment	KEYWORD1
+TerraTriggerAttachment	KEYWORD1
+
 # Sensors
 TerraSensor	KEYWORD1
-TerraAnalogSensor	KEYWORD1
 TerraBinarySensor	KEYWORD1
+TerraAnalogSensor	KEYWORD1
 TerraTemperatureSensor	KEYWORD1
 TerraHumiditySensor	KEYWORD1
 TerraLevelSensor	KEYWORD1
@@ -47,64 +76,78 @@ TerraVoltageSensor	KEYWORD1
 TerraCurrentSensor	KEYWORD1
 TerraLeakSensor	KEYWORD1
 TerraRemoteSensor	KEYWORD1
+TerraSensorData	KEYWORD1
 
 # Actuators
 TerraActuator	KEYWORD1
-TerraPump	KEYWORD1
-TerraSumpPump	KEYWORD1
+TerraRelayActuator	KEYWORD1
+TerraRelayPumpActuator	KEYWORD1
 TerraVariableActuator	KEYWORD1
-TerraValve	KEYWORD1
-TerraDiverter	KEYWORD1
-TerraHeater	KEYWORD1
-TerraCirculator	KEYWORD1
+TerraActuatorData	KEYWORD1
+TerraPumpActuatorData	KEYWORD1
 
-# Resources, water, environment, and thermal
-TerraResource	KEYWORD1
-TerraWaterStorage	KEYWORD1
-TerraCistern	KEYWORD1
-TerraWaterSource	KEYWORD1
-TerraWaterRoute	KEYWORD1
-TerraRainCatchment	KEYWORD1
-TerraFirstFlushController	KEYWORD1
-TerraRainCollectionResult	KEYWORD1
-TerraWeatherSnapshot	KEYWORD1
-TerraEnvironment	KEYWORD1
-TerraThermalStore	KEYWORD1
-TerraThermalLoop	KEYWORD1
-TerraWaterBalancer	KEYWORD1
-TerraThermalBalancer	KEYWORD1
-TerraPowerRail	KEYWORD1
-TerraThresholdTrigger	KEYWORD1
-TerraRangeTrigger	KEYWORD1
+# Reservoirs
+TerraReservoir	KEYWORD1
+TerraWaterReservoir	KEYWORD1
+TerraThermalReservoir	KEYWORD1
+TerraInfiniteWaterReservoir	KEYWORD1
+TerraInfiniteThermalReservoir	KEYWORD1
+TerraReservoirData	KEYWORD1
+TerraWaterReservoirData	KEYWORD1
+TerraThermalReservoirData	KEYWORD1
+TerraInfiniteWaterReservoirData	KEYWORD1
+TerraInfiniteThermalReservoirData	KEYWORD1
+
+# Rails
+TerraRail	KEYWORD1
+TerraSimpleRail	KEYWORD1
+TerraRegulatedRail	KEYWORD1
+TerraRailData	KEYWORD1
+TerraSimpleRailData	KEYWORD1
+TerraRegulatedRailData	KEYWORD1
+
+# Triggers and balancers
+TerraTrigger	KEYWORD1
+TerraMeasurementValueTrigger	KEYWORD1
+TerraMeasurementRangeTrigger	KEYWORD1
+TerraTriggerSubData	KEYWORD1
+TerraBalancer	KEYWORD1
+TerraLinearEdgeBalancer	KEYWORD1
 
 # Public enum types
 Terra_ObjectType	KEYWORD1
-Terra_ResourceType	KEYWORD1
+Terra_ReservoirType	KEYWORD1
 Terra_ResourceState	KEYWORD1
-Terra_WaterSourceType	KEYWORD1
-Terra_WaterStorageType	KEYWORD1
 Terra_SensorType	KEYWORD1
 Terra_ActuatorType	KEYWORD1
 Terra_MeasurementMode	KEYWORD1
 Terra_EnableMode	KEYWORD1
 Terra_PinMode	KEYWORD1
-Terra_Unit	KEYWORD1
+Terra_UnitsType	KEYWORD1
 Terra_UnitsCategory	KEYWORD1
 Terra_RailType	KEYWORD1
-Terra_Comparison	KEYWORD1
 Terra_TriggerState	KEYWORD1
+Terra_BalancingState	KEYWORD1
 Terra_LogLevel	KEYWORD1
-Terra_ModuleType	KEYWORD1
-Terra_ControlMode	KEYWORD1
-Terra_RouteState	KEYWORD1
-Terra_AttachmentRole	KEYWORD1
+Terra_SystemMode	KEYWORD1
+Terra_DisplayOutputMode	KEYWORD1
+Terra_ControlInputMode	KEYWORD1
+Terra_Autosave	KEYWORD1
+Terra_DirectionMode	KEYWORD1
 
-# Measurement and conversion helpers
-terraUnitsCategory	KEYWORD2
-terraDefaultUnit	KEYWORD2
-terraCanConvertUnits	KEYWORD2
-terraConvertUnits	KEYWORD2
-terraConvertMeasurement	KEYWORD2
+# Common helpers
+getController	KEYWORD2
+getScheduler	KEYWORD2
+getLogger	KEYWORD2
+getPublisher	KEYWORD2
+publishData	KEYWORD2
+stringHash	KEYWORD2
+localTime	KEYWORD2
+localNow	KEYWORD2
+unixTime	KEYWORD2
+unixNow	KEYWORD2
+measurementToString	KEYWORD2
+convertUnits	KEYWORD2
 
 # Build flags and common constants
 TERRA_DISABLE_MULTITASKING	LITERAL1
@@ -118,12 +161,11 @@ TERRA_DISABLE_BUILTIN_DATA	LITERAL1
 TERRA_ENABLE_DEBUG_OUTPUT	LITERAL1
 TERRA_ENABLE_VERBOSE_DEBUG	LITERAL1
 TERRA_ENABLE_DEBUG_ASSERTIONS	LITERAL1
-TERRA_WEATHER_AIR_TEMPERATURE	LITERAL1
-TERRA_WEATHER_HUMIDITY	LITERAL1
-TERRA_WEATHER_PRESSURE	LITERAL1
-TERRA_WEATHER_RAINFALL	LITERAL1
-TERRA_WEATHER_RAIN_RATE	LITERAL1
-TERRA_WEATHER_WIND_SPEED	LITERAL1
-TERRA_WEATHER_WIND_DIRECTION	LITERAL1
-TERRA_WEATHER_SOLAR_RADIATION	LITERAL1
-TERRA_WEATHER_ALL_FIELDS	LITERAL1
+ACT_HIGH	LITERAL1
+ACT_LOW	LITERAL1
+ACT_ABOVE	LITERAL1
+ACT_BELOW	LITERAL1
+PULL_UP	LITERAL1
+PULL_DOWN	LITERAL1
+RAW	LITERAL1
+JSON	LITERAL1

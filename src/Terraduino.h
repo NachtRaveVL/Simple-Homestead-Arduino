@@ -19,50 +19,51 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
-    Simple-Homestead-Arduino - Version 0.7.1.0
+    Simple-Homestead-Arduino - Version 0.7.2.0
 */
 
 #ifndef Terraduino_H
 #define Terraduino_H
 
 // Library Setup
+
 // NOTE: It is recommended to use custom build flags instead of editing this file directly.
 
-// Uncomment or -D this define to completely disable multitasking commands and libraries.
-//#define TERRA_DISABLE_MULTITASKING
+// Uncomment or -D this define to completely disable usage of any multitasking commands and libraries. Not recommended.
+//#define TERRA_DISABLE_MULTITASKING              // https://github.com/davetcc/TaskManagerIO
 
-// Uncomment or -D this define to disable tcMenu-based GUI control.
-//#define TERRA_DISABLE_GUI
+// Uncomment or -D this define to disable usage of tcMenu library, which will disable all GUI control. Not recommended.
+//#define TERRA_DISABLE_GUI                       // https://github.com/davetcc/tcMenu
 
-// Uncomment or -D this define to enable the platform WiFi library.
-//#define TERRA_ENABLE_WIFI
+// Uncomment or -D this define to enable usage of the platform WiFi library, which enables networking capabilities.
+//#define TERRA_ENABLE_WIFI                       // https://reference.arduino.cc/reference/en/libraries/wifi/
 
-// Uncomment or -D this define to enable serial AT-command WiFi support.
-//#define TERRA_ENABLE_AT_WIFI
+// Uncomment or -D this define to enable usage of the external serial AT WiFi library, which enables networking capabilities.
+//#define TERRA_ENABLE_AT_WIFI                    // https://github.com/jandrassy/WiFiEspAT
 
-// Uncomment or -D this define to enable the platform Ethernet library.
-//#define TERRA_ENABLE_ETHERNET
+// Uncomment or -D this define to enable usage of the platform Ethernet library, which enables networking capabilities.
+//#define TERRA_ENABLE_ETHERNET                   // https://reference.arduino.cc/reference/en/libraries/ethernet/
 
-// Uncomment or -D this define to enable MQTT publishing support.
-//#define TERRA_ENABLE_MQTT
+// Uncomment or -D this define to enable usage of the Arduino MQTT library, which enables IoT data publishing capabilities.
+//#define TERRA_ENABLE_MQTT                       // https://github.com/256dpi/arduino-mqtt
 
-// Uncomment or -D this define to enable GPS-based time/location support.
-//#define TERRA_ENABLE_GPS
+// Uncomment or -D this define to enable usage of the Adafruit GPS library, which enables GPS capabilities.
+//#define TERRA_ENABLE_GPS                        // https://github.com/adafruit/Adafruit_GPS
 
-// Uncomment or -D this define to disable built-in Flash data and use external data storage.
-//#define TERRA_DISABLE_BUILTIN_DATA
+// Uncomment or -D this define to enable external data storage (SD card or EEPROM) to save on sketch size. Required for constrained devices.
+//#define TERRA_DISABLE_BUILTIN_DATA              // Disables library data existing in Flash, see DataWriter example for exporting details
 
-// Uncomment or -D this define to enable serial debug output.
+// Uncomment or -D this define to enable debug output (treats Serial output as attached to serial monitor, waiting on start for connection).
 //#define TERRA_ENABLE_DEBUG_OUTPUT
 
-// Uncomment or -D this define to enable verbose debug output.
+// Uncomment or -D this define to enable verbose debug output (note: adds considerable size to compiled sketch).
 //#define TERRA_ENABLE_VERBOSE_DEBUG
 
-// Uncomment or -D this define to enable debug assertions.
+// Uncomment or -D this define to enable debug assertions (note: adds significant size to compiled sketch).
 //#define TERRA_ENABLE_DEBUG_ASSERTIONS
 
-#ifdef ARDUINO
-#if ARDUINO >= 100
+
+#if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
 #else
 #include <WProgram.h>
@@ -70,77 +71,6 @@
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>
-
-#ifndef USE_SW_SERIAL
-typedef HardwareSerial SerialClass;
-#else
-#include <SoftwareSerial.h>
-#define TERRA_USE_SOFTWARE_SERIAL
-typedef SoftwareSerial SerialClass;
-#endif
-
-#if defined(TERRA_ENABLE_WIFI)
-#if defined(ARDUINO_SAMD_MKR1000)
-#include <WiFi101.h>
-#else
-#include <WiFiNINA_Generic.h>
-#define TERRA_USE_WIFI_STORAGE
-#endif
-#define TERRA_USE_WIFI
-#define TERRA_USE_NET
-#elif defined(TERRA_ENABLE_AT_WIFI)
-#include <WiFiEspAT.h>
-#define TERRA_USE_AT_WIFI
-#define TERRA_USE_WIFI
-#define TERRA_USE_NET
-#elif defined(TERRA_ENABLE_ETHERNET)
-#include <Ethernet.h>
-#define TERRA_USE_ETHERNET
-#define TERRA_USE_NET
-#endif
-
-#ifndef TERRA_DISABLE_MULTITASKING
-#include <TaskManagerIO.h>
-#include <IoAbstraction.h>
-#define TERRA_USE_MULTITASKING
-#else
-#ifndef TERRA_DISABLE_GUI
-#define TERRA_DISABLE_GUI
-#endif
-#endif
-
-#ifdef TERRA_ENABLE_GPS
-#include <Adafruit_GPS.h>
-#define TERRA_USE_GPS
-typedef Adafruit_GPS GPSClass;
-#endif
-
-#ifdef TERRA_ENABLE_MQTT
-#include <MQTT.h>
-#define TERRA_USE_MQTT
-#endif
-
-#ifndef TERRA_DISABLE_GUI
-#include <tcMenu.h>
-#define TERRA_USE_GUI
-#endif
-
-#if !(defined(NO_GLOBAL_INSTANCES) || defined(NO_GLOBAL_SPI))
-#define TERRA_USE_SPI &SPI
-#else
-#define TERRA_USE_SPI nullptr
-#endif
-#if !(defined(NO_GLOBAL_INSTANCES) || defined(NO_GLOBAL_TWOWIRE))
-#define TERRA_USE_WIRE &Wire
-#else
-#define TERRA_USE_WIRE nullptr
-#endif
-#if !(defined(NO_GLOBAL_INSTANCES) || defined(NO_GLOBAL_SERIAL1))
-#define TERRA_USE_SERIAL1 &Serial1
-#else
-#define TERRA_USE_SERIAL1 nullptr
-#endif
-#endif // /ifdef ARDUINO
 
 #ifdef NDEBUG
 #ifdef TERRA_ENABLE_DEBUG_OUTPUT
@@ -154,22 +84,122 @@ typedef Adafruit_GPS GPSClass;
 #endif
 #endif // /ifdef NDEBUG
 
+#if !defined(USE_SW_SERIAL)
+typedef HardwareSerial SerialClass;
+#else
+#include <SoftwareSerial.h>             // https://www.arduino.cc/en/Reference/softwareSerial
+#define TERRA_USE_SOFTWARE_SERIAL
+typedef SoftwareSerial SerialClass;
+#endif
+
+#ifdef ESP32
+typedef SDFileSystemClass SDClass;
+#endif
+#ifdef ESP8266
+typedef SerialConfig uartmode_t;
+#else
+typedef int uartmode_t;
+#endif
+
+#ifdef TERRA_ENABLE_WIFI
+#if defined(ARDUINO_SAMD_MKR1000)
+#include <WiFi101.h>                    // https://github.com/arduino-libraries/WiFi101
+#else
+#include <WiFiNINA_Generic.h>           // https://github.com/khoih-prog/WiFiNINA_Generic
+#define TERRA_USE_WIFI_STORAGE
+#endif
+#define TERRA_USE_WIFI
+#define TERRA_USE_NET
+#elif defined(TERRA_ENABLE_AT_WIFI)
+#include "WiFiEspAT.h"                  // WiFi ESP AT library
+#define TERRA_USE_AT_WIFI
+#define TERRA_USE_WIFI
+#define TERRA_USE_NET
+#elif defined(TERRA_ENABLE_ETHERNET)
+#include <Ethernet.h>                   // https://github.com/arduino-libraries/Ethernet
+#define TERRA_USE_ETHERNET
+#define TERRA_USE_NET
+#endif // /ifdef TERRA_ENABLE_WIFI
+
+#ifndef TERRA_DISABLE_MULTITASKING
+#include "TaskManagerIO.h"              // Task Manager library
+#include "IoAbstraction.h"              // IoAbstraction library
+#define TERRA_USE_MULTITASKING
+#else
+#ifndef TERRA_DISABLE_GUI
+#define TERRA_DISABLE_GUI
+#endif
+#define secondsToMillis(val) ((val)*1000U)
+#if defined(ARDUINO_ARCH_MBED)
+typedef uint32_t pintype_t;
+#else
+typedef uint8_t pintype_t;
+#endif
+#endif
+
 #if defined(TERRA_ENABLE_DEBUG_OUTPUT) && defined(TERRA_ENABLE_VERBOSE_DEBUG)
 #define TERRA_USE_VERBOSE_OUTPUT
 #endif
 #if defined(TERRA_ENABLE_DEBUG_OUTPUT) && defined(TERRA_ENABLE_DEBUG_ASSERTIONS)
-#define TERRA_SOFT_ASSERT(cond,msg)     terraSoftAssert((bool)(cond), TerraString((msg)), __FILE__, __func__, __LINE__)
-#define TERRA_HARD_ASSERT(cond,msg)     terraHardAssert((bool)(cond), TerraString((msg)), __FILE__, __func__, __LINE__)
+#define TERRA_SOFT_ASSERT(cond,msg)     softAssert((bool)(cond), String((msg)), __FILE__, __func__, __LINE__)
+#define TERRA_HARD_ASSERT(cond,msg)     hardAssert((bool)(cond), String((msg)), __FILE__, __func__, __LINE__)
 #define TERRA_USE_DEBUG_ASSERTIONS
 #else
 #define TERRA_SOFT_ASSERT(cond,msg)     ((void)0)
 #define TERRA_HARD_ASSERT(cond,msg)     ((void)0)
 #endif
 
-#include "TerraPlatform.h"
+#ifdef TERRA_ENABLE_GPS
+#include "Adafruit_GPS.h"               // GPS library
+#define TERRA_USE_GPS
+typedef Adafruit_GPS GPSClass;
+#endif
+#include "ArduinoJson.h"                // JSON library
+#include "ArxContainer.h"               // STL-like container library
+#include "ArxSmartPtr.h"                // Shared pointer library
+#include "DHT.h"                        // DHT* air temp/humidity probe
+#include "I2C_eeprom.h"                 // i2c EEPROM library
+#ifdef TERRA_ENABLE_MQTT
+#include "MQTT.h"                       // MQTT library
+#define TERRA_USE_MQTT
+#endif
+#include "OneWire.h"                    // OneWire library
+#include "RTClib.h"                     // i2c RTC library
+#include "SolarCalculator.h"            // Solar calculator library
+#include "TimeLib.h"                    // Time library
+#ifndef TERRA_DISABLE_GUI
+#include "tcMenu.h"                     // tcMenu library
+#define TERRA_USE_GUI
+#endif
+
 #include "TerraDefines.h"
-#include "TerraTypes.h"
-#include "TerraSetup.h"
+#include "shared/TerraUIDefines.h"
+
+#if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L // Have libstdc++11
+#include "ArxSmartPtr/shared_ptr.h"     // Forced shared pointer library
+using namespace std;
+template<typename T, size_t N = TERRA_DEFAULT_MAXSIZE> using Vector = std::vector<T>;
+template<class T1, class T2> using Pair = std::pair<T1,T2>;
+template<typename K, typename V, size_t N = TERRA_DEFAULT_MAXSIZE> using Map = std::map<K,V>;
+#else
+using namespace arx;
+template<typename T, size_t N = ARX_VECTOR_DEFAULT_SIZE> using Vector = arx::vector<T,N>;
+template<class T1, class T2> using Pair = arx::pair<T1,T2>;
+template<typename K, typename V, size_t N = ARX_MAP_DEFAULT_SIZE> using Map = arx::map<K,V,N>;
+#endif
+using namespace arx::stdx;
+template <typename T> using SharedPtr = arx::stdx::shared_ptr<T>;
+
+inline time_t unixNow();
+inline DateTime localNow();
+inline millis_t nzMillis();
+extern void handleInterrupt(pintype_t);
+extern tkey_t stringHash(String);
+extern String addressToString(uintptr_t);
+extern void controlLoop();
+extern void dataLoop();
+extern void miscLoop();
+
 #include "TerraStrings.h"
 #include "TerraInlines.hh"
 #include "TerraCallback.hh"
@@ -182,102 +212,369 @@ typedef Adafruit_GPS GPSClass;
 #include "TerraPins.h"
 #include "TerraUtils.h"
 #include "TerraDatas.h"
+#include "shared/TerraUIData.h"
 #include "TerraStreams.h"
 #include "TerraTriggers.h"
+#include "TerraBalancers.h"
 #include "TerraDrivers.h"
 #include "TerraActuators.h"
 #include "TerraSensors.h"
-#include "TerraResource.h"
-#include "TerraEnvironment.h"
-#include "TerraWater.h"
-#include "TerraThermal.h"
-#include "TerraBalancers.h"
+#include "TerraReservoirs.h"
 #include "TerraRails.h"
 #include "TerraModules.h"
 #include "TerraScheduler.h"
 #include "TerraLogger.h"
 #include "TerraPublisher.h"
 #include "TerraFactory.h"
-#include "TerraCoreLogic.h"
-#include "TerraInterfaces.hpp"
+
 
 // Terraduino Controller
 // Main controller interface for homestead resource and environmental systems. Networking,
 // displays, remote transports, and external services remain optional so normal water,
 // thermal, environmental, scheduling, logging, and control behavior can remain local.
-class Terraduino : public TerraFactory {
+class Terraduino : public TerraFactory, public TerraCalibrations, public TerraObjectRegistration, public TerraPinHandlers {
 public:
-    TerraScheduler scheduler;                              // Scheduler public instance
-    TerraLogger logger;                                    // Logger public instance
-    TerraPublisher publisher;                              // Publisher public instance
-    TerraModuleRegistry modules;                           // Module registry public instance
+    TerraScheduler scheduler;                                       // Scheduler public instance
+    TerraLogger logger;                                             // Logger public instance
+    TerraPublisher publisher;                                       // Publisher public instance
 
-    // Controller constructor. Typically called during class instantiation before setup().
-    Terraduino();
+    // Controller constructor. Typically called during class instantiation, before setup().
+    Terraduino(pintype_t piezoBuzzerPin = -1,                       // Piezo buzzer pin, else -1
+               Terra_EEPROMType eepromType = Terra_EEPROMType_None, // EEPROM device type/size, else None
+               DeviceSetup eepromSetup = DeviceSetup(),             // EEPROM device setup (i2c only)
+               Terra_RTCType rtcType = Terra_RTCType_None,          // RTC device type, else None
+               DeviceSetup rtcSetup = DeviceSetup(),                // RTC device setup (i2c only)
+               DeviceSetup sdSetup = DeviceSetup(),                 // SD card device setup (spi only)
+               DeviceSetup netSetup = DeviceSetup(),                // Network device setup (spi/uart)
+               DeviceSetup gpsSetup = DeviceSetup(),                // GPS device setup (uart/i2c/spi)
+               pintype_t *ctrlInputPins = nullptr,                  // Control input pins, else nullptr
+               DeviceSetup displaySetup = DeviceSetup());           // Display device setup (i2c/spi)
+    // Library destructor. Just in case.
     ~Terraduino();
 
-    // Initializes the controller from the supplied system setup.
-    void init(const TerraSystemSetup &setup = TerraSystemSetup());
+    // Initializes default empty system. Typically called near top of setup().
+    // See individual enums for more info.
+    void init(Terra_SystemMode systemMode = Terra_SystemMode_Automatic,                 // What controller operating mode should be used
+              Terra_MeasurementMode measureMode = Terra_MeasurementMode_Default,        // What units of measurement should be used
+              Terra_DisplayOutputMode dispOutMode = Terra_DisplayOutputMode_Disabled,   // What display output mode should be used
+              Terra_ControlInputMode ctrlInMode = Terra_ControlInputMode_Disabled);     // What control input mode should be used
 
-    // Launches the controller into operational mode.
+    // Initializes system from EEPROM save, returning success flag
+    // Set system data address with setSystemEEPROMAddress
+    bool initFromEEPROM(bool jsonFormat = false);
+    // Initializes system from SD card file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool initFromSDCard(bool jsonFormat = true);
+#ifdef TERRA_USE_WIFI_STORAGE
+    // Initializes system from a WiFiStorage file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool initFromWiFiStorage(bool jsonFormat = true);
+#endif
+    // Initializes system from custom JSON-based stream, returning success flag
+    bool initFromJSONStream(Stream *streamIn);
+    // Initializes system from custom binary stream, returning success flag
+    bool initFromBinaryStream(Stream *streamIn);
+
+    // Saves current system setup to EEPROM save, returning success flag
+    // Set system data address with setSystemEEPROMAddress
+    bool saveToEEPROM(bool jsonFormat = false);
+    // Saves current system setup to SD card file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool saveToSDCard(bool jsonFormat = true);
+#ifdef TERRA_USE_WIFI_STORAGE
+    // Saves current system setup to WiFiStorage file save, returning success flag
+    // Set config file name with setSystemConfigFilename
+    bool saveToWiFiStorage(bool jsonFormat = true);
+#endif
+    // Saves current system setup to custom JSON-based stream, returning success flag
+    bool saveToJSONStream(Stream *streamOut, bool compact = true);
+    // Saves current system setup to custom binary stream, returning success flag
+    bool saveToBinaryStream(Stream *streamOut);
+
+    // System Operation.
+
+    // Launches system into operational mode. Typically called near end of setup().
     void launch();
-    // Suspends operational updates without discarding configured state.
+
+    // Suspends the system from operational mode (disables all run-loops). Typically used during system setup UI.
+    // Resume operation by a call to launch().
     void suspend();
-    // Updates objects, schedules, and publishing using the supplied local scheduling values.
-    void update(uint32_t now = terraMillis(), uint16_t minuteOfDay = 0, int16_t dayNumber = 0);
 
-    inline bool isInitialized() const { return _initialized; }
-    inline bool isRunning() const { return _running; }
-    inline bool isSuspended() const { return !_running; }
+    // Update method. Typically called in loop().
+    void update();
 
-    // System Settings.
-    inline const TerraSystemSetup &getSetup() const { return _data.setup; }
-    inline void setSystemName(const TerraString &name) { _data.setup.systemName = name; }
-    inline void setTimeZoneOffset(int8_t hours, int8_t minutes) { _data.setup.timeZoneHours = hours; _data.setup.timeZoneMinutes = minutes; }
-    inline void setControlMode(Terra_ControlMode mode) { _data.setup.controlMode = mode; }
-    inline Terra_ControlMode getControlMode() const { return _data.setup.controlMode; }
-    inline void setMeasurementMode(Terra_MeasurementMode mode) { _data.setup.measurementMode = mode; }
-    inline Terra_MeasurementMode getMeasurementMode() const { return _data.setup.measurementMode; }
-    inline void setLoggerMinimumLevel(Terra_LogLevel level) { _data.setup.loggerMinimumLevel = level; logger.setMinimumLevel(level); }
-    inline void setPublisherInterval(uint32_t intervalMs) { _data.setup.publisherIntervalMs = intervalMs; publisher.setInterval(intervalMs); }
+    // System Logging.
 
-    // Core subsystem accessors kept alongside the public instances for family parity.
-    inline TerraScheduler &getScheduler() { return scheduler; }
-    inline TerraLogger &getLogger() { return logger; }
-    inline TerraPublisher &getPublisher() { return publisher; }
-    inline TerraModuleRegistry &getModules() { return modules; }
-    inline TerraSystemData &getSystemData() { return _data; }
-    inline const TerraSystemData &getSystemData() const { return _data; }
-    inline TerraSystemData &systemData() { return _data; }
-    inline const TerraSystemData &systemData() const { return _data; }
+    // Enables system logging to the SD card. Log file names will append YYMMDD.txt to the specified prefix. Returns success flag.
+    inline bool enableSysLoggingToSDCard(String logFilePrefix) { return logger.beginLoggingToSDCard(logFilePrefix); }
+#ifdef TERRA_USE_WIFI_STORAGE
+    // Enables system logging to WiFiStorage. Log file names will append YYMMDD.txt to the specified prefix. Returns success flag.
+    inline bool enableSysLoggingToWiFiStorage(String logFilePrefix) { return logger.beginLoggingToWiFiStorage(logFilePrefix); }
+#endif
 
-    // Persistence helpers.
-    inline TerraString exportSystemJSON() const { return _data.toJSON(); }
-    bool importSystemJSON(const TerraString &json);
-    inline size_t exportSystemBinary(uint8_t *buffer, size_t capacity) const { return _data.toBinary(buffer, capacity); }
-    bool importSystemBinary(const uint8_t *buffer, size_t length);
+    // Data Publishing.
 
-    // Returns the currently active Terraduino controller instance, if any.
-    static inline Terraduino *getActiveInstance() { return _activeInstance; }
+    // Enables data publishing to the SD card. Data file names will append YYMMDD.csv to the specified prefix. Returns success flag.
+    inline bool enableDataPublishingToSDCard(String dataFilePrefix) { return publisher.beginPublishingToSDCard(dataFilePrefix); }
+#ifdef TERRA_USE_WIFI_STORAGE
+    // Enables data publishing to WiFiStorage. Data file names will append YYMMDD.csv to the specified prefix. Returns success flag.
+    inline bool enableDataPublishingToWiFiStorage(String dataFilePrefix) { return publisher.beginPublishingToWiFiStorage(dataFilePrefix); }
+#endif
+#ifdef TERRA_USE_MQTT
+    // Enables data publishing to MQTT broker. Client is expected to be began/connected (with proper broker address/net client) *before* calling this method. Returns success flag.
+    inline bool enableDataPublishingToMQTTClient(MQTTClient &client) { return publisher.beginPublishingToMQTTClient(client); }
+#endif
+
+    // User Interface.
+
+#ifdef TERRA_USE_GUI
+    // Enables UI to run with passed instance.
+    // Minimal/RO UI only allows the user to edit existing objects, has less run-time customizable features, etc.
+    // Full/RW UI allows the user to add/remove system objects, has more run-time customize features, etc.
+    // Note: Be sure to manually include the appropriate UI system header file (e.g. #include "min/TerraduinoUI.h") in Arduino sketch.
+    inline bool enableUI(TerraUIInterface *ui) { _activeUIInstance = ui; _uiData = ui->init(_uiData); ui->begin(); return (bool)_uiData; }
+#endif
+
+    // Mutators.
+
+    // Sets scheduler scheduling needed flag
+    inline void setNeedsScheduling() { scheduler.setNeedsScheduling(); }
+    // Sets publisher tabulation needed flag
+    inline void setNeedsTabulation() { publisher.setNeedsTabulation(); }
+    // Sets active UI redraw needed flag
+    inline void setNeedsRedraw() {
+        #ifdef TERRA_USE_GUI
+            if (_activeUIInstance) { _activeUIInstance->setNeedsRedraw(); }
+        #endif
+    }
+
+    // Sets display name of system (TERRA_NAME_MAXSIZE size limit)
+    void setSystemName(String systemName);
+    // Sets system time zone offset from UTC, in fractional hours
+    void setTimeZoneOffset(float hoursOffset);
+    // Sets system polling interval, in milliseconds (does not enable polling, see enable publishing methods)
+    void setPollingInterval(uint16_t pollingInterval);
+    // Sets system autosave enable mode and optional fallback mode and interval, in minutes.
+    void setAutosaveEnabled(Terra_Autosave autosaveEnabled, Terra_Autosave autosaveFallback = Terra_Autosave_Disabled, uint16_t autosaveInterval = TERRA_SYS_AUTOSAVE_INTERVAL);
+    // Sets system config file as used in init and save by SD card.
+    inline void setSystemConfigFilename(String configFilename) { _sysConfigFilename = configFilename; }
+    // Sets EEPROM system data address as used in init and save by EEPROM.
+    inline void setSystemDataAddress(uint16_t sysDataAddress) { _sysDataAddress = sysDataAddress; }
+    // Sets the RTC's time to the passed time, with respect to set timezone. Will trigger significant time event.
+    void setRTCTime(DateTime time);
+#ifdef TERRA_USE_WIFI
+    // Sets WiFi connection's SSID/pass combo (note: password is stored encrypted, but is not hack-proof)
+    void setWiFiConnection(String ssid, String pass);
+#endif
+#ifdef TERRA_USE_ETHERNET
+    // Sets Ethernet connection's MAC address
+    void setEthernetConnection(const uint8_t *macAddress);
+#endif
+    // Sets system location (lat/long/alt, note: only triggers update if significant or forced)
+    void setSystemLocation(double latitude, double longitude, double altitude = DBL_UNDEF, bool isSigChange = false);
+    // Sets system location (Location data, note: only triggers update if significant or forced)
+    inline void setSystemLocation(Location location, bool isSigChange = false) { setSystemLocation(location.latitude, location.longitude, location.altitude, isSigChange); }
+
+    // Accessors.
+
+    // EEPROM device size, in bytes (default: 0)
+    inline uint32_t getEEPROMSize() const { return _eepromType != Terra_EEPROMType_None ? (((int)_eepromType) << 7) : 0; }
+    // EEPROM device setup configuration
+    inline const DeviceSetup &getEEPROMSetup() const { return _eepromSetup; }
+    // RTC device setup configuration
+    inline const DeviceSetup &getRTCSetup() const { return _rtcSetup; }
+    // SD card device setup configuration
+    inline const DeviceSetup &getSDCardSetup() const { return _sdSetup; }
+#ifdef TERRA_USE_NET
+    // Network device setup configuration
+    inline const DeviceSetup &getNetworkSetup() const { return _netSetup; }
+#endif
+#ifdef TERRA_USE_GPS
+    // GPS device setup configuration
+    inline const DeviceSetup &getGPSSetup() const { return _gpsSetup; }
+#endif
+#ifdef TERRA_USE_GUI
+    // LCD output device setup configuration
+    inline const DeviceSetup &getDisplaySetup() const { return _displaySetup; }
+    // Returns control input pins ribbon
+    Pair<uint8_t, const pintype_t *> getControlInputPins() const;
+#endif
+
+    // EEPROM instance (lazily instantiated, nullptr return -> failure/no device)
+    I2C_eeprom *getEEPROM(bool begin = true);
+    // Real time clock instance (lazily instantiated, nullptr return -> failure/no device)
+    TerraRTCInterface *getRTC(bool begin = true);
+    // SD card instance (user code *must* call endSDCard(inst) to return interface, possibly lazily instantiated, nullptr return -> failure/no device)
+    SDClass *getSDCard(bool begin = true);
+    // Ends SD card transaction with proper regards to platform once all instances returned (note: some instancing may be expected to never return)
+    void endSDCard(SDClass *sd = nullptr);
+#ifdef TERRA_USE_WIFI
+    // WiFi instance (nullptr return -> failure/no device, note: this method may block for up to a minute)
+    inline WiFiClass *getWiFi(bool begin = true);
+    // WiFi instance with fallback ssid/pass combo (nullptr return -> failure/no device, note: this method may block for up to a minute)
+    WiFiClass *getWiFi(String ssid, String pass, bool begin = true);
+#endif
+#ifdef TERRA_USE_ETHERNET
+    // Ethernet instance (nullptr return -> failure/no device, note: this method may block for up to a minute)
+    inline EthernetClass *getEthernet(bool begin = true);
+    // Ethernet instance with fallback MAC address (nullptr return -> failure/no device, note: this method may block for up to a minute)
+    EthernetClass *getEthernet(const uint8_t *macAddress, bool begin = true);
+#endif
+#ifdef TERRA_USE_GPS
+    // GPS instance (nullptr return -> failure/no device)
+    GPSClass *getGPS(bool begin = true);
+#endif
+
+    // Whenever the system is in operational mode (has been launched), or not
+    inline bool inOperationalMode() const { return !_suspend; }
+    // System type mode (default: Automatic)
+    Terra_SystemMode getSystemMode() const;
+    // System measurement mode (default: Metric)
+    Terra_MeasurementMode getMeasurementMode() const;
+    // System LCD output mode (default: Disabled)
+    Terra_DisplayOutputMode getDisplayOutputMode() const;
+    // System control input mode (default: Disabled)
+    Terra_ControlInputMode getControlInputMode() const;
+    // System display name (default: "Terraduino")
+    String getSystemName() const;
+    // System display name (default: "Terraduino"), as constant chars
+    inline const char *getSystemNameChars() const { return _systemData ? _systemData->systemName : nullptr; }
+    // System time zone offset from UTC (default: +0/UTC), in total offset seconds
+    time_t getTimeZoneOffset() const;
+    // Whenever the system booted up with the RTC battery failure flag set (meaning the time is not set correctly)
+    inline bool getRTCBatteryFailure() const { return _rtcBattFail; }
+    // System sensor polling interval (time between sensor reads), in milliseconds (default: TERRA_DATA_LOOP_INTERVAL)
+    uint16_t getPollingInterval() const;
+    // System polling frame number for sensor frame tracking
+    inline tframe_t getPollingFrame() const { return _pollingFrame; }
+    // Determines if a given frame # is out of date (true) or current (false), with optional frame # allowance
+    bool isPollingFrameOld(tframe_t frame, tframe_t allowance = 0) const;
+    // Returns if system autosaves are enabled or not
+    bool isAutosaveEnabled() const;
+    // Returns if system fallback autosaves are enabled or not
+    bool isAutosaveFallbackEnabled() const;
+    // System config file used in init and save by SD card
+    inline String getSystemConfigFile() const { return _sysConfigFilename; }
+    // System data address used in init and save by EEPROM
+    inline uint16_t getSystemDataAddress() const { return _sysDataAddress; }
+#ifdef TERRA_USE_WIFI
+    // SSID for WiFi connection
+    String getWiFiSSID() const;
+    // Password for WiFi connection (plaintext)
+    String getWiFiPassword() const;
+#endif
+#ifdef TERRA_USE_ETHERNET
+    // MAC address for Ethernet connection
+    const uint8_t *getMACAddress() const;
+#endif
+    // System location (lat/long/alt)
+    Location getSystemLocation() const;
 
 protected:
-    static Terraduino *_activeInstance;                    // Active controller instance
+    static Terraduino *_activeInstance;                     // Current active instance (set after init, weak)
+#ifdef TERRA_USE_GUI
+    TerraUIInterface *_activeUIInstance;                    // Current active UI instance (owned)
+    TerraUIData *_uiData;                                   // UI data (owned)
+#endif
+    TerraSystemData *_systemData;                           // System data (owned, saved to storage)
 
-    TerraSystemData _data;                                 // Serialized controller setup data
-    bool _initialized;                                     // Initialization state flag
-    bool _running;                                         // Operational state flag
-    uint32_t _lastUpdateAt;                                // Last controller update timestamp
+    const pintype_t _piezoBuzzerPin;                        // Piezo buzzer pin (default: Disabled)
+    const Terra_EEPROMType _eepromType;                     // EEPROM device type
+    const DeviceSetup _eepromSetup;                         // EEPROM device setup
+    const Terra_RTCType _rtcType;                           // RTC device type
+    const DeviceSetup _rtcSetup;                            // RTC device setup
+    const DeviceSetup _sdSetup;                             // SD card device setup
+#ifdef TERRA_USE_NET
+    const DeviceSetup _netSetup;                            // Network device setup
+#endif
+#ifdef TERRA_USE_GPS
+    const DeviceSetup _gpsSetup;                            // GPS device setup
+#endif
+#ifdef TERRA_USE_GUI
+    const pintype_t *_ctrlInputPins;                        // Control input pin mapping (weak, default: Disabled/nullptr)
+    const DeviceSetup _displaySetup;                        // Display device setup
+#endif
+
+    I2C_eeprom *_eeprom;                                    // EEPROM instance (owned, lazy)
+    TerraRTCInterface *_rtc;                                // Real time clock instance (owned, lazy)
+    SDClass *_sd;                                           // SD card instance (owned/strong, lazy/supplied, default: SD)
+    int8_t _sdOut;                                          // Number of SD card instances out
+#ifdef TERRA_USE_GPS
+    GPSClass *_gps;                                         // GPS instance (owned, lazy)
+#endif
+
+    bool _eepromBegan;                                      // Status of EEPROM begin() call
+    bool _rtcBegan;                                         // Status of RTC begin() call
+    bool _rtcBattFail;                                      // Status of RTC battery failure flag
+    bool _sdBegan;                                          // Status of SD begin() call
+#ifdef TERRA_USE_NET
+    bool _netBegan;                                         // Status of WiFi/Ethernet begin() call
+#endif
+#ifdef TERRA_USE_GPS
+    bool _gpsBegan;                                         // Status of GPS begin() call
+#endif
+
+#ifdef TERRA_USE_MULTITASKING
+    taskid_t _controlTaskId;                                // Control task Id if created, else TASKMGR_INVALIDID
+    taskid_t _dataTaskId;                                   // Data polling task Id if created, else TASKMGR_INVALIDID
+    taskid_t _miscTaskId;                                   // Misc task Id if created, else TASKMGR_INVALIDID
+#endif
+    bool _suspend;                                          // If system is currently suspended from operation
+    tframe_t _pollingFrame;                                 // Current data polling frame # (index 0 reserved for disabled/undef, advanced by publisher)
+    time_t _lastSpaceCheck;                                 // Last date storage media free space was checked, if able (UTC)
+    time_t _lastAutosave;                                   // Last date autosave was performed, if able (UTC)
+    String _sysConfigFilename;                              // System config filename used in serialization (default: "Terraduino.cfg")
+    uint16_t _sysDataAddress;                               // EEPROM system data address used in serialization (default: -1/disabled)
+
+    void allocateEEPROM();
+    void deallocateEEPROM();
+    void allocateRTC();
+    void deallocateRTC();
+    void allocateSD();
+    void deallocateSD();
+#ifdef TERRA_USE_GPS
+    void allocateGPS();
+    void deallocateGPS();
+#endif
+
+    void commonPreInit();
+    void commonPostInit();
+    void commonPostSave();
+
+    friend void handleInterrupt(pintype_t pin);
+    friend SharedPtr<TerraObjInterface> TerraDLinkObject::resolveObject();
+    friend void controlLoop();
+    friend void dataLoop();
+    friend void miscLoop();
+
+    friend Terraduino *::getController();
+    friend TerraScheduler *::getScheduler();
+    friend TerraLogger *::getLogger();
+    friend TerraPublisher *::getPublisher();
+#ifdef TERRA_USE_GUI
+    friend TerraUIInterface *::getUI();
+#endif
+    friend class TerraScheduler;
+    friend class TerraLogger;
+    friend class TerraPublisher;
+
+public: // consider protected
+    void checkFreeMemory();
+    void checkFreeSpace();
+    void checkAutosave();
+
+    inline void performAutosave();
+    inline void broadcastLowMemory();
+    inline void notifyRTCTimeUpdated();
+    inline void broadcastDateChanged();
+    inline void notifySignificantTime(time_t time);
+    inline void notifySignificantLocation(Location loc);
 };
 
-// Returns the currently active controller instance.
-extern Terraduino *getController();
-// Returns the active system logger, when a controller exists.
-extern TerraLogger *getLogger();
-// Returns the active data publisher, when a controller exists.
-extern TerraPublisher *getPublisher();
-// Returns the active scheduler, when a controller exists.
-extern TerraScheduler *getScheduler();
-
+// Template implementations
+#include "TerraInterfaces.hpp"
 #include "Terraduino.hpp"
+#include "TerraAttachments.hpp"
+#include "TerraUtils.hpp"
 
 #endif // /ifndef Terraduino_H

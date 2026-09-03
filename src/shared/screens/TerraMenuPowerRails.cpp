@@ -1,3 +1,4 @@
-/*  Terraduino UI Screen: Power Rails
-    // TODO: Implement Terraduino power rails screen.
+/*  Terraduino: PowerRails menu screen scaffold.
+    Copyright (C) 2026 NachtRaveVL
 */
+#include "TerraMenuPowerRails.h"

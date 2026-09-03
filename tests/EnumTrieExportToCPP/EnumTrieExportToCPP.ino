@@ -6,7 +6,7 @@
 #include <string.h>
 
 struct EnumValue {
-    TerraString text;
+    String text;
     int typeIndex;
 };
 
@@ -15,7 +15,7 @@ static void printSpacer(int level)
     for (int index = 0; index < (level << 2); ++index) { Serial.print(' '); }
 }
 
-static char charAt(const TerraString &text, int index)
+static char charAt(const String &text, int index)
 {
     char value = index >= 0 && index < (int)text.length() ? text[index] : '\0';
     return value ? (char)tolower((unsigned char)value) : '\0';
@@ -51,10 +51,7 @@ static int selectPosition(EnumValue *values, int valueCount, bool *usedPositions
             char value = charAt(values[valueIndex].text, position);
             int groupIndex = 0;
             while (groupIndex < groupCount && groups[groupIndex] != value) { ++groupIndex; }
-            if (groupIndex == groupCount) {
-                groups[groupCount] = value;
-                ++groupCount;
-            }
+            if (groupIndex == groupCount) { groups[groupCount] = value; ++groupCount; }
             ++groupSizes[groupIndex];
         }
 
@@ -77,7 +74,7 @@ static int selectPosition(EnumValue *values, int valueCount, bool *usedPositions
 }
 
 static void printTree(EnumValue *values, int valueCount, bool *usedPositions, int maxLength,
-                      int level, const TerraString &varName, const TerraString &typeCast)
+                      int level, const String &varName, const String &typeCast)
 {
     if (valueCount <= 0) { return; }
     if (valueCount == 1) {
@@ -119,9 +116,7 @@ static void printTree(EnumValue *values, int valueCount, bool *usedPositions, in
         EnumValue *subset = new EnumValue[subsetCount];
         int subsetIndex = 0;
         for (int valueIndex = 0; valueIndex < valueCount; ++valueIndex) {
-            if (charAt(values[valueIndex].text, position) == groupChar) {
-                subset[subsetIndex++] = values[valueIndex];
-            }
+            if (charAt(values[valueIndex].text, position) == groupChar) { subset[subsetIndex++] = values[valueIndex]; }
         }
 
         printSpacer(level + 1);
@@ -129,6 +124,10 @@ static void printTree(EnumValue *values, int valueCount, bool *usedPositions, in
         printChar(groupChar);
         Serial.println(':');
         printTree(subset, subsetCount, usedPositions, maxLength, level + 2, varName, typeCast);
+        if (subsetCount > 1) {
+            printSpacer(level + 2);
+            Serial.println(F("break;"));
+        }
         delete [] subset;
     }
 
@@ -139,7 +138,7 @@ static void printTree(EnumValue *values, int valueCount, bool *usedPositions, in
 
 template<class T>
 static void buildEnumTree(int firstValue, int lastValue, T fallback,
-                          TerraString (*toStringFn)(T), const char *varName, const char *typeCast)
+                          String (*toStringFn)(T), const char *varName, const char *typeCast)
 {
     const int valueCount = lastValue - firstValue + 1;
     EnumValue *values = new EnumValue[valueCount];
@@ -157,11 +156,10 @@ static void buildEnumTree(int firstValue, int lastValue, T fallback,
 
     Serial.print(typeCast);
     Serial.print(' ');
-    Serial.print(F("decode(const "));
-    Serial.print(F("TerraString &"));
+    Serial.print(F("decode(const String &"));
     Serial.print(varName);
     Serial.println(F(") {"));
-    printTree(values, valueCount, usedPositions, maxLength, 1, TerraString(varName), TerraString("(" ) + typeCast + ")");
+    printTree(values, valueCount, usedPositions, maxLength, 1, String(varName), String("(") + typeCast + ")");
     printSpacer(1);
     Serial.print(F("return ("));
     Serial.print(typeCast);
@@ -175,31 +173,31 @@ static void buildEnumTree(int firstValue, int lastValue, T fallback,
     delete [] values;
 }
 
+static String unitsCategoryString(Terra_UnitsCategory value) { return String(unitsCategoryToString(value)); }
+static String unitsTypeString(Terra_UnitsType value) { return String(unitsTypeToSymbol(value)); }
+static String displayOutputModeString(Terra_DisplayOutputMode value) { return String(displayOutputModeToString(value)); }
+static String controlInputModeString(Terra_ControlInputMode value) { return String(controlInputModeToString(value)); }
+
 void setup()
 {
     Serial.begin(115200);
     while (!Serial) { ; }
 
-    buildEnumTree<Terra_ObjectType>(Terra_ObjectType_Undefined, Terra_ObjectType_PowerRail, Terra_ObjectType_Undefined, terraObjectTypeToString, "objectTypeStr", "Terra_ObjectType");
-    buildEnumTree<Terra_ResourceType>(Terra_ResourceType_Undefined, Terra_ResourceType_Thermal, Terra_ResourceType_Undefined, terraResourceTypeToString, "resourceTypeStr", "Terra_ResourceType");
-    buildEnumTree<Terra_ResourceState>(Terra_ResourceState_Unknown, Terra_ResourceState_Fault, Terra_ResourceState_Unknown, terraResourceStateToString, "resourceStateStr", "Terra_ResourceState");
-    buildEnumTree<Terra_WaterSourceType>(Terra_WaterSourceType_Undefined, Terra_WaterSourceType_Stored, Terra_WaterSourceType_Undefined, terraWaterSourceTypeToString, "waterSourceTypeStr", "Terra_WaterSourceType");
-    buildEnumTree<Terra_WaterStorageType>(Terra_WaterStorageType_Undefined, Terra_WaterStorageType_Reservoir, Terra_WaterStorageType_Undefined, terraWaterStorageTypeToString, "waterStorageTypeStr", "Terra_WaterStorageType");
-    buildEnumTree<Terra_SensorType>(Terra_SensorType_Undefined, Terra_SensorType_Remote, Terra_SensorType_Undefined, terraSensorTypeToString, "sensorTypeStr", "Terra_SensorType");
-    buildEnumTree<Terra_ActuatorType>(Terra_ActuatorType_Undefined, Terra_ActuatorType_SumpPump, Terra_ActuatorType_Undefined, terraActuatorTypeToString, "actuatorTypeStr", "Terra_ActuatorType");
+    buildEnumTree<Terra_ObjectType>(Terra_ObjectType_Undefined, Terra_ObjectType_Count, Terra_ObjectType_Undefined, terraObjectTypeToString, "objectTypeStr", "Terra_ObjectType");
+    buildEnumTree<Terra_ReservoirType>(Terra_ReservoirType_Undefined, Terra_ReservoirType_Count, Terra_ReservoirType_Undefined, TerraReservoirTypeToString, "reservoirTypeStr", "Terra_ReservoirType");
+    buildEnumTree<Terra_ResourceState>(Terra_ResourceState_Unknown, Terra_ResourceState_Count, Terra_ResourceState_Unknown, TerraReservoirStateToString, "resourceStateStr", "Terra_ResourceState");
+    buildEnumTree<Terra_SensorType>(Terra_SensorType_Undefined, Terra_SensorType_Count, Terra_SensorType_Undefined, terraSensorTypeToString, "sensorTypeStr", "Terra_SensorType");
+    buildEnumTree<Terra_ActuatorType>(Terra_ActuatorType_Undefined, Terra_ActuatorType_Count, Terra_ActuatorType_Undefined, terraActuatorTypeToString, "actuatorTypeStr", "Terra_ActuatorType");
     buildEnumTree<Terra_MeasurementMode>(Terra_MeasurementMode_Undefined, Terra_MeasurementMode_Count, Terra_MeasurementMode_Undefined, terraMeasurementModeToString, "measurementModeStr", "Terra_MeasurementMode");
     buildEnumTree<Terra_EnableMode>(Terra_EnableMode_Undefined, Terra_EnableMode_Count, Terra_EnableMode_Undefined, terraEnableModeToString, "enableModeStr", "Terra_EnableMode");
     buildEnumTree<Terra_PinMode>(Terra_PinMode_Undefined, Terra_PinMode_Count, Terra_PinMode_Undefined, terraPinModeToString, "pinModeStr", "Terra_PinMode");
-    buildEnumTree<Terra_Unit>(Terra_Unit_Undefined, Terra_Unit_Amps, Terra_Unit_Undefined, terraUnitToString, "unitStr", "Terra_Unit");
-    buildEnumTree<Terra_UnitsCategory>(Terra_UnitsCategory_Undefined, Terra_UnitsCategory_Count, Terra_UnitsCategory_Undefined, terraUnitsCategoryToString, "unitsCategoryStr", "Terra_UnitsCategory");
     buildEnumTree<Terra_RailType>(Terra_RailType_Undefined, Terra_RailType_Count, Terra_RailType_Undefined, terraRailTypeToString, "railTypeStr", "Terra_RailType");
-    buildEnumTree<Terra_Comparison>(Terra_Comparison_LessThan, Terra_Comparison_NotEqual, Terra_Comparison_GreaterOrEqual, terraComparisonToString, "comparisonStr", "Terra_Comparison");
-    buildEnumTree<Terra_TriggerState>(Terra_TriggerState_Inactive, Terra_TriggerState_Fault, Terra_TriggerState_Fault, terraTriggerStateToString, "triggerStateStr", "Terra_TriggerState");
-    buildEnumTree<Terra_LogLevel>(Terra_LogLevel_Debug, Terra_LogLevel_Error, Terra_LogLevel_Info, terraLogLevelToString, "logLevelStr", "Terra_LogLevel");
-    buildEnumTree<Terra_ModuleType>(Terra_ModuleType_Undefined, Terra_ModuleType_IOExpander, Terra_ModuleType_Undefined, terraModuleTypeToString, "moduleTypeStr", "Terra_ModuleType");
-    buildEnumTree<Terra_ControlMode>(Terra_ControlMode_Manual, Terra_ControlMode_Disabled, Terra_ControlMode_Disabled, terraControlModeToString, "controlModeStr", "Terra_ControlMode");
-    buildEnumTree<Terra_RouteState>(Terra_RouteState_Idle, Terra_RouteState_Fault, Terra_RouteState_Idle, terraRouteStateToString, "routeStateStr", "Terra_RouteState");
-    buildEnumTree<Terra_AttachmentRole>(Terra_AttachmentRole_Undefined, Terra_AttachmentRole_Circulator, Terra_AttachmentRole_Undefined, terraAttachmentRoleToString, "attachmentRoleStr", "Terra_AttachmentRole");
+    buildEnumTree<Terra_TriggerState>(Terra_TriggerState_Undefined, Terra_TriggerState_Count, Terra_TriggerState_Undefined, terraTriggerStateToString, "triggerStateStr", "Terra_TriggerState");
+    buildEnumTree<Terra_SystemMode>(Terra_SystemMode_Undefined, Terra_SystemMode_Count, Terra_SystemMode_Undefined, terraSystemModeToString, "systemModeStr", "Terra_SystemMode");
+    buildEnumTree<Terra_UnitsCategory>(Terra_UnitsCategory_Undefined, Terra_UnitsCategory_Count, Terra_UnitsCategory_Undefined, unitsCategoryString, "unitsCategoryStr", "Terra_UnitsCategory");
+    buildEnumTree<Terra_UnitsType>(Terra_UnitsType_Undefined, Terra_UnitsType_Count, Terra_UnitsType_Undefined, unitsTypeString, "unitsTypeStr", "Terra_UnitsType");
+    buildEnumTree<Terra_DisplayOutputMode>(Terra_DisplayOutputMode_Undefined, Terra_DisplayOutputMode_Count, Terra_DisplayOutputMode_Undefined, displayOutputModeString, "displayOutputModeStr", "Terra_DisplayOutputMode");
+    buildEnumTree<Terra_ControlInputMode>(Terra_ControlInputMode_Undefined, Terra_ControlInputMode_Count, Terra_ControlInputMode_Undefined, controlInputModeString, "controlInputModeStr", "Terra_ControlInputMode");
 
     Serial.println(F("Done!"));
 }

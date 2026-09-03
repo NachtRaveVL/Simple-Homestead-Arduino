@@ -1,33 +1,33 @@
+// Simple-Homestead-Arduino Data Writer Example
+//
+// Builds a small controller configuration and exports it through the same TerraData /
+// ArduinoJson persistence path used by normal controller saves.
+
 #include <Terraduino.h>
 
-void setup() {
+Terraduino terraController;
+
+void setup()
+{
     Serial.begin(115200);
-    while (!Serial) { }
+    while (!Serial) { ; }
 
-    TerraCisternData cistern;
-    cistern.key = 1001;
-    cistern.name = "Main Cistern";
-    cistern.capacityLiters = 5000.0f;
-    cistern.level = 63.5f;
-    cistern.reserveLevel = 15.0f;
-    cistern.lowLevel = 30.0f;
-    cistern.highLevel = 95.0f;
-    cistern.fillStartPercent = 35.0f;
-    cistern.fillStopPercent = 90.0f;
-    cistern.overflowPercent = 99.0f;
+    terraController.init();
 
-    Serial.println(cistern.toJSON());
+    auto reservoir = terraController.addWaterReservoir(5000.0f);
+    auto volume = terraController.addRemoteSensor(Terra_SensorType_Level,
+                                                   Terra_UnitsType_LiqVolume_Liters);
+    reservoir->getWaterVolumeSensorAttachment().setObject(volume);
+    volume->receiveReport(3175.0f, Terra_UnitsType_LiqVolume_Liters);
 
-    TerraThermalStoreData thermal;
-    thermal.key = 2001;
-    thermal.name = "Thermal Store";
-    thermal.level = 70.0f;
-    thermal.temperatureC = 58.0f;
-    thermal.minimumTargetC = 45.0f;
-    thermal.maximumTargetC = 65.0f;
-    thermal.absoluteMaximumC = 90.0f;
+    auto thermal = terraController.addThermalReservoir(90.0f);
+    auto temperature = terraController.addRemoteSensor(Terra_SensorType_Temperature,
+                                                        Terra_UnitsType_Temperature_Celsius);
+    thermal->getMediumTemperatureSensorAttachment().setObject(temperature);
+    temperature->receiveReport(58.0f, Terra_UnitsType_Temperature_Celsius);
 
-    Serial.println(thermal.toJSON());
+    terraController.saveToJSONStream(&Serial, false);
+    Serial.println();
 }
 
-void loop() { }
+void loop() { ; }

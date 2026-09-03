@@ -6,119 +6,254 @@
 #ifndef TerraActuators_H
 #define TerraActuators_H
 
-#include "TerraObject.h"
+class TerraActuator;
+class TerraRelayActuator;
+class TerraRelayPumpActuator;
+class TerraVariableActuator;
+//class TerraVariablePumpActuator;
+
+struct TerraActuatorData;
+struct TerraPumpActuatorData;
+
+#include "Terraduino.h"
+#include "TerraDatas.h"
 #include "TerraActivation.h"
-#include "TerraCallback.hh"
-#include "TerraDrivers.h"
+
+// Creates actuator object from passed actuator data (return ownership transfer - user code *must* delete returned object)
+extern TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn);
+
 
 // Actuator Base
-// Base controlled output using a callback or output driver.
-class TerraActuator : public TerraObject {
+// Base controlled output using a shared output driver and resident activation requests.
+// This is the base class for all actuators, which defines how the actuator is identified,
+// where it lives, and what it's attached to.
+class TerraActuator : public TerraObject,
+                      public TerraActuatorObjectInterface,
+                      public TerraParentRailAttachmentInterface,
+                      public TerraParentReservoirAttachmentInterface {
 public:
-    TerraActuator(Terra_ActuatorType actuatorType = Terra_ActuatorType_Undefined,
-                  uint32_t key = TERRA_INVALID_KEY,
-                  const TerraString &name = TerraString());
-    virtual ~TerraActuator();
+    const enum : signed char { Relay, RelayPump, Variable, VariablePump, Unknown = -1 } classType; // Actuator class type
+    inline bool isRelayClass() const { return classType == Relay; }
+    inline bool isRelayPumpClass() const { return classType == RelayPump; }
+    inline bool isVariableClass() const { return classType == Variable; }
+    inline bool isVariablePumpClass() const { return classType == VariablePump; }
+    inline bool isAnyBinaryClass() const { return isRelayClass() || isRelayPumpClass(); }
+    inline bool isAnyVariableClass() const { return isVariableClass() || isVariablePumpClass(); }
+    inline bool isAnyPumpClass() const { return isRelayPumpClass() || isVariablePumpClass(); }
+    inline bool isUnknownClass() const { return classType <= Unknown; }
 
-    void setWriteCallback(TerraWriteCallback callback, void *context = nullptr);
-    void setDriver(TerraOutputDriver *driver, bool takeOwnership = false);
-    TerraOutputDriver *getDriver() const { return _driver; }
-    void setEnabled(bool enabled) override;
-    virtual void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis());
-    void setOutputRequests(const float *requests, uint8_t count, uint32_t durationMs = 0, uint32_t now = terraMillis());
-    virtual void off();
-    bool isActive() const { return _activation.isActive(); }
-    float getOutput() const { return _activation.getIntensity(); }
-    Terra_ActuatorType getActuatorType() const { return _actuatorType; }
-    void setEnableMode(Terra_EnableMode mode) { _enableMode = mode; }
-    Terra_EnableMode getEnableMode() const { return _enableMode; }
-    void update(uint32_t now = terraMillis()) override;
+    TerraActuator(Terra_ActuatorType actuatorType,
+                  tposi_t actuatorIndex,
+                  int classTypeIn = Unknown);
+    TerraActuator(const TerraActuatorData *dataIn);
+
+    virtual void update() override;
+
+    virtual bool getCanEnable() override;
+
+    // Activating actuators is done through activation handles, which must stay memory
+    // resident in order for the actuator to pick up and process it. Enablement mode
+    // affects how handles are processed - in parallel, or in serial - and what the
+    // applied output is. See TerraActuatorAttachment for an abstraction of this process.
+    inline TerraActivationHandle enableActuator(Terra_DirectionMode direction, float intensity = 1.0f, millis_t duration = (millis_t)-1, bool force = false) { return TerraActivationHandle(::getSharedPtr<TerraActuator>(this), direction, intensity, duration, force); }
+    inline TerraActivationHandle enableActuator(float value, millis_t duration = (millis_t)-1, bool force = false) { return enableActuator(Terra_DirectionMode_Forward, calibrationInvTransform(value), duration, force); }
+    inline TerraActivationHandle enableActuator(millis_t duration = (millis_t)-1, bool force = false) { return enableActuator(Terra_DirectionMode_Forward, 1.0f, duration, force); }
+
+    void setEnableMode(Terra_EnableMode mode);
+    inline Terra_EnableMode getEnableMode() const { return _enableMode; }
+
+    inline bool isSerialMode() const { return _enableMode >= Terra_EnableMode_Serial; }
+    inline bool isPumpType() const { return isAnyPumpClass(); }
+    inline bool isBidirectionalType() const { return false; }
+
+    virtual void setContinuousPowerUsage(TerraSingleMeasurement contPowerUsage) override;
+    virtual const TerraSingleMeasurement &getContinuousPowerUsage() override;
+
+    virtual TerraAttachment &getParentRailAttachment() override;
+    virtual TerraAttachment &getParentReservoirAttachment() override;
+
+    void setUserCalibrationData(const TerraCalibrationData *userCalibrationData);
+    inline const TerraCalibrationData *getUserCalibrationData() const { return _calibrationData; }
+
+    // Transformation methods that convert from normalized driving intensity/driver value to calibration units
+    inline float calibrationTransform(float value) const { return _calibrationData ? _calibrationData->transform(value) : value; }
+    inline void calibrationTransform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { if (valueInOut && _calibrationData) { _calibrationData->transform(valueInOut, unitsOut); } }
+    inline TerraSingleMeasurement calibrationTransform(TerraSingleMeasurement measurement) const { return _calibrationData ? TerraSingleMeasurement(_calibrationData->transform(measurement.value), _calibrationData->calibrationUnits, measurement.timestamp, measurement.frame) : measurement; }
+    inline void calibrationTransform(TerraSingleMeasurement *measurementInOut) const { if (measurementInOut && _calibrationData) { _calibrationData->transform(measurementInOut); } }
+
+    // Transformation methods that convert from calibration units to normalized driving intensity/driver value
+    inline float calibrationInvTransform(float value) const { return _calibrationData ? _calibrationData->inverseTransform(value) : value; }
+    inline void calibrationInvTransform(float *valueInOut, Terra_UnitsType *unitsOut = nullptr) const { if (valueInOut && _calibrationData) { _calibrationData->inverseTransform(valueInOut, unitsOut); } }
+    inline TerraSingleMeasurement calibrationInvTransform(TerraSingleMeasurement measurement) const { return _calibrationData ? TerraSingleMeasurement(_calibrationData->inverseTransform(measurement.value), Terra_UnitsType_Raw_1, measurement.timestamp, measurement.frame) : measurement; }
+    inline void calibrationInvTransform(TerraSingleMeasurement *measurementInOut) const { if (measurementInOut && _calibrationData) { _calibrationData->inverseTransform(measurementInOut); } }
+
+    inline float getCalibratedValue() const { return calibrationTransform(getDriveIntensity()); }
+
+    virtual float getDriveIntensity() const = 0;
+    virtual bool isEnabled(float tolerance = 0.0f) const = 0;
+
+    inline Terra_ActuatorType getActuatorType() const { return _id.objTypeAs.actuatorType; }
+    inline tposi_t getActuatorIndex() const { return _id.posIndex; }
+
+    inline void setNeedsUpdate() { _needsUpdate = true; }
+    inline bool needsUpdate() const { return _needsUpdate; }
+
+    Signal<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS> &getActivationSignal();
 
 protected:
-    Terra_ActuatorType _actuatorType;                       // Actuator type
-    TerraActivation _activation;                            // Current actuator activation
-    TerraOutputDriver *_driver;
-    bool _ownsDriver;                                       // Driver ownership flag
-    TerraWriteCallback _writeCallback;                      // Actuator write callback
-    Terra_EnableMode _enableMode;                           // Request aggregation mode
-    void *_writeContext;
+    bool _enabled;                                          // Actuator enabled state
+    bool _needsUpdate;                                      // Activation-resolution stale flag
+    Terra_EnableMode _enableMode;                           // Activation enablement mode
+    Vector<TerraActivationHandle *> _handles;               // Active handles
+    TerraSingleMeasurement _contPowerUsage;                 // Continuous power draw
+    TerraAttachment _parentRail;                            // Parent power rail attachment
+    TerraAttachment _parentReservoir;                       // Parent reservoir attachment
+    const TerraCalibrationData *_calibrationData;           // Calibration data
+    Signal<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS> _activateSignal; // Activation update signal
+
+    virtual TerraData *allocateData() const override;
+    virtual void saveToData(TerraData *dataOut) override;
+
+    virtual void handleActivation();
+
+    friend struct TerraActivationHandle;
 };
 
-// Pump Actuator
-// Adds a continuous-runtime safety limit to a controlled pump output.
-class TerraPump : public TerraActuator {
+// Relay Actuator
+// This actuator acts as a standard on/off switch, typically paired with a variety of
+// different equipment from pumps to fans and heaters.
+class TerraRelayActuator : public TerraActuator {
 public:
-    TerraPump(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraActuator(Terra_ActuatorType_Pump, key, name), _maxContinuousMs(0), _startedAt(0) { }
-    void setMaxContinuousRuntime(uint32_t maxMs) { _maxContinuousMs = maxMs; }
-    uint32_t getMaxContinuousRuntime() const { return _maxContinuousMs; }
-    void setOutput(float intensity, uint32_t durationMs = 0, uint32_t now = terraMillis()) override;
-    void update(uint32_t now = terraMillis()) override;
+    TerraRelayActuator(Terra_ActuatorType actuatorType,
+                       tposi_t actuatorIndex,
+                       TerraDigitalPin outputPin,
+                       int classTypeIn = Relay);
+    TerraRelayActuator(const TerraActuatorData *dataIn);
+    virtual ~TerraRelayActuator();
+
+    virtual bool getCanEnable() override;
+    virtual float getDriveIntensity() const override;
+    virtual bool isEnabled(float tolerance = 0.0f) const override;
+
+    inline const TerraDigitalPin &getOutputPin() const { return _outputPin; }
 
 protected:
-    uint32_t _maxContinuousMs;                              // Maximum continuous runtime, milliseconds
-    uint32_t _startedAt;                                    // Continuous run start timestamp
+    TerraDigitalPin _outputPin;                             // Digital output pin
+
+    virtual void saveToData(TerraData *dataOut) override;
+
+    virtual void _enableActuator(float intensity = 1.0f) override;
+    virtual void _disableActuator() override;
 };
 
-// Sump Pump Actuator
-// Adds level hysteresis, high-water alarm state, invalid-level fail-safe shutdown,
-// and continuous-runtime protection to a normal pump output.
-class TerraSumpPump : public TerraPump {
+// Relay Pump Actuator
+// This actuator acts as a resource-transfer pump and attaches to both an input and output
+// reservoir. Pumps using this class are on/off and do not contain any variable flow control,
+// but can be paired with a flow sensor for more precise pumping calculations.
+class TerraRelayPumpActuator : public TerraRelayActuator,
+                               public TerraPumpObjectInterface,
+                               public TerraFlowRateUnitsInterfaceStorage,
+                               public TerraWaterFlowRateSensorAttachmentInterface {
 public:
-    TerraSumpPump(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString());
+    TerraRelayPumpActuator(Terra_ActuatorType actuatorType,
+                           tposi_t actuatorIndex,
+                           TerraDigitalPin outputPin,
+                           int classTypeIn = RelayPump);
+    TerraRelayPumpActuator(const TerraPumpActuatorData *dataIn);
 
-    bool configureLevels(float startPercent, float stopPercent,
-                         float alarmPercent = TERRA_SUMP_ALARM_LEVEL_PERCENT);
-    bool updateLevel(float levelPercent, bool valid = true, uint32_t now = terraMillis());
+    virtual void update() override;
 
-    float getStartLevelPercent() const { return _startLevelPercent; }
-    float getStopLevelPercent() const { return _stopLevelPercent; }
-    float getAlarmLevelPercent() const { return _alarmLevelPercent; }
-    float getLastLevelPercent() const { return _lastLevelPercent; }
-    bool hasValidLevel() const { return _levelValid; }
-    bool hasHighWaterAlarm() const { return _highWaterAlarm; }
+    virtual bool getCanEnable() override;
+
+    virtual bool canPump(float volume, Terra_UnitsType volumeUnits = Terra_UnitsType_Undefined) override;
+    virtual TerraActivationHandle pump(float volume, Terra_UnitsType volumeUnits = Terra_UnitsType_Undefined) override;
+    virtual bool canPump(millis_t time) override;
+    virtual TerraActivationHandle pump(millis_t time) override;
+
+    virtual void setFlowRateUnits(Terra_UnitsType flowRateUnits) override;
+
+    virtual TerraAttachment &getSourceReservoirAttachment() override;
+    virtual TerraAttachment &getDestinationReservoirAttachment() override;
+
+    virtual void setContinuousFlowRate(TerraSingleMeasurement contFlowRate) override;
+    virtual const TerraSingleMeasurement &getContinuousFlowRate() override;
+
+    virtual TerraSensorAttachment &getFlowRateSensorAttachment() override;
 
 protected:
-    float _startLevelPercent;                               // Pump start level, percent
-    float _stopLevelPercent;                                // Pump stop level, percent
-    float _alarmLevelPercent;                               // High-water alarm level, percent
-    float _lastLevelPercent;                                // Latest valid sump level, percent
-    bool _levelValid;                                       // Latest level validity state
-    bool _highWaterAlarm;                                   // High-water alarm state
+    TerraSingleMeasurement _contFlowRate;                   // Continuous flow rate
+    TerraSensorAttachment _flowRate;                        // Flow rate sensor attachment
+    TerraAttachment _destReservoir;                         // Destination output reservoir
+
+    float _pumpVolumeAccum;                                 // Accumulator for total volume of fluid pumped
+    millis_t _pumpTimeStart;                                // Time millis pump was activated at
+    millis_t _pumpTimeAccum;                                // Time millis pump has been accumulated up to
+
+    virtual void saveToData(TerraData *dataOut) override;
+
+    virtual void handleActivation() override;
+
+    virtual void handlePumpTime(millis_t time) override;
 };
 
+// Variable Actuator
+// This actuator acts as a simple variable ranged dial, typically paired with a variety of
+// different equipment that allows analog throttle or position control.
 class TerraVariableActuator : public TerraActuator {
 public:
-    TerraVariableActuator(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraActuator(Terra_ActuatorType_Variable, key, name) { }
+    TerraVariableActuator(Terra_ActuatorType actuatorType,
+                          tposi_t actuatorIndex,
+                          TerraAnalogPin outputPin,
+                          int classTypeIn = Variable);
+    TerraVariableActuator(const TerraActuatorData *dataIn);
+    virtual ~TerraVariableActuator();
+
+    virtual bool getCanEnable() override;
+    virtual float getDriveIntensity() const override;
+    virtual bool isEnabled(float tolerance = 0.0f) const override;
+
+    inline const TerraAnalogPin &getOutputPin() const { return _outputPin; }
+
+protected:
+    TerraAnalogPin _outputPin;                              // Analog/PWM output pin
+    float _intensity;                                       // Current normalized output
+
+    virtual void saveToData(TerraData *dataOut) override;
+
+    virtual void _enableActuator(float intensity = 1.0f) override;
+    virtual void _disableActuator() override;
 };
 
-class TerraValve : public TerraActuator {
-public:
-    TerraValve(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraActuator(Terra_ActuatorType_Valve, key, name) { }
-    void open(uint32_t durationMs = 0) { setOutput(1.0f, durationMs); }
-    void close() { off(); }
+// Variable/Throttled Pump Actuator
+// This actuator acts as a throttleable resource-transfer pump and attaches to both an input and output
+// reservoir. Pumps using this class have variable flow control but also can be paired with a flow sensor for more precise pumping calculations.
+//class TerraVariablePumpActuator : public TerraVariableActuator, public TerraPumpObjectInterface, public TerraWaterFlowRateSensorAttachmentInterface {
+// TODO: Port alongside HydroVariablePumpActuator once Hydruino implements it.
+//};
+
+// Actuator Serialization Data
+struct TerraActuatorData : public TerraObjectData {
+    TerraPinData outputPin;                                 // Output pin
+    Terra_EnableMode enableMode;                            // Activation enablement mode
+    TerraMeasurementData contPowerUsage;                    // Continuous power usage
+    char railName[TERRA_NAME_MAXSIZE];                      // Parent rail
+    char reservoirName[TERRA_NAME_MAXSIZE];                 // Parent reservoir
+
+    TerraActuatorData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
-class TerraDiverter : public TerraActuator {
-public:
-    TerraDiverter(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraActuator(Terra_ActuatorType_Diverter, key, name) { }
-    void routePrimary() { setOutput(0.0f); }
-    void routeSecondary() { setOutput(1.0f); }
+// Pump Actuator Serialization Data
+struct TerraPumpActuatorData : public TerraActuatorData {
+    Terra_UnitsType flowRateUnits;                          // Flow rate units
+    TerraMeasurementData contFlowRate;                      // Continuous flow rate
+    char destReservoir[TERRA_NAME_MAXSIZE];                 // Destination reservoir
+    char flowRateSensor[TERRA_NAME_MAXSIZE];                // Flow rate sensor
+
+    TerraPumpActuatorData();
+    virtual void toJSONObject(JsonObject &objectOut) const override;
+    virtual void fromJSONObject(JsonObjectConst &objectIn) override;
 };
 
-class TerraHeater : public TerraActuator {
-public:
-    TerraHeater(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraActuator(Terra_ActuatorType_Heater, key, name) { }
-};
-
-class TerraCirculator : public TerraPump {
-public:
-    TerraCirculator(uint32_t key = TERRA_INVALID_KEY, const TerraString &name = TerraString())
-        : TerraPump(key, name) { _actuatorType = Terra_ActuatorType_Circulator; }
-};
-
-#endif
+#endif // /ifndef TerraActuators_H

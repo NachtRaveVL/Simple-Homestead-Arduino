@@ -3,128 +3,307 @@
     Terraduino Sensors
 */
 
-#include "TerraSensors.h"
-#include "TerraUtils.h"
+#include "Terraduino.h"
 
-TerraSensor::TerraSensor(Terra_SensorType sensorType, Terra_Unit unit, uint32_t key, const TerraString &name)
-    : TerraObject(Terra_ObjectType_Sensor, key, name), _sensorType(sensorType),
-      _measurement(0.0f, unit, 0, false), _driver(nullptr), _ownsDriver(false),
-      _readCallback(nullptr), _readContext(nullptr), _updateIntervalMs(1000), _lastReadAt(0) { }
+TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn)
+{
+    TERRA_SOFT_ASSERT(dataIn && dataIn->isObjectData() && dataIn->id.object.idType == (tid_t)Terra_ObjectType_Sensor,
+                      SFP(TStr_Err_InvalidParameter));
+    if (!dataIn || !dataIn->isObjectData() || dataIn->id.object.idType != (tid_t)Terra_ObjectType_Sensor) { return nullptr; }
 
-TerraSensor::~TerraSensor() {
-    if (_ownsDriver) delete _driver;
-}
-
-void TerraSensor::setDriver(TerraInputDriver *driver, bool takeOwnership) {
-    if (_driver != driver && _ownsDriver) delete _driver;
-    _driver = driver;
-    _ownsDriver = driver && takeOwnership;
-    if (_driver) _driver->begin();
-}
-
-void TerraSensor::setReadCallback(TerraReadCallback callback, void *context) {
-    _readCallback = callback;
-    _readContext = context;
-}
-
-void TerraSensor::setMeasurement(float value, Terra_Unit unit, uint32_t timestamp, bool valid) {
-    _measurement = TerraMeasurement(value, unit, timestamp, valid);
-    _lastReadAt = timestamp;
-}
-
-bool TerraSensor::isStale(uint32_t now, uint32_t staleAfterMs) const {
-    uint32_t threshold = staleAfterMs ? staleAfterMs : (_updateIntervalMs ? _updateIntervalMs * 3UL : TERRA_DEFAULT_REMOTE_STALE_MS);
-    return !_measurement.valid || terraElapsed(now, _measurement.timestamp, threshold);
-}
-
-void TerraSensor::update(uint32_t now) {
-    if (!_enabled || _fault || (!_driver && !_readCallback)) return;
-    if (!_lastReadAt || terraElapsed(now, _lastReadAt, _updateIntervalMs)) {
-        if (_driver) {
-            TerraMeasurement measurement = _driver->read(now);
-            setMeasurement(measurement.value, measurement.unit, measurement.timestamp, measurement.valid);
-        } else {
-            float value = _readCallback(_readContext);
-            setMeasurement(value, _measurement.unit, now, !isnan(value));
-        }
+    switch (dataIn->id.object.classType) {
+        case (tid_t)TerraSensor::Value:
+            return new TerraSensor(dataIn);
+        case (tid_t)TerraSensor::Binary:
+            return new TerraBinarySensor(dataIn);
+        case (tid_t)TerraSensor::Analog:
+            return new TerraAnalogSensor(dataIn);
+        case (tid_t)TerraSensor::Remote:
+            return new TerraRemoteSensor(dataIn);
+        default:
+            return nullptr;
     }
 }
 
+Terra_UnitsCategory defaultCategoryForSensor(Terra_SensorType sensorType, uint8_t measurementRow)
+{
+    (void)measurementRow;
 
-TerraAnalogSensor::TerraAnalogSensor(Terra_Unit unit, uint32_t key, const TerraString &name)
-    : TerraSensor(Terra_SensorType_Analog, unit, key, name), _rawMinimum(0.0f), _rawMaximum(1023.0f),
-      _valueMinimum(0.0f), _valueMaximum(100.0f), _calibrated(false) { }
-
-bool TerraAnalogSensor::setCalibration(float rawMinimum, float rawMaximum, float valueMinimum, float valueMaximum) {
-    if (isFPEqual(rawMinimum, rawMaximum)) return false;
-    _rawMinimum = rawMinimum;
-    _rawMaximum = rawMaximum;
-    _valueMinimum = valueMinimum;
-    _valueMaximum = valueMaximum;
-    _calibrated = true;
-    return true;
-}
-
-bool TerraAnalogSensor::getCalibration(float &rawMinimum, float &rawMaximum,
-                                       float &valueMinimum, float &valueMaximum) const {
-    if (!_calibrated) return false;
-    rawMinimum = _rawMinimum;
-    rawMaximum = _rawMaximum;
-    valueMinimum = _valueMinimum;
-    valueMaximum = _valueMaximum;
-    return true;
-}
-
-void TerraAnalogSensor::update(uint32_t now) {
-    if (!_enabled || _fault || (!_driver && !_readCallback)) return;
-    if (!_lastReadAt || terraElapsed(now, _lastReadAt, _updateIntervalMs)) {
-        float raw;
-        Terra_Unit unit = _measurement.unit;
-        bool valid = true;
-        if (_driver) {
-            TerraMeasurement measurement = _driver->read(now);
-            raw = measurement.value;
-            valid = measurement.valid;
-            unit = measurement.unit == Terra_Unit_Undefined ? _measurement.unit : measurement.unit;
-        } else {
-            raw = _readCallback(_readContext);
-            valid = !isnan(raw);
-        }
-        if (!valid || isnan(raw)) {
-            setMeasurement(raw, unit, now, false);
-            return;
-        }
-        float value = _calibrated ? terraMapFloat(raw, _rawMinimum, _rawMaximum, _valueMinimum, _valueMaximum) : raw;
-        setMeasurement(value, unit, now, true);
+    switch (sensorType) {
+        case Terra_SensorType_Temperature:
+            return Terra_UnitsCategory_Temperature;
+        case Terra_SensorType_Humidity:
+        case Terra_SensorType_Level:
+            return Terra_UnitsCategory_Percentile;
+        case Terra_SensorType_Pressure:
+            return Terra_UnitsCategory_Pressure;
+        case Terra_SensorType_Rainfall:
+            return Terra_UnitsCategory_Distance;
+        case Terra_SensorType_Flow:
+            return Terra_UnitsCategory_LiqFlowRate;
+        case Terra_SensorType_WindSpeed:
+            return Terra_UnitsCategory_Speed;
+        case Terra_SensorType_WindDirection:
+            return Terra_UnitsCategory_Angle;
+        case Terra_SensorType_SolarRadiation:
+            return Terra_UnitsCategory_Irradiance;
+        case Terra_SensorType_Voltage:
+        case Terra_SensorType_Current:
+            return Terra_UnitsCategory_Power;
+        case Terra_SensorType_Leak:
+            return Terra_UnitsCategory_Raw;
+        default:
+            return Terra_UnitsCategory_Undefined;
     }
 }
 
-TerraBinarySensor::TerraBinarySensor(uint32_t key, const TerraString &name)
-    : TerraSensor(Terra_SensorType_Binary, Terra_Unit_Raw, key, name) { }
+TerraSensor::TerraSensor(Terra_SensorType sensorType, tposi_t sensorIndex, Terra_UnitsType units, int classTypeIn)
+    : TerraObject(TerraIdentity(sensorType, sensorIndex)), TerraMeasurementUnitsInterfaceStorageSingle(units),
+      classType(static_cast<decltype(Value)>(classTypeIn)),
+      _lastMeasurement(0.0f, units), _calibrationData(nullptr)
+{ ; }
 
-void TerraBinarySensor::setState(bool active, uint32_t timestamp) {
-    setMeasurement(active ? 1.0f : 0.0f, Terra_Unit_Raw, timestamp, true);
+TerraSensor::TerraSensor(const TerraSensorData *dataIn)
+    : TerraObject((const TerraObjectData *)dataIn),
+      TerraMeasurementUnitsInterfaceStorageSingle(dataIn ? dataIn->measurementUnits : Terra_UnitsType_Undefined),
+      classType(static_cast<decltype(Value)>(dataIn ? (int)dataIn->id.object.classType : (int)Unknown)),
+      _lastMeasurement(0.0f, dataIn ? dataIn->measurementUnits : Terra_UnitsType_Undefined),
+      _calibrationData(nullptr)
+{ ; }
+
+bool TerraSensor::takeMeasurement(bool force)
+{
+    if (!force && !needsPolling()) { return _lastMeasurement.isSet(); }
+    return _lastMeasurement.isSet();
 }
 
-TerraRemoteSensor::TerraRemoteSensor(Terra_SensorType reportedType, Terra_Unit unit, uint32_t key, const TerraString &name)
-    : TerraSensor(Terra_SensorType_Remote, unit, key, name), _reportedType(reportedType),
-      _staleAfterMs(TERRA_DEFAULT_REMOTE_STALE_MS), _lastReportAt(0), _hasReport(false) { }
+const TerraMeasurement *TerraSensor::getMeasurement(bool poll)
+{
+    if (poll) { takeMeasurement(); }
+    return &_lastMeasurement;
+}
 
-void TerraRemoteSensor::receiveReport(float value, Terra_Unit unit, uint32_t reportTime, bool valid) {
-    _lastReportAt = reportTime;
+bool TerraSensor::needsPolling(tframe_t allowance) const
+{
+    return getController() ? getController()->isPollingFrameOld(_lastMeasurement.frame, allowance) : !_lastMeasurement.isSet();
+}
+
+void TerraSensor::update()
+{
+    if (needsPolling()) { takeMeasurement(); }
+}
+
+void TerraSensor::setMeasurementUnits(Terra_UnitsType measurementUnits, uint8_t)
+{
+    if (_measurementUnits[0] != measurementUnits) {
+        _measurementUnits[0] = measurementUnits;
+
+        if (_lastMeasurement.isSet()) {
+            convertUnits(&_lastMeasurement, _measurementUnits[0]);
+        }
+        bumpRevisionIfNeeded();
+    }
+}
+
+Terra_UnitsType TerraSensor::getMeasurementUnits(uint8_t) const
+{
+    return _measurementUnits[0];
+}
+
+void TerraSensor::setMeasurement(float value, Terra_UnitsType units, uint32_t timestamp, bool valid)
+{
+    _lastMeasurement = TerraSingleMeasurement(value, units, timestamp,
+                                              valid && getController() ? getController()->getPollingFrame() :
+                                              valid ? (tframe_t)1 : tframe_none);
+    _measurementSignal.fire(&_lastMeasurement);
+    if (getPublisher()) { ::publishData(this); }
+}
+
+bool TerraSensor::isStale(uint32_t now, uint32_t staleAfterMs) const
+{
+    return staleAfterMs && (!_lastMeasurement.isSet() ||
+           (uint32_t)(now - _lastMeasurement.timestamp) >= staleAfterMs);
+}
+
+void TerraSensor::setUserCalibrationData(TerraCalibrationData *userCalibrationData)
+{
+    if (_calibrationData && _calibrationData != userCalibrationData) { bumpRevisionIfNeeded(); }
+    if (getController()) {
+        if (userCalibrationData && getController()->setUserCalibrationData(userCalibrationData)) {
+            _calibrationData = getController()->getUserCalibrationData(getKey());
+        } else if (!userCalibrationData && _calibrationData && getController()->dropUserCalibrationData(_calibrationData)) {
+            _calibrationData = nullptr;
+        }
+    } else {
+        _calibrationData = userCalibrationData;
+    }
+}
+
+TerraBinarySensor::TerraBinarySensor(Terra_SensorType sensorType, tposi_t sensorIndex,
+                                     TerraDigitalPin inputPin)
+    : TerraSensor(sensorType, sensorIndex, Terra_UnitsType_Raw_1, Binary), _inputPin(inputPin), _usingISR(false)
+{
+    _inputPin.init();
+}
+
+TerraBinarySensor::TerraBinarySensor(const TerraSensorData *dataIn)
+    : TerraSensor(dataIn), _inputPin(&dataIn->inputPin), _usingISR(false)
+{
+    _inputPin.init();
+}
+
+TerraBinarySensor::~TerraBinarySensor()
+{
+    if (_usingISR) {
+        // TODO: detach ISR from taskManger (not currently possible, maybe in future?)
+    }
+}
+
+bool TerraBinarySensor::takeMeasurement(bool force)
+{
+    if (!force && !needsPolling()) { return _lastMeasurement.isSet(); }
+    bool active = _inputPin.isActive();
+    uint32_t now = millis();
+    _lastMeasurement = TerraSingleMeasurement(active ? 1.0f : 0.0f, getMeasurementUnits(), now,
+                                              getController() ? getController()->getPollingFrame() : (tframe_t)1);
+    _measurementSignal.fire(&_lastMeasurement);
+    if (getPublisher()) { ::publishData(this); }
+    return true;
+}
+
+bool TerraBinarySensor::tryRegisterISR(bool anyChange)
+{
+    (void)anyChange;
+    #ifdef TERRA_USE_MULTITASKING
+        if (!_usingISR && _inputPin.isValid() && checkPinCanInterrupt(_inputPin.pin)) {
+            taskManager.addInterrupt(&interruptImpl, _inputPin.pin, !anyChange ? (_inputPin.activeLow ? FALLING : RISING) : CHANGE);
+            _usingISR = true;
+        }
+    #endif
+    return _usingISR;
+}
+
+TerraAnalogSensor::TerraAnalogSensor(Terra_SensorType sensorType, tposi_t sensorIndex,
+                                     TerraAnalogPin inputPin, Terra_UnitsType units)
+    : TerraSensor(sensorType, sensorIndex, units, Analog), _inputPin(inputPin)
+{
+    _inputPin.init();
+}
+
+TerraAnalogSensor::TerraAnalogSensor(const TerraSensorData *dataIn)
+    : TerraSensor(dataIn), _inputPin(&dataIn->inputPin)
+{
+    _inputPin.init();
+}
+
+bool TerraAnalogSensor::takeMeasurement(bool force)
+{
+    if (!force && !needsPolling()) { return _lastMeasurement.isSet(); }
+    uint32_t now = millis();
+    TerraSingleMeasurement measurement(_inputPin.analogRead(), Terra_UnitsType_Raw_1, now,
+                                       getController() ? getController()->getPollingFrame() : (tframe_t)1);
+    calibrationTransform(&measurement);
+    if (measurement.units != getMeasurementUnits()) {
+        measurement.toUnits(getMeasurementUnits());
+    }
+    _lastMeasurement = measurement;
+    _measurementSignal.fire(&_lastMeasurement);
+    if (getPublisher()) { ::publishData(this); }
+    return true;
+}
+
+TerraRemoteSensor::TerraRemoteSensor(Terra_SensorType reportedType, tposi_t sensorIndex,
+                                     Terra_UnitsType units)
+    : TerraSensor(reportedType, sensorIndex, units, Remote), _reportedType(reportedType),
+      _staleAfterMs(TERRA_DEFAULT_REMOTE_STALE_MS), _lastReportAt(0), _hasReport(false)
+{ ; }
+
+void TerraRemoteSensor::receiveReport(float value, Terra_UnitsType units, uint32_t reportTime, bool valid)
+{
     _hasReport = true;
-    setMeasurement(value, unit, reportTime, valid);
-    if (valid) clearFault();
-    else setFault(TerraString("remote sensor reported invalid data"));
+    _lastReportAt = reportTime;
+    setMeasurement(value, units, reportTime, valid);
 }
 
-bool TerraRemoteSensor::isOnline(uint32_t now) const {
-    return _hasReport && !terraElapsed(now, _lastReportAt, _staleAfterMs);
+bool TerraRemoteSensor::isOnline(uint32_t now) const
+{
+    return _hasReport && (!_staleAfterMs || (uint32_t)(now - _lastReportAt) < _staleAfterMs);
 }
 
-void TerraRemoteSensor::update(uint32_t now) {
-    if (_hasReport && terraElapsed(now, _lastReportAt, _staleAfterMs)) {
-        _measurement.valid = false;
-        setFault(TerraString("remote sensor stale"));
+void TerraRemoteSensor::update()
+{
+    if (!isOnline(millis())) { _lastMeasurement.frame = tframe_none; }
+}
+
+Signal<const TerraMeasurement *, TERRA_SENSOR_SIGNAL_SLOTS> &TerraSensor::getMeasurementSignal()
+{
+    return _measurementSignal;
+}
+
+TerraData *TerraSensor::allocateData() const
+{
+    return _allocateDataForObjType((int8_t)_id.type, (int8_t)classType);
+}
+
+void TerraSensor::saveToData(TerraData *dataOut)
+{
+    TerraObject::saveToData(dataOut);
+    dataOut->id.object.classType = (tid_t)classType;
+    static_cast<TerraSensorData *>(dataOut)->measurementUnits = getMeasurementUnits();
+}
+
+void TerraBinarySensor::saveToData(TerraData *dataOut)
+{
+    TerraSensor::saveToData(dataOut);
+    _inputPin.saveToData(&static_cast<TerraSensorData *>(dataOut)->inputPin);
+}
+
+void TerraAnalogSensor::saveToData(TerraData *dataOut)
+{
+    TerraSensor::saveToData(dataOut);
+    _inputPin.saveToData(&static_cast<TerraSensorData *>(dataOut)->inputPin);
+}
+
+TerraRemoteSensor::TerraRemoteSensor(const TerraSensorData *dataIn)
+    : TerraSensor(dataIn),
+      _reportedType(dataIn ? dataIn->reportedType : Terra_SensorType_Undefined),
+      _staleAfterMs(dataIn ? dataIn->staleAfterMs : TERRA_DEFAULT_REMOTE_STALE_MS),
+      _lastReportAt(0), _hasReport(false)
+{ ; }
+
+void TerraRemoteSensor::saveToData(TerraData *dataOut)
+{
+    TerraSensor::saveToData(dataOut);
+    auto data = static_cast<TerraSensorData *>(dataOut);
+    data->reportedType = _reportedType;
+    data->staleAfterMs = _staleAfterMs;
+}
+
+TerraSensorData::TerraSensorData()
+    : TerraObjectData(), measurementUnits(Terra_UnitsType_Undefined), reportedType(Terra_SensorType_Undefined),
+      staleAfterMs(TERRA_DEFAULT_REMOTE_STALE_MS), inputPin()
+{
+    _size = sizeof(*this);
+}
+
+void TerraSensorData::toJSONObject(JsonObject &objectOut) const
+{
+    TerraObjectData::toJSONObject(objectOut);
+    if (measurementUnits != Terra_UnitsType_Undefined) { objectOut[SFP(TStr_Key_MeasurementUnits)] = unitsTypeToSymbol(measurementUnits); }
+    if (reportedType != Terra_SensorType_Undefined) { objectOut[SFP(TStr_Key_ReportedType)] = sensorTypeToString(reportedType); }
+    if (inputPin.isSet()) {
+        JsonObject pinObj = objectOut.createNestedObject(SFP(TStr_Key_InputPin));
+        inputPin.toJSONObject(pinObj);
     }
+    if (staleAfterMs) { objectOut[SFP(TStr_Key_StaleAfterMs)] = staleAfterMs; }
+}
+
+void TerraSensorData::fromJSONObject(JsonObjectConst &objectIn)
+{
+    TerraObjectData::fromJSONObject(objectIn);
+    measurementUnits = unitsTypeFromSymbol(objectIn[SFP(TStr_Key_MeasurementUnits)]);
+    reportedType = sensorTypeFromString(objectIn[SFP(TStr_Key_ReportedType)]);
+    JsonObjectConst pinObj = objectIn[SFP(TStr_Key_InputPin)].as<JsonObjectConst>();
+    if (!pinObj.isNull()) { inputPin.fromJSONObject(pinObj); }
+    staleAfterMs = objectIn[SFP(TStr_Key_StaleAfterMs)] | staleAfterMs;
 }

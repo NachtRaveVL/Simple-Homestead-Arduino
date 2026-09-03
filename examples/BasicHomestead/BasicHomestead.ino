@@ -1,43 +1,45 @@
 // Simple-Homestead-Arduino Basic Homestead Example
 //
-// Shows the smallest useful Terraduino setup with local weather, a cistern, and a thermal
-// store registered under one controller. Real sensors and actuators can be attached later
-// without changing the basic controller lifecycle.
+// Shows the smallest useful Terraduino setup with remote environmental measurements, a
+// water reservoir, and a thermal reservoir registered under one controller. Real sensors
+// and actuators can be attached later without changing the basic controller lifecycle.
 
 #include <Terraduino.h>
 
 Terraduino terraController;
-TerraEnvironment outside(0, "Outside");
-TerraCistern cistern(2000.0f, 0, "Main Cistern");
-TerraThermalStore thermalTank(0, "Thermal Store");
+SharedPtr<TerraRemoteSensor> outsideTemperature;
+SharedPtr<TerraRemoteSensor> outsideHumidity;
+SharedPtr<TerraWaterReservoir> waterTank;
+SharedPtr<TerraRemoteSensor> waterVolume;
+SharedPtr<TerraThermalReservoir> thermalTank;
+SharedPtr<TerraRemoteSensor> thermalTankTemperature;
 
 void setup()
 {
     Serial.begin(115200);
 
-    TerraSystemSetup setup;
-    setup.systemName = "Homestead";
-    setup.controlMode = Terra_ControlMode_Automatic;
+    terraController.init(Terra_SystemMode_Automatic, Terra_MeasurementMode_Metric);
+    terraController.setSystemName("Homestead");
+    outsideTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
+    outsideHumidity = terraController.addRemoteSensor(Terra_SensorType_Humidity, Terra_UnitsType_Percentile_100);
+    waterTank = terraController.addWaterReservoir(2000.0f);
+    waterVolume = terraController.addRemoteSensor(Terra_SensorType_Level, Terra_UnitsType_LiqVolume_Liters);
+    thermalTank = terraController.addThermalReservoir(90.0f);
+    thermalTankTemperature = terraController.addRemoteSensor(Terra_SensorType_Temperature, Terra_UnitsType_Temperature_Celsius);
 
-    terraController.init(setup);
-    cistern.setThresholds(20.0f, 35.0f, 90.0f);
-    cistern.configureFillBand(35.0f, 90.0f, 99.0f);
-    cistern.setStoredLiters(1200.0f);
-    thermalTank.setTargetRange(45.0f, 65.0f);
-    thermalTank.setAbsoluteMaximum(90.0f);
+    waterTank->getWaterVolumeSensorAttachment().setObject(waterVolume);
+    thermalTank->getMediumTemperatureSensorAttachment().setObject(thermalTankTemperature);
 
-    terraController.registerObject(&outside);
-    terraController.registerObject(&cistern);
-    terraController.registerObject(&thermalTank);
     terraController.launch();
 }
 
 void loop()
 {
-    // Replace these values with installed weather and storage sensors.
-    outside.setAirTemperature(12.0f);
-    outside.setRelativeHumidity(65.0f);
-    thermalTank.setTemperature(54.0f);
+    // Replace these sample reports with installed sensor hardware.
+    outsideTemperature->receiveReport(12.0f, Terra_UnitsType_Temperature_Celsius);
+    outsideHumidity->receiveReport(65.0f, Terra_UnitsType_Percentile_100);
+    waterVolume->receiveReport(1200.0f, Terra_UnitsType_LiqVolume_Liters);
+    thermalTankTemperature->receiveReport(54.0f, Terra_UnitsType_Temperature_Celsius);
 
     terraController.update();
     delay(1000);

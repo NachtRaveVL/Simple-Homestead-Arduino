@@ -10,25 +10,27 @@
 #include "TerraPins.h"
 #include "TerraCallback.hh"
 
+typedef float (*TerraReadCallback)(void *context);
+typedef void (*TerraWriteCallback)(void *context, float value);
+
+// Input Driver Base
+// Hardware/callback input bridge. Calibration remains sensor-owned.
 class TerraInputDriver {
 public:
-    virtual ~TerraInputDriver() { }
-    virtual void begin() { }
-    virtual TerraMeasurement read(uint32_t now = terraMillis()) = 0;
-    virtual bool getPinSetup(TerraPinSetup &setup) const { (void)setup; return false; }
-    virtual bool getCalibration(float &rawMinimum, float &rawMaximum,
-                                float &valueMinimum, float &valueMaximum) const {
-        (void)rawMinimum; (void)rawMaximum; (void)valueMinimum; (void)valueMaximum;
-        return false;
-    }
+    virtual ~TerraInputDriver() { ; }
+    virtual void begin() { ; }
+    virtual TerraSingleMeasurement read(uint32_t now = millis()) = 0;
+    virtual bool getPinData(TerraPinData &dataOut) const { (void)dataOut; return false; }
 };
 
+// Output Driver Base
+// Hardware/callback output bridge. Activation arbitration remains actuator-owned.
 class TerraOutputDriver {
 public:
-    virtual ~TerraOutputDriver() { }
-    virtual void begin() { }
+    virtual ~TerraOutputDriver() { ; }
+    virtual void begin() { ; }
     virtual bool write(float value) = 0;
-    virtual bool getPinSetup(TerraPinSetup &setup) const { (void)setup; return false; }
+    virtual bool getPinData(TerraPinData &dataOut) const { (void)dataOut; return false; }
     virtual int getMaximumRaw() const { return 0; }
 };
 
@@ -36,49 +38,41 @@ class TerraCallbackInputDriver : public TerraInputDriver {
 public:
     TerraCallbackInputDriver(TerraReadCallback callback = nullptr,
                              void *context = nullptr,
-                             Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
+                             Terra_UnitsType units = Terra_UnitsType_Raw_1);
     void setCallback(TerraReadCallback callback, void *context = nullptr);
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
+    virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
 
 protected:
     TerraReadCallback _callback;                            // Configured callback
-    void *_context;
-    Terra_Unit _unit;                                       // Driver measurement unit
+    void *_context;                                         // Callback context, not owned
+    Terra_UnitsType _units;                                 // Driver measurement units
 };
 
 class TerraAnalogInputDriver : public TerraInputDriver {
 public:
-    TerraAnalogInputDriver(uint8_t pin = TERRA_INVALID_PIN,
-                           Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
-    void begin() override;
-    bool setCalibration(float rawMinimum, float rawMaximum,
-                        float valueMinimum, float valueMaximum);
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
-    bool getPinSetup(TerraPinSetup &setup) const override;
-    bool getCalibration(float &rawMinimum, float &rawMaximum,
-                        float &valueMinimum, float &valueMaximum) const override;
+    TerraAnalogInputDriver(pintype_t pin = tpin_none,
+                           uint8_t bitRes = 10);
+    virtual void begin() override;
+    virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
+    virtual bool getPinData(TerraPinData &dataOut) const override;
 
 protected:
-    TerraAnalogPin _pin;                                    // Configured I/O pin
-    Terra_Unit _unit;                                       // Driver measurement unit
-    float _rawMinimum;                                      // Raw calibration minimum
-    float _rawMaximum;                                      // Raw calibration maximum
-    float _valueMinimum;                                    // Calibrated output minimum
-    float _valueMaximum;                                    // Calibrated output maximum
-    bool _calibrated;                                       // Calibration configured flag
+    TerraAnalogPin _pin;                                    // Configured analog input pin
 };
 
 class TerraDigitalInputDriver : public TerraInputDriver {
 public:
-    TerraDigitalInputDriver(const TerraPinSetup &setup = TerraPinSetup(),
-                            Terra_Unit unit = Terra_Unit_Raw);  // Measurement unit
-    void begin() override;
-    TerraMeasurement read(uint32_t now = terraMillis()) override;
-    bool getPinSetup(TerraPinSetup &setup) const override { setup = _pin.getSetup(); return setup.isValid(); }
+    TerraDigitalInputDriver(pintype_t pin = tpin_none,
+                            bool activeLow = false,
+                            Terra_PinMode pinMode = Terra_PinMode_Digital_Input,
+                            Terra_UnitsType units = Terra_UnitsType_Raw_1);
+    virtual void begin() override;
+    virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
+    virtual bool getPinData(TerraPinData &dataOut) const override;
 
 protected:
-    TerraDigitalPin _pin;                                   // Configured I/O pin
-    Terra_Unit _unit;                                       // Driver measurement unit
+    TerraDigitalPin _pin;                                   // Configured digital input pin
+    Terra_UnitsType _units;                                 // Driver measurement units
 };
 
 class TerraCallbackOutputDriver : public TerraOutputDriver {
@@ -86,40 +80,36 @@ public:
     TerraCallbackOutputDriver(TerraWriteCallback callback = nullptr,
                               void *context = nullptr);
     void setCallback(TerraWriteCallback callback, void *context = nullptr);
-    bool write(float value) override;
+    virtual bool write(float value) override;
 
 protected:
     TerraWriteCallback _callback;                           // Configured callback
-    void *_context;
+    void *_context;                                         // Callback context, not owned
 };
 
 class TerraDigitalOutputDriver : public TerraOutputDriver {
 public:
-    TerraDigitalOutputDriver(const TerraPinSetup &setup = TerraPinSetup());
-    void begin() override;
-    bool write(float value) override;
-    bool getLastState() const { return _pin.getLastState(); }
-    bool getPinSetup(TerraPinSetup &setup) const override { setup = _pin.getSetup(); return setup.isValid(); }
+    TerraDigitalOutputDriver(pintype_t pin = tpin_none,
+                             bool activeLow = false);
+    virtual void begin() override;
+    virtual bool write(float value) override;
+    virtual bool getPinData(TerraPinData &dataOut) const override;
 
 protected:
-    TerraDigitalPin _pin;                                   // Configured I/O pin
+    TerraDigitalPin _pin;                                   // Configured digital output pin
 };
 
 class TerraAnalogOutputDriver : public TerraOutputDriver {
 public:
-    TerraAnalogOutputDriver(uint8_t pin = TERRA_INVALID_PIN, int maximumRaw = 255);
-    void begin() override;
-    bool write(float value) override;
-    int getLastRawValue() const { return _pin.getLastValue(); }
-    bool getPinSetup(TerraPinSetup &setup) const override {
-        setup = TerraPinSetup(_pin.getPin(), Terra_PinMode_Analog_Output, false);
-        return setup.isValid();
-    }
-    int getMaximumRaw() const override { return _maximumRaw; }
+    TerraAnalogOutputDriver(pintype_t pin = tpin_none,
+                            uint8_t bitRes = 8);
+    virtual void begin() override;
+    virtual bool write(float value) override;
+    virtual bool getPinData(TerraPinData &dataOut) const override;
+    virtual int getMaximumRaw() const override;
 
 protected:
-    TerraAnalogPin _pin;                      ///< Analog/PWM output pin
-    int _maximumRaw;                          ///< Raw value corresponding to full-scale output
+    TerraAnalogPin _pin;                                    // Configured analog/PWM output pin
 };
 
 #endif // /ifndef TerraDrivers_H
