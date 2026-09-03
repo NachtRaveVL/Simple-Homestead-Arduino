@@ -36,7 +36,7 @@ int main()
 
     auto leak = controller.addLeakIndicator(9, true);
     assert(leak);
-    leak->setSimulatedState(true);
+    digitalWrite(9, LOW);
     assert(leak->takeMeasurement(true));
     assert(leak->isActive(false));
 

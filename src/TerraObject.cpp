@@ -95,7 +95,7 @@ void TerraObject::allocateLinkages(size_t size)
         if (size) {
             TERRA_HARD_ASSERT(newLinks, SFP(TStr_Err_AllocationFailure));
 
-            tposi_t linksIndex = 0;
+            size_t linksIndex = 0;
             if (_links) {
                 for (; linksIndex < _linksSize && linksIndex < size; ++linksIndex) {
                     newLinks[linksIndex] = _links[linksIndex];
@@ -230,7 +230,7 @@ void TerraObject::saveToData(TerraData *dataOut)
 
 
 void TerraSubObject::unresolveAny(TerraObject *obj)
-{ ; }
+{ (void)obj; }
 
 TerraIdentity TerraSubObject::getId() const
 {

@@ -125,7 +125,7 @@ template<typename T>
 String commaStringFromArray(const T *arrayIn, size_t length)
 {
     if (!arrayIn || !length) { return String(SFP(TStr_null)); }
-    String retVal; retVal.reserve(length << 1 + length >> 1 + 1);
+    String retVal; retVal.reserve((length << 1) + (length >> 1) + 1);
     for (size_t index = 0; index < length; ++index) {
         if (retVal.length()) { retVal.concat(','); }
         retVal += String(arrayIn[index]);
@@ -142,7 +142,7 @@ void commaStringToArray(String stringIn, T *arrayOut, size_t length)
         int nextSepPos = stringIn.indexOf(',', lastSepPos+1);
         if (nextSepPos == -1) { nextSepPos = stringIn.length(); }
         String subString = stringIn.substring(lastSepPos+1, nextSepPos);
-        if (nextSepPos < stringIn.length()) { lastSepPos = nextSepPos; }
+        if (nextSepPos < static_cast<int>(stringIn.length())) { lastSepPos = nextSepPos; }
 
         arrayOut[index] = static_cast<T>(subString.toInt());
     }
@@ -208,7 +208,7 @@ template<> inline double wrapBy(double value, double range)
 }
 
 
-template<size_t N = TERRA_DEFAULT_MAXSIZE>
+template<size_t N>
 Vector<TerraObject *, N> linksFilterActuators(Pair<uint8_t, Pair<TerraObject *, int8_t> *> links)
 {
     Vector<TerraObject *, N> retVal;
@@ -222,7 +222,7 @@ Vector<TerraObject *, N> linksFilterActuators(Pair<uint8_t, Pair<TerraObject *, 
     return retVal;
 }
 
-template<size_t N = TERRA_DEFAULT_MAXSIZE>
+template<size_t N>
 void linksResolveActuatorsByType(Vector<TerraObject *, N> &actuatorsIn, Vector<TerraActuatorAttachment, N> &activationsOut, Terra_ActuatorType actuatorType)
 {
     for (auto actIter = actuatorsIn.begin(); actIter != actuatorsIn.end(); ++actIter) {
@@ -235,7 +235,7 @@ void linksResolveActuatorsByType(Vector<TerraObject *, N> &actuatorsIn, Vector<T
     }
 }
 
-template<size_t N = TERRA_DEFAULT_MAXSIZE>
+template<size_t N>
 void linksResolveActuatorsToAttachments(Vector<TerraObject *, N> &actuatorsIn, TerraObjInterface *parent, tposi_t subIndex, Vector<TerraActuatorAttachment, N> &activationsOut)
 {
     for (auto actIter = actuatorsIn.begin(); actIter != actuatorsIn.end(); ++actIter) {

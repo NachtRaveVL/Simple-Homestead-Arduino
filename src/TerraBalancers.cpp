@@ -7,7 +7,7 @@
 #include "TerraCoreLogic.h"
 
 TerraBalancer::TerraBalancer(SharedPtr<TerraSensor> sensor, float targetSetpoint, float targetRange, uint8_t measurementRow, int typeIn)
-    : type((typeof(type))typeIn), _sensor(this), _balancingState(Terra_BalancingState_Undefined),
+    : type(static_cast<decltype(LinearEdge)>(typeIn)), _sensor(this), _balancingState(Terra_BalancingState_Undefined),
       _targetSetpoint(targetSetpoint), _targetRange(targetRange), _enabled(false)
 {
     _sensor.setMeasurementRow(measurementRow);

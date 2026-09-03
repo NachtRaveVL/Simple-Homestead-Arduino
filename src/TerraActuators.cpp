@@ -30,13 +30,13 @@ TerraActuator *newActuatorObjectFromData(const TerraActuatorData *dataIn)
 
 
 TerraActuator::TerraActuator(Terra_ActuatorType actuatorType, tposi_t actuatorIndex, int classTypeIn)
-    : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(classType)>(classTypeIn)),
+    : TerraObject(TerraIdentity(actuatorType, actuatorIndex)), classType(static_cast<decltype(Relay)>(classTypeIn)),
       _enabled(false), _needsUpdate(false), _enableMode(Terra_EnableMode_Undefined),
       _contPowerUsage(), _parentRail(this), _parentReservoir(this), _calibrationData(nullptr)
 { ; }
 
 TerraActuator::TerraActuator(const TerraActuatorData *dataIn)
-    : TerraObject(dataIn), classType(static_cast<decltype(classType)>(dataIn->id.object.classType)),
+    : TerraObject(dataIn), classType(static_cast<decltype(Relay)>(dataIn->id.object.classType)),
       _enabled(false), _needsUpdate(false), _enableMode(dataIn->enableMode),
       _contPowerUsage(dataIn->contPowerUsage.value, dataIn->contPowerUsage.units,
                       dataIn->contPowerUsage.timestamp,

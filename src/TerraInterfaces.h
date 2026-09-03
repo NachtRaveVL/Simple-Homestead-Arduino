@@ -99,6 +99,7 @@ public:
 // RTC Module Interface
 class TerraRTCInterface {
 public:
+    virtual ~TerraRTCInterface() { ; }
     virtual bool begin(TwoWire *wireInstance) = 0;
     virtual void adjust(const DateTime &dt) = 0;
     virtual bool lostPower(void) = 0;
@@ -172,7 +173,7 @@ public:
 template <size_t N> class TerraMeasurementUnitsStorage {
 protected:
     Terra_UnitsType _measurementUnits[N];
-    inline TerraMeasurementUnitsStorage(Terra_UnitsType measurementUnits = Terra_UnitsType_Undefined) { for (tposi_t i = 0; i < N; ++i) { _measurementUnits[i] = measurementUnits; } }
+    inline TerraMeasurementUnitsStorage(Terra_UnitsType measurementUnits = Terra_UnitsType_Undefined) { for (size_t i = 0; i < N; ++i) { _measurementUnits[i] = measurementUnits; } }
 };
 
 // Single Measure Units Interface + Storage
@@ -221,7 +222,6 @@ public:
     virtual void setVolumeUnits(Terra_UnitsType volumeUnits) = 0;
     inline Terra_UnitsType getVolumeUnits() const { return _volumeUnits; }
     inline Terra_UnitsType getFlowRateUnits() const;
-    inline Terra_UnitsType getDilutionUnits() const;
 
 protected:
     Terra_UnitsType _volumeUnits;

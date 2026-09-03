@@ -148,12 +148,15 @@ void TerraPROGMEMStream::flush()
 
 size_t TerraPROGMEMStream::write(const uint8_t *buffer, size_t size)
 {
+    (void)buffer;
+    (void)size;
     TERRA_SOFT_ASSERT(false, SFP(TStr_Err_OperationFailure));
     return 0;
 }
 
 size_t TerraPROGMEMStream::write(uint8_t data)
 {
+    (void)data;
     TERRA_SOFT_ASSERT(false, SFP(TStr_Err_OperationFailure));
     return 0;
 }

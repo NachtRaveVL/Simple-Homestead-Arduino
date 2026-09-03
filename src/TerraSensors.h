@@ -20,6 +20,7 @@ struct TerraCalibrationData;
 
 // Creates sensor object from passed sensor data (return ownership transfer - user code *must* delete returned object)
 extern TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn);
+extern Terra_UnitsCategory defaultCategoryForSensor(Terra_SensorType sensorType, uint8_t measurementRow = 0);
 
 // Sensor Base
 class TerraSensor : public TerraObject,

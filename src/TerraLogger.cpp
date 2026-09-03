@@ -255,6 +255,7 @@ void TerraLogger::notifyDateChanged()
 
 void TerraLogger::cleanupOldestLogs(bool force)
 {
+    (void)force;
     // TODO: Old data cleanup. #17 in Terraduino.
 }
 

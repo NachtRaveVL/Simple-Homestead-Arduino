@@ -12,7 +12,6 @@ template<class ParameterType, int Slots> class TerraSignalAttachment;
 class TerraActuatorAttachment;
 class TerraSensorAttachment;
 class TerraTriggerAttachment;
-class TerraDriverAttachment;
 
 #include "Terraduino.h"
 #include "TerraObject.h"
@@ -26,6 +25,7 @@ class TerraDLinkObject {
 public:
     TerraDLinkObject();
     TerraDLinkObject(const TerraDLinkObject &obj);
+    TerraDLinkObject &operator=(const TerraDLinkObject &obj);
     virtual ~TerraDLinkObject();
 
     inline bool isUnresolved() const { return !_obj; }
@@ -78,6 +78,7 @@ class TerraAttachment : public TerraSubObject {
 public:
     TerraAttachment(TerraObjInterface *parent = nullptr, tposi_t subIndex = 0);
     TerraAttachment(const TerraAttachment &attachment);
+    TerraAttachment &operator=(const TerraAttachment &attachment);
     virtual ~TerraAttachment();
 
     // Attaches object and any relevant signaling mechanisms. Derived classes should call base class's method first.
@@ -142,6 +143,7 @@ public:
 
     template<class U> TerraSignalAttachment(TerraObjInterface *parent = nullptr, tposi_t subIndex = 0, Signal<ParameterType,Slots> &(U::*signalGetter)(void) = nullptr);
     TerraSignalAttachment(const TerraSignalAttachment<ParameterType,Slots> &attachment);
+    TerraSignalAttachment<ParameterType,Slots> &operator=(const TerraSignalAttachment<ParameterType,Slots> &attachment);
     virtual ~TerraSignalAttachment();
 
     virtual void attachObject() override;
@@ -174,6 +176,7 @@ class TerraActuatorAttachment : public TerraSignalAttachment<TerraActuator *, TE
 public:
     TerraActuatorAttachment(TerraObjInterface *parent = nullptr, tposi_t subIndex = 0);
     TerraActuatorAttachment(const TerraActuatorAttachment &attachment);
+    TerraActuatorAttachment &operator=(const TerraActuatorAttachment &attachment);
     virtual ~TerraActuatorAttachment();
 
     // Updates with actuator activation handle. Does not call actuator's update() (handled by system).
@@ -336,34 +339,4 @@ public:
     template<class U> inline TerraTriggerAttachment &operator=(SharedPtr<U> rhs) { setObject(rhs); return *this; }
     template<class U> inline TerraTriggerAttachment &operator=(const U *rhs) { setObject(rhs); return *this; }
 };
-
-
-// Driver Attachment Point
-// This attachment registers the parent object with a driver's driving signal
-// upon resolvement / unregisters the parent object from the driver at time of
-// destruction or reassignment.
-class TerraDriverAttachment : public TerraSignalAttachment<Terra_DrivingState, TERRA_DRIVER_SIGNAL_SLOTS> {
-public:
-    TerraDriverAttachment(TerraObjInterface *parent = nullptr, tposi_t subIndex = 0);
-    TerraDriverAttachment(const TerraDriverAttachment &attachment);
-    virtual ~TerraDriverAttachment();
-
-    // Updates owned driver attachment.
-    virtual void updateIfNeeded(bool poll = false) override;
-
-    inline Terra_DrivingState getDrivingState(bool poll = false);
-
-    template<class U> inline void setObject(U obj, bool modify = false) { TerraAttachment::setObject(obj, modify); }
-    inline SharedPtr<TerraDriver> getObject() { return TerraAttachment::getObject<TerraDriver>(); }
-    inline TerraDriver *get() { return TerraAttachment::get<TerraDriver>(); }
-
-    inline TerraDriver &operator*() { return *TerraAttachment::get<TerraDriver>(); }
-    inline TerraDriver *operator->() { return TerraAttachment::get<TerraDriver>(); }
-
-    inline TerraDriverAttachment &operator=(const TerraIdentity &rhs) { setObject(rhs); return *this; }
-    inline TerraDriverAttachment &operator=(const char *rhs) { setObject(rhs); return *this; }
-    template<class U> inline TerraDriverAttachment &operator=(SharedPtr<U> rhs) { setObject(rhs); return *this; }
-    template<class U> inline TerraDriverAttachment &operator=(const U *rhs) { setObject(rhs); return *this; }
-};
-
 #endif // /ifndef TerraAttachments_H

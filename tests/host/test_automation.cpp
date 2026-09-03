@@ -22,6 +22,7 @@ int main()
 
     TerraLinearEdgeBalancer balancer(temperature, 50.0f, 4.0f);
     balancer.setEnabled(true);
+    controller.launch();
 
     temperature->receiveReport(40.0f, Terra_UnitsType_Temperature_Celsius, 100, true);
     assert(balancer.getBalancingState(false) == Terra_BalancingState_TooLow);

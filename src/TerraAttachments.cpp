@@ -22,6 +22,23 @@ TerraDLinkObject::TerraDLinkObject(const TerraDLinkObject &obj)
     }
 }
 
+TerraDLinkObject &TerraDLinkObject::operator=(const TerraDLinkObject &obj)
+{
+    if (this != &obj) {
+        _key = obj._key;
+        _obj = obj._obj;
+        if (_keyStr) { free((void *)_keyStr); _keyStr = nullptr; }
+        if (obj._keyStr) {
+            auto len = strnlen(obj._keyStr, TERRA_NAME_MAXSIZE);
+            if (len) {
+                _keyStr = (const char *)malloc(len + 1);
+                strncpy((char *)_keyStr, obj._keyStr, len + 1);
+            }
+        }
+    }
+    return *this;
+}
+
 TerraDLinkObject::~TerraDLinkObject()
 {
     if (_keyStr) { free((void *)_keyStr); }
@@ -64,6 +81,23 @@ TerraAttachment::TerraAttachment(const TerraAttachment &attachment)
     initObject(attachment._obj);
 }
 
+TerraAttachment &TerraAttachment::operator=(const TerraAttachment &attachment)
+{
+    if (this != &attachment) {
+        if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) {
+            _obj.get<TerraObject>()->removeLinkage((TerraObject *)_parent);
+        }
+
+        _parent = attachment._parent;
+        _obj = attachment._obj;
+        _subIndex = attachment._subIndex;
+        if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) {
+            _obj.get<TerraObject>()->addLinkage((TerraObject *)_parent);
+        }
+    }
+    return *this;
+}
+
 TerraAttachment::~TerraAttachment()
 {
     if (isResolved() && _obj->isObject() && _parent && _parent->isObject()) {
@@ -88,6 +122,7 @@ void TerraAttachment::detachObject()
 
 void TerraAttachment::updateIfNeeded(bool poll)
 {
+    (void)poll;
     // intended to be overridden by derived classes, but not an error if left not implemented
 }
 
@@ -120,6 +155,20 @@ TerraActuatorAttachment::TerraActuatorAttachment(const TerraActuatorAttachment &
       _rateMultiplier(attachment._rateMultiplier), _calledLastUpdate(false)
 { ; }
 
+TerraActuatorAttachment &TerraActuatorAttachment::operator=(const TerraActuatorAttachment &attachment)
+{
+    if (this != &attachment) {
+        TerraSignalAttachment<TerraActuator *, TERRA_ACTUATOR_SIGNAL_SLOTS>::operator=(attachment);
+        _actHandle = attachment._actHandle;
+        _actSetup = attachment._actSetup;
+        if (_updateSlot) { delete _updateSlot; _updateSlot = nullptr; }
+        _updateSlot = attachment._updateSlot ? attachment._updateSlot->clone() : nullptr;
+        _rateMultiplier = attachment._rateMultiplier;
+        _calledLastUpdate = false;
+    }
+    return *this;
+}
+
 TerraActuatorAttachment::~TerraActuatorAttachment()
 {
     if (_updateSlot) { delete _updateSlot; _updateSlot = nullptr; }
@@ -127,6 +176,7 @@ TerraActuatorAttachment::~TerraActuatorAttachment()
 
 void TerraActuatorAttachment::updateIfNeeded(bool poll)
 {
+    (void)poll;
     if (_actHandle.isValid()) {
         if (isActivated()) {
             _actHandle.elapseTo();
@@ -292,23 +342,6 @@ TerraTriggerAttachment::~TerraTriggerAttachment()
 { ; }
 
 void TerraTriggerAttachment::updateIfNeeded(bool poll)
-{
-    if (poll && resolve()) { get()->update(); }
-}
-
-
-TerraDriverAttachment::TerraDriverAttachment(TerraObjInterface *parent, tposi_t subIndex)
-    : TerraSignalAttachment<Terra_DrivingState, TERRA_DRIVER_SIGNAL_SLOTS>(parent, subIndex, &TerraDriver::getDrivingSignal)
-{ ; }
-
-TerraDriverAttachment::TerraDriverAttachment(const TerraDriverAttachment &attachment)
-    : TerraSignalAttachment<Terra_DrivingState, TERRA_DRIVER_SIGNAL_SLOTS>(attachment)
-{ ; }
-
-TerraDriverAttachment::~TerraDriverAttachment()
-{ ; }
-
-void TerraDriverAttachment::updateIfNeeded(bool poll)
 {
     if (poll && resolve()) { get()->update(); }
 }

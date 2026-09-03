@@ -57,26 +57,46 @@ Terraduino::Terraduino(pintype_t piezoBuzzerPin,
                        DeviceSetup gpsSetup,
                        pintype_t *ctrlInputPins,
                        DeviceSetup displaySetup)
-    : _piezoBuzzerPin(piezoBuzzerPin),
-      _eepromType(eepromType), _eepromSetup(eepromSetup), _eeprom(nullptr), _eepromBegan(false),
-      _rtcType(rtcType), _rtcSetup(rtcSetup), _rtc(nullptr), _rtcBegan(false), _rtcBattFail(false),
-      _sdSetup(sdSetup), _sd(nullptr), _sdBegan(false), _sdOut(0),
+    :
+#ifdef TERRA_USE_GUI
+      _activeUIInstance(nullptr), _uiData(nullptr),
+#endif
+      _systemData(nullptr),
+      _piezoBuzzerPin(piezoBuzzerPin),
+      _eepromType(eepromType), _eepromSetup(eepromSetup),
+      _rtcType(rtcType), _rtcSetup(rtcSetup),
+      _sdSetup(sdSetup),
 #ifdef TERRA_USE_NET
-      _netSetup(netSetup), _netBegan(false),
+      _netSetup(netSetup),
 #endif
 #ifdef TERRA_USE_GPS
-      _gpsSetup(gpsSetup), _gps(nullptr), _gpsBegan(false),
+      _gpsSetup(gpsSetup),
 #endif
 #ifdef TERRA_USE_GUI
-      _activeUIInstance(nullptr), _uiData(nullptr), _ctrlInputPins(ctrlInputPins), _displaySetup(displaySetup),
+      _ctrlInputPins(ctrlInputPins), _displaySetup(displaySetup),
+#endif
+      _eeprom(nullptr), _rtc(nullptr), _sd(nullptr), _sdOut(0),
+#ifdef TERRA_USE_GPS
+      _gps(nullptr),
+#endif
+      _eepromBegan(false), _rtcBegan(false), _rtcBattFail(false), _sdBegan(false),
+#ifdef TERRA_USE_NET
+      _netBegan(false),
+#endif
+#ifdef TERRA_USE_GPS
+      _gpsBegan(false),
 #endif
 #ifdef TERRA_USE_MULTITASKING
       _controlTaskId(TASKMGR_INVALIDID), _dataTaskId(TASKMGR_INVALIDID), _miscTaskId(TASKMGR_INVALIDID),
 #endif
-      _systemData(nullptr), _suspend(true), _pollingFrame(0), _lastSpaceCheck(0), _lastAutosave(0),
-      _sysConfigFilename(SFP(TStr_Default_ConfigFilename)), _sysDataAddress(-1)
+      _suspend(true), _pollingFrame(0), _lastSpaceCheck(0), _lastAutosave(0),
+      _sysConfigFilename(SFP(TStr_Default_ConfigFilename)), _sysDataAddress((uint16_t)-1)
 {
     _activeInstance = this;
+    (void)netSetup;
+    (void)gpsSetup;
+    (void)ctrlInputPins;
+    (void)displaySetup;
 }
 
 Terraduino::~Terraduino()
@@ -216,6 +236,8 @@ void Terraduino::init(Terra_SystemMode systemMode,
                       Terra_DisplayOutputMode dispOutMode,
                       Terra_ControlInputMode ctrlInMode)
 {
+    (void)dispOutMode;
+    (void)ctrlInMode;
     TERRA_HARD_ASSERT(!_systemData, SFP(TStr_Err_AlreadyInitialized));
 
     if (!_systemData) {
@@ -254,7 +276,7 @@ bool Terraduino::initFromEEPROM(bool jsonFormat)
     if (!_systemData) {
         commonPreInit();
 
-        if (getEEPROM() && _eepromBegan && _sysDataAddress != -1) {
+        if (getEEPROM() && _eepromBegan && _sysDataAddress != (uint16_t)-1) {
             TerraEEPROMStream eepromStream(_sysDataAddress, getEEPROMSize() - _sysDataAddress);
             return jsonFormat ? initFromJSONStream(&eepromStream) : initFromBinaryStream(&eepromStream);
         }
@@ -268,7 +290,7 @@ bool Terraduino::saveToEEPROM(bool jsonFormat)
     TERRA_HARD_ASSERT(_systemData, SFP(TStr_Err_NotYetInitialized));
 
     if (_systemData) {
-        if (getEEPROM() && _eepromBegan && _sysDataAddress != -1) {
+        if (getEEPROM() && _eepromBegan && _sysDataAddress != (uint16_t)-1) {
             TerraEEPROMStream eepromStream(_sysDataAddress, getEEPROMSize() - _sysDataAddress);
             return jsonFormat ? saveToJSONStream(&eepromStream) : saveToBinaryStream(&eepromStream);
         }
@@ -417,10 +439,13 @@ bool Terraduino::initFromJSONStream(Stream *streamIn)
                 if (data && data->isStandardData()) {
                     if (data->isCalibrationData()) {
                         setUserCalibrationData((TerraCalibrationData *)data);
-                    } else if (data->isUIData()) {
-                        if (_uiData) { delete _uiData; }
-                        _uiData = (TerraUIData *)data; data = nullptr;
                     }
+                    #ifdef TERRA_USE_GUI
+                        else if (data->isUIData()) {
+                            if (_uiData) { delete _uiData; }
+                            _uiData = (TerraUIData *)data; data = nullptr;
+                        }
+                    #endif
                     if (data) { delete data; data = nullptr; }
                 } else if (data && data->isObjectData()) {
                     TerraObject *obj = newObjectFromData(data);
@@ -481,17 +506,19 @@ bool Terraduino::saveToJSONStream(Stream *streamOut, bool compact)
             }
         }
 
-        if (_uiData) {
-            StaticJsonDocument<TERRA_JSON_DOC_DEFSIZE> doc;
+        #ifdef TERRA_USE_GUI
+            if (_uiData) {
+                StaticJsonDocument<TERRA_JSON_DOC_DEFSIZE> doc;
 
-            JsonObject uiDataObj = doc.to<JsonObject>();
-            _uiData->toJSONObject(uiDataObj);
+                JsonObject uiDataObj = doc.to<JsonObject>();
+                _uiData->toJSONObject(uiDataObj);
 
-            if (!(compact ? serializeJson(doc, *streamOut) : serializeJsonPretty(doc, *streamOut))) {
-                TERRA_SOFT_ASSERT(false, SFP(TStr_Err_ExportFailure));
-                return false;
+                if (!(compact ? serializeJson(doc, *streamOut) : serializeJsonPretty(doc, *streamOut))) {
+                    TERRA_SOFT_ASSERT(false, SFP(TStr_Err_ExportFailure));
+                    return false;
+                }
             }
-        }
+        #endif
 
         if (_objects.size()) {
             for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
@@ -549,10 +576,13 @@ bool Terraduino::initFromBinaryStream(Stream *streamIn)
                 if (data && data->isStandardData()) {
                     if (data->isCalibrationData()) {
                         setUserCalibrationData((TerraCalibrationData *)data);
-                    } else if (data->isUIData()) {
-                        if (_uiData) { delete _uiData; }
-                        _uiData = (TerraUIData *)data; data = nullptr;
                     }
+                    #ifdef TERRA_USE_GUI
+                        else if (data->isUIData()) {
+                            if (_uiData) { delete _uiData; }
+                            _uiData = (TerraUIData *)data; data = nullptr;
+                        }
+                    #endif
                     if (data) { delete data; data = nullptr; }
                 } else if (data && data->isObjectData()) {
                     TerraObject *obj = newObjectFromData(data);
@@ -605,12 +635,14 @@ bool Terraduino::saveToBinaryStream(Stream *streamOut)
             if (!bytesWritten) { return false; }
         }
 
-        if (_uiData) {
-            size_t bytesWritten = serializeDataToBinaryStream(_uiData, streamOut);
+        #ifdef TERRA_USE_GUI
+            if (_uiData) {
+                size_t bytesWritten = serializeDataToBinaryStream(_uiData, streamOut);
 
-            TERRA_SOFT_ASSERT(bytesWritten, SFP(TStr_Err_ExportFailure));
-            if (!bytesWritten) { return false; }
-        }
+                TERRA_SOFT_ASSERT(bytesWritten, SFP(TStr_Err_ExportFailure));
+                if (!bytesWritten) { return false; }
+            }
+        #endif
 
         if (_objects.size()) {
             for (auto iter = _objects.begin(); iter != _objects.end(); ++iter) {
@@ -1257,6 +1289,7 @@ SDClass *Terraduino::getSDCard(bool begin)
 
 void Terraduino::endSDCard(SDClass *sd)
 {
+    (void)sd;
     #if defined(CORE_TEENSY)
         --_sdOut; // no delayed write on teensy's SD impl
     #else
@@ -1445,7 +1478,7 @@ Location Terraduino::getSystemLocation() const
 void Terraduino::checkFreeMemory()
 {
     auto memLeft = freeMemory();
-    if (memLeft != -1 && memLeft < TERRA_SYS_FREERAM_LOWBYTES) {
+    if (memLeft != (unsigned int)-1 && memLeft < TERRA_SYS_FREERAM_LOWBYTES) {
         broadcastLowMemory();
     }
 }
@@ -1466,7 +1499,7 @@ static uint64_t getSDCardFreeSpace()
 void Terraduino::checkFreeSpace()
 {
     if ((logger.isLoggingEnabled() || publisher.isPublishingEnabled()) &&
-        (!_lastSpaceCheck || unixNow() >= _lastSpaceCheck + (TERRA_SYS_FREESPACE_INTERVAL * SECS_PER_MIN))) {
+        (!_lastSpaceCheck || unixNow() >= _lastSpaceCheck + (time_t)(TERRA_SYS_FREESPACE_INTERVAL * SECS_PER_MIN))) {
         if (logger.isLoggingToSDCard() || publisher.isPublishingToSDCard()) {
             uint32_t freeKB = getSDCardFreeSpace();
             while (freeKB < TERRA_SYS_FREESPACE_LOWSPACE) {
@@ -1482,7 +1515,7 @@ void Terraduino::checkFreeSpace()
 
 void Terraduino::checkAutosave()
 {
-    if (isAutosaveEnabled() && unixNow() >= _lastAutosave + (_systemData->autosaveInterval * SECS_PER_MIN)) {
+    if (isAutosaveEnabled() && unixNow() >= _lastAutosave + (time_t)(_systemData->autosaveInterval * SECS_PER_MIN)) {
         performAutosave();
     }
 }

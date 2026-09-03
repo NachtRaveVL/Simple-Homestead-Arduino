@@ -50,7 +50,7 @@ protected:
 
 class TerraAnalogInputDriver : public TerraInputDriver {
 public:
-    TerraAnalogInputDriver(uint8_t pin = TERRA_INVALID_PIN,
+    TerraAnalogInputDriver(pintype_t pin = tpin_none,
                            uint8_t bitRes = 10);
     virtual void begin() override;
     virtual TerraSingleMeasurement read(uint32_t now = millis()) override;
@@ -62,7 +62,7 @@ protected:
 
 class TerraDigitalInputDriver : public TerraInputDriver {
 public:
-    TerraDigitalInputDriver(uint8_t pin = TERRA_INVALID_PIN,
+    TerraDigitalInputDriver(pintype_t pin = tpin_none,
                             bool activeLow = false,
                             Terra_PinMode pinMode = Terra_PinMode_Digital_Input,
                             Terra_UnitsType units = Terra_UnitsType_Raw_1);
@@ -89,7 +89,7 @@ protected:
 
 class TerraDigitalOutputDriver : public TerraOutputDriver {
 public:
-    TerraDigitalOutputDriver(uint8_t pin = TERRA_INVALID_PIN,
+    TerraDigitalOutputDriver(pintype_t pin = tpin_none,
                              bool activeLow = false);
     virtual void begin() override;
     virtual bool write(float value) override;
@@ -101,7 +101,7 @@ protected:
 
 class TerraAnalogOutputDriver : public TerraOutputDriver {
 public:
-    TerraAnalogOutputDriver(uint8_t pin = TERRA_INVALID_PIN,
+    TerraAnalogOutputDriver(pintype_t pin = tpin_none,
                             uint8_t bitRes = 8);
     virtual void begin() override;
     virtual bool write(float value) override;

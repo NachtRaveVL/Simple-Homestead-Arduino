@@ -138,8 +138,8 @@ void _setUnixTime(DateTime unixTime, bool isSigTime)
     }
 
     if (getController() && (isSigTime ||
-        getLogger()->getSystemInit() <= SECS_YR_2000 ||
-        abs(prevTime - unixTime.unixtime()) >= SECS_PER_DAY)) {
+        getLogger()->getSystemInit() <= (time_t)SECS_YR_2000 ||
+        abs(prevTime - unixTime.unixtime()) >= (time_t)SECS_PER_DAY)) {
         getController()->notifySignificantTime(unixTime.unixtime());
     }
 }
@@ -192,7 +192,7 @@ void createDirectoryFor(SDClass *sd, String filename)
 tkey_t stringHash(String string)
 {
     tkey_t hash = 5381;
-    for(int index = 0; index < string.length(); ++index) {
+    for(size_t index = 0; index < string.length(); ++index) {
         hash = ((hash << 5) + hash) + (tkey_t)string[index]; // Good 'ol DJB2
     }
     return hash != tkey_none ? hash : 5381;
@@ -278,16 +278,16 @@ template<>
 String commaStringFromArray<float>(const float *arrayIn, size_t length)
 {
     if (!arrayIn || !length) { return String(SFP(TStr_null)); }
-    String retVal; retVal.reserve(length << 1 + length >> 1 + 1);
+    String retVal; retVal.reserve((length << 1) + (length >> 1) + 1);
     for (size_t index = 0; index < length; ++index) {
         if (retVal.length()) { retVal.concat(','); }
 
         String floatString = String(arrayIn[index], 6);
-        int trimIndex = floatString.length() - 1;
+        int trimIndex = (int)floatString.length() - 1;
 
         while (floatString[trimIndex] == '0' && trimIndex > 0) { trimIndex--; }
         if (floatString[trimIndex] == '.' && trimIndex > 0) { trimIndex--; }
-        if (trimIndex < floatString.length() - 1) {
+        if (trimIndex < (int)floatString.length() - 1) {
             floatString = floatString.substring(0, trimIndex+1);
         }
 
@@ -300,16 +300,16 @@ template<>
 String commaStringFromArray<double>(const double *arrayIn, size_t length)
 {
     if (!arrayIn || !length) { return String(SFP(TStr_null)); }
-    String retVal; retVal.reserve(length << 1 + length >> 1 + 1);
+    String retVal; retVal.reserve((length << 1) + (length >> 1) + 1);
     for (size_t index = 0; index < length; ++index) {
         if (retVal.length()) { retVal.concat(','); }
 
         String doubleString = String(arrayIn[index], 14);
-        int trimIndex = doubleString.length() - 1;
+        int trimIndex = (int)doubleString.length() - 1;
 
         while (doubleString[trimIndex] == '0' && trimIndex > 0) { trimIndex--; }
         if (doubleString[trimIndex] == '.' && trimIndex > 0) { trimIndex--; }
-        if (trimIndex < doubleString.length() - 1) {
+        if (trimIndex < (int)doubleString.length() - 1) {
             doubleString = doubleString.substring(0, trimIndex+1);
         }
 
@@ -327,7 +327,7 @@ void commaStringToArray<float>(String stringIn, float *arrayOut, size_t length)
         int nextSepPos = stringIn.indexOf(',', lastSepPos+1);
         if (nextSepPos == -1) { nextSepPos = stringIn.length(); }
         String subString = stringIn.substring(lastSepPos+1, nextSepPos);
-        if (nextSepPos < stringIn.length()) { lastSepPos = nextSepPos; }
+        if (nextSepPos < (int)stringIn.length()) { lastSepPos = nextSepPos; }
 
         arrayOut[index] = subString.toFloat();
     }
@@ -342,7 +342,7 @@ void commaStringToArray<double>(String stringIn, double *arrayOut, size_t length
         int nextSepPos = stringIn.indexOf(',', lastSepPos+1);
         if (nextSepPos == -1) { nextSepPos = stringIn.length(); }
         String subString = stringIn.substring(lastSepPos+1, nextSepPos);
-        if (nextSepPos < stringIn.length()) { lastSepPos = nextSepPos; }
+        if (nextSepPos < (int)stringIn.length()) { lastSepPos = nextSepPos; }
 
         #if !defined(CORE_TEENSY)
             arrayOut[index] = subString.toDouble();
@@ -361,7 +361,7 @@ void commaStringToArray<String>(String stringIn, String *arrayOut, size_t length
         int nextSepPos = stringIn.indexOf(',', lastSepPos+1);
         if (nextSepPos == -1) { nextSepPos = stringIn.length(); }
         String subString = stringIn.substring(lastSepPos+1, nextSepPos);
-        if (nextSepPos < stringIn.length()) { lastSepPos = nextSepPos; }
+        if (nextSepPos < (int)stringIn.length()) { lastSepPos = nextSepPos; }
         arrayOut[index] = subString;
     }
 }
@@ -979,6 +979,13 @@ Terra_UnitsType rateUnits(Terra_UnitsType units)
     }
 }
 
+Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode)
+{
+    measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
+    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
+    return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Speed_InchesPerHour : Terra_UnitsType_Speed_MillimetersPerHour;
+}
+
 Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_MeasurementMode measureMode)
 {
     measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
@@ -1071,6 +1078,12 @@ Terra_UnitsType defaultUnits(Terra_UnitsCategory unitsCategory, Terra_Measuremen
                 default:
                     return Terra_UnitsType_Undefined;
             }
+
+        case Terra_UnitsCategory_Percentile:
+            return Terra_UnitsType_Percentile_100;
+
+        case Terra_UnitsCategory_Raw:
+            return Terra_UnitsType_Raw_1;
 
         case Terra_UnitsCategory_Count:
             switch (measureMode) {
@@ -1189,6 +1202,7 @@ bool checkPinIsAnalogInput(pintype_t pin)
 
 bool checkPinIsAnalogOutput(pintype_t pin)
 {
+    (void)pin;
     #if !defined(NUM_ANALOG_OUTPUTS) || NUM_ANALOG_OUTPUTS == 0
         return false;
     #elif defined(ESP32)
@@ -1658,6 +1672,10 @@ String unitsCategoryToString(Terra_UnitsCategory unitsCategory, bool excludeSpec
             return SFP(TStr_Enum_Speed);
         case Terra_UnitsCategory_Temperature:
             return SFP(TStr_Enum_Temperature);
+        case Terra_UnitsCategory_Percentile:
+            return SFP(TStr_Enum_Percentile);
+        case Terra_UnitsCategory_Raw:
+            return SFP(TStr_Enum_Raw);
         case Terra_UnitsCategory_Count:
             return !excludeSpecial ? SFP(TStr_Enum_Count) : String();
         case Terra_UnitsCategory_Undefined:
@@ -2167,12 +2185,16 @@ Terra_UnitsCategory unitsCategoryFromString(String unitsCategoryStr)
             break;
         case 'p':
             switch (unitsCategoryStr.length() > 1 ? unitsCategoryStr[1] : '\000') {
+                case 'e':
+                    return Terra_UnitsCategory_Percentile;
                 case 'o':
                     return Terra_UnitsCategory_Power;
                 case 'r':
                     return Terra_UnitsCategory_Pressure;
             }
             break;
+        case 'r':
+            return Terra_UnitsCategory_Raw;
         case 's':
             return Terra_UnitsCategory_Speed;
         case 't':

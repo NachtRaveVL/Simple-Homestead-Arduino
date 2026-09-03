@@ -25,17 +25,15 @@ TerraRail *newRailObjectFromData(const TerraRailData *dataIn)
 
 
 TerraRail::TerraRail(Terra_RailType railType, tposi_t railIndex, int classTypeIn)
-    : TerraObject(TerraIdentity(railType, railIndex)), classType((typeof(classType))classTypeIn),
-      TerraPowerUnitsInterfaceStorage(defaultPowerUnits()),
-      _limitState(Terra_TriggerState_Undefined)
+    : TerraObject(TerraIdentity(railType, railIndex)), TerraPowerUnitsInterfaceStorage(defaultPowerUnits()),
+      classType(static_cast<decltype(Simple)>(classTypeIn)), _limitState(Terra_TriggerState_Undefined)
 {
     allocateLinkages(TERRA_RAILS_LINKS_BASESIZE);
 }
 
 TerraRail::TerraRail(const TerraRailData *dataIn)
-    : TerraObject(dataIn), classType((typeof(classType))(dataIn->id.object.classType)),
-      TerraPowerUnitsInterfaceStorage(definedUnitsElse(dataIn->powerUnits, defaultPowerUnits())),
-      _limitState(Terra_TriggerState_Undefined)
+    : TerraObject(dataIn), TerraPowerUnitsInterfaceStorage(definedUnitsElse(dataIn->powerUnits, defaultPowerUnits())),
+      classType(static_cast<decltype(Simple)>(dataIn->id.object.classType)), _limitState(Terra_TriggerState_Undefined)
 {
     allocateLinkages(TERRA_RAILS_LINKS_BASESIZE);
 }
@@ -138,11 +136,13 @@ TerraSimpleRail::TerraSimpleRail(const TerraSimpleRailData *dataIn)
 
 bool TerraSimpleRail::canActivate(TerraActuator *actuator)
 {
+    (void)actuator;
     return _activeCount < _maxActiveAtOnce;
 }
 
 float TerraSimpleRail::getCapacity(bool poll)
 {
+    (void)poll;
     return _activeCount / (float)_maxActiveAtOnce;
 }
 

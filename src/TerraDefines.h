@@ -219,6 +219,7 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_SENSOR_BINARY_STABLE_MILLIS 100               // Minimum time a binary sensor input must remain changed before the new state is accepted, in milliseconds
 #define TERRA_SENSOR_ANALOGREAD_SAMPLES 5                   // Number of samples to take for any analogRead call inside of a sensor's takeMeasurement call, or 0 to disable sampling (note: bitRes.maxValue * # of samples must fit inside a uint32_t)
 #define TERRA_SENSOR_ANALOGREAD_DELAY   0                   // Delay time between samples, or 0 to disable delay, in milliseconds
+#define TERRA_DEFAULT_REMOTE_STALE_MS    (5UL * 60UL * 1000UL) // Default remote sensor stale timeout, in milliseconds
 
 #define TERRA_SYS_AUTOSAVE_INTERVAL     120                 // Default autosave interval, in minutes
 #define TERRA_SYS_I2CEEPROM_BASEADDR    0x50                // Base address of I2C EEPROM (bitwise or'ed with passed address)
@@ -226,7 +227,11 @@ typedef typeof(LOW)                     ard_pinstatus_t;    // Arduino pin statu
 #define TERRA_SYS_ATWIFI_SERIALMODE     SERIAL_8N1          // Data transfer mode for serial AT WiFi (see SERIAL_* defines)
 #define TERRA_SYS_NMEAGPS_SERIALBAUD    9600                // Data baud rate for serial NMEA GPS, in bps (older modules may need 4800)
 #define TERRA_SYS_URLHTTP_PORT          80                  // Which default port to access when accessing HTTP resources
-#define TERRA_SYS_LEAVE_FILES_OPEN      !defined(__AVR__)   // If high access files should be left open to improve performance (true), or closed after use to reduce memory consumption (false)
+#if defined(__AVR__)
+#define TERRA_SYS_LEAVE_FILES_OPEN          false               // If high access files should be left open to improve performance (true), or closed after use to reduce memory consumption (false)
+#else
+#define TERRA_SYS_LEAVE_FILES_OPEN          true                // If high access files should be left open to improve performance (true), or closed after use to reduce memory consumption (false)
+#endif
 #define TERRA_SYS_FREERAM_LOWBYTES      1024                // How many bytes of free memory left spawns a handle low mem call to all objects
 #define TERRA_SYS_FREESPACE_INTERVAL    240                 // How many minutes should pass before checking attached file systems have enough disk space (performs cleanup if not)
 #define TERRA_SYS_FREESPACE_LOWSPACE    256                 // How many kilobytes of disk space remaining will force cleanup of oldest log/data files first
@@ -579,6 +584,8 @@ enum Terra_UnitsCategory : signed char {
     Terra_UnitsCategory_Pressure,                           // Pressure based unit
     Terra_UnitsCategory_Speed,                              // Linear speed based unit
     Terra_UnitsCategory_Temperature,                        // Temperature based unit
+    Terra_UnitsCategory_Percentile,                         // Percentile based unit
+    Terra_UnitsCategory_Raw,                                // Raw/normalized unit
     
     Terra_UnitsCategory_Count,                              // Placeholder
     Terra_UnitsCategory_Undefined = -1                      // Placeholder
@@ -658,6 +665,8 @@ class TerraTrigger;
 class TerraActuator;
 class TerraSensor;
 class TerraReservoir;
+class TerraWaterReservoir;
+class TerraThermalReservoir;
 class TerraRail;
 
 // System sketches setup enums (for non-zero resolution)

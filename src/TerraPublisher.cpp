@@ -6,15 +6,19 @@
 #include "Terraduino.h"
 
 TerraPublisher::TerraPublisher()
-    : _dataFilename(), _needsTabulation(false), _pollingFrame(0), _dataColumns(nullptr), _columnSize(0)
 #if TERRA_SYS_LEAVE_FILES_OPEN
-      , _dataFileSD(nullptr)
+    : _dataFileSD(nullptr)
 #ifdef TERRA_USE_WIFI_STORAGE
       , _dataFileWS(nullptr)
 #endif
-#endif
 #ifdef TERRA_USE_MQTT
-    , _mqttClient(nullptr)
+      , _mqttClient(nullptr)
+#endif
+      , _dataFilename(), _pollingFrame(0), _needsTabulation(false), _columnSize(0), _dataColumns(nullptr)
+#elif defined(TERRA_USE_MQTT)
+    : _mqttClient(nullptr), _dataFilename(), _pollingFrame(0), _needsTabulation(false), _columnSize(0), _dataColumns(nullptr)
+#else
+    : _dataFilename(), _pollingFrame(0), _needsTabulation(false), _columnSize(0), _dataColumns(nullptr)
 #endif
 { ; }
 
@@ -489,6 +493,7 @@ void TerraPublisher::resetDataFile()
 
 void TerraPublisher::cleanupOldestData(bool force)
 {
+    (void)force;
     // TODO: Old data cleanup. #17 in Terraduino.
 }
 

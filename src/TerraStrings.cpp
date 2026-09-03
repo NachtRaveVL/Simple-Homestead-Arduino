@@ -1298,5 +1298,5 @@ const char *pgmAddrForStr(Terra_String strNum)
 
 bool terraStringIdEqualsIgnoreCase(const String &value, Terra_String stringId)
 {
-    return terraStringEqualsIgnoreCase(value, SFP(stringId));
+    return value.equalsIgnoreCase(SFP(stringId));
 }

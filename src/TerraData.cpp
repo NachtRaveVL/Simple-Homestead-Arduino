@@ -3,7 +3,7 @@
     Terraduino Data
 */
 
-#include "TerraData.h"
+#include "Terraduino.h"
 #include "TerraCoreLogic.h"
 
 static size_t skipBinaryStreamBytes(Stream *streamIn, size_t bytesToSkip)

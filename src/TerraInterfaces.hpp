@@ -28,12 +28,6 @@ inline Terra_UnitsType TerraVolumeUnitsInterfaceStorage::getFlowRateUnits() cons
     return rateUnits(_volumeUnits);
 }
 
-inline Terra_UnitsType TerraVolumeUnitsInterfaceStorage::getDilutionUnits() const
-{
-    return dilutionUnits(_volumeUnits);
-}
-
-
 inline void TerraActuatorObjectInterface::setContinuousPowerUsage(float contPowerUsage, Terra_UnitsType contPowerUsageUnits)
 {
     setContinuousPowerUsage(TerraSingleMeasurement(contPowerUsage, contPowerUsageUnits));

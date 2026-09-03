@@ -117,6 +117,26 @@ TerraSignalAttachment<ParameterType,Slots>::TerraSignalAttachment(const TerraSig
 { ; }
 
 template<class ParameterType, int Slots>
+TerraSignalAttachment<ParameterType,Slots> &TerraSignalAttachment<ParameterType,Slots>::operator=(const TerraSignalAttachment<ParameterType,Slots> &attachment)
+{
+    if (this != &attachment) {
+        if (isResolved() && _handleSlot && _signalGetter) {
+            (get()->*_signalGetter)().detach(*_handleSlot);
+        }
+
+        TerraAttachment::operator=(attachment);
+        _signalGetter = attachment._signalGetter;
+        if (_handleSlot) { delete _handleSlot; _handleSlot = nullptr; }
+        _handleSlot = attachment._handleSlot ? attachment._handleSlot->clone() : nullptr;
+
+        if (isResolved() && _handleSlot && _signalGetter) {
+            (get()->*_signalGetter)().attach(*_handleSlot);
+        }
+    }
+    return *this;
+}
+
+template<class ParameterType, int Slots>
 TerraSignalAttachment<ParameterType,Slots>::~TerraSignalAttachment()
 {
     if (isResolved() && _handleSlot && _signalGetter) {
@@ -203,11 +223,4 @@ inline Terra_TriggerState TerraTriggerAttachment::getTriggerState(bool poll)
 {
     return resolve() ? get()->getTriggerState(poll) : Terra_TriggerState_Undefined;
 }
-
-
-inline Terra_DrivingState TerraDriverAttachment::getDrivingState(bool poll)
-{
-    return resolve() ? get()->getDrivingState(poll) : Terra_DrivingState_Undefined;
-}
-
 #endif // /ifndef TerraAttachments_HPP

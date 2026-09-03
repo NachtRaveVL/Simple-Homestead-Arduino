@@ -29,13 +29,13 @@ TerraReservoir *newReservoirObjectFromData(const TerraReservoirData *dataIn)
 
 
 TerraReservoir::TerraReservoir(Terra_ReservoirType reservoirType, tposi_t reservoirIndex, int classTypeIn)
-    : TerraObject(TerraIdentity(reservoirType, reservoirIndex)), classType((typeof(classType))classTypeIn),
+    : TerraObject(TerraIdentity(reservoirType, reservoirIndex)), classType(static_cast<decltype(Water)>(classTypeIn)),
       _filledState(Terra_TriggerState_Disabled), _highState(Terra_TriggerState_Disabled),
       _lowState(Terra_TriggerState_Disabled), _emptyState(Terra_TriggerState_Disabled)
 { ; }
 
 TerraReservoir::TerraReservoir(const TerraReservoirData *dataIn)
-    : TerraObject(dataIn), classType((typeof(classType))(dataIn->id.object.classType)),
+    : TerraObject(dataIn), classType(static_cast<decltype(Water)>(dataIn->id.object.classType)),
       _filledState(Terra_TriggerState_Disabled), _highState(Terra_TriggerState_Disabled),
       _lowState(Terra_TriggerState_Disabled), _emptyState(Terra_TriggerState_Disabled)
 { ; }

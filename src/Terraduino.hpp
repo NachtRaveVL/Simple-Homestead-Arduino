@@ -116,7 +116,7 @@ inline void Terraduino::notifySignificantTime(time_t time)
     _lastAutosave = isAutosaveEnabled() ? time : 0;
 }
 
-inline void Terraduino::notifySignificantLocation(Location loc)
+inline void Terraduino::notifySignificantLocation(Location)
 {
     if (_systemData) { _systemData->bumpRevisionIfNeeded(); }
 }

@@ -275,10 +275,14 @@ inline bool convertUnits(const TerraSingleMeasurement *measureIn, TerraSingleMea
 
 // For wrapping of values to positive-only moduli range [0, +range), e.g. [0,360).
 template<typename T> inline T wrapBy(T value, T range) { value = value % range; return value >= 0 ? value : value + range; }
+template<> inline float wrapBy(float value, float range);
+template<> inline double wrapBy(double value, double range);
 // For wrapping of values to positive-and-negative-split moduli range [-range/2,+range/2), e.g. [-180,180).
 template<typename T> inline T wrapBySplit(T value, T range) { return wrapBy<T>(value + (range / 2), range) - (range / 2); }
 // For wrapping of degree angle values to [0,360).
 template<typename T> inline T wrapBy360(T value) { return wrapBy<T>(value, 360); }
+template<typename T> inline T wrapBy2Pi(T value) { return wrapBy<T>(value, TWO_PI); }
+template<typename T> inline T wrapBy24Hr(T value) { return wrapBy<T>(value, MIN_PER_DAY); }
 // For wrapping of degree angle values to [-180,180).
 template<typename T> inline T wrapBy180Neg180(T value) { return wrapBySplit<T>(value, 360); }
 
@@ -301,11 +305,7 @@ inline Terra_UnitsType defaultPercentileUnits(Terra_MeasurementMode = Terra_Meas
 // Returns default pressure units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultPressureUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Pressure, measureMode); }
 // Returns default rainfall rate units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) {
-    measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
-    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
-    return measureMode == Terra_MeasurementMode_Imperial ? Terra_UnitsType_Speed_InchesPerHour : Terra_UnitsType_Speed_MillimetersPerHour;
-}
+extern Terra_UnitsType defaultRainRateUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined);
 // Returns default power units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
 inline Terra_UnitsType defaultPowerUnits(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return defaultUnits(Terra_UnitsCategory_Power, measureMode); }
 // Returns default irradiance units based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
@@ -323,11 +323,7 @@ inline Terra_UnitsType defaultVoltageUnits(Terra_MeasurementMode = Terra_Measure
 // Returns current units.
 inline Terra_UnitsType defaultCurrentUnits(Terra_MeasurementMode = Terra_MeasurementMode_Undefined) { return Terra_UnitsType_Power_Amperage; }
 // Returns default decimal places rounded to based on measurement mode (if undefined then uses active controller's measurement mode, else default measurement mode).
-inline int defaultDecimalPlaces(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) {
-    measureMode = (measureMode == Terra_MeasurementMode_Undefined && getController() ? getController()->getMeasurementMode() : measureMode);
-    if (measureMode == Terra_MeasurementMode_Undefined) { measureMode = Terra_MeasurementMode_Default; }
-    return measureMode == Terra_MeasurementMode_Scientific ? 2 : 1;
-}
+inline int defaultDecimalPlaces(Terra_MeasurementMode measureMode = Terra_MeasurementMode_Undefined) { return (int)defaultUnits(Terra_UnitsCategory_Count, measureMode); }
 
 // Rounds value according to default decimal places rounding, as typically used for data export, with optional additional decimal places.
 inline float roundForExport(float value, unsigned int additionalDecPlaces = 0) { return roundToDecimalPlaces(value, defaultDecimalPlaces() + additionalDecPlaces); }

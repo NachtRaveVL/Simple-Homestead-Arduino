@@ -25,7 +25,7 @@ TerraSingleMeasurement TerraCallbackInputDriver::read(uint32_t now)
     return TerraSingleMeasurement(value, _units, now, isnan(value) ? tframe_none : 1);
 }
 
-TerraAnalogInputDriver::TerraAnalogInputDriver(uint8_t pin, uint8_t bitRes)
+TerraAnalogInputDriver::TerraAnalogInputDriver(pintype_t pin, uint8_t bitRes)
     : _pin(pin, Terra_PinMode_Analog_Input, bitRes)
 { ; }
 
@@ -46,7 +46,7 @@ bool TerraAnalogInputDriver::getPinData(TerraPinData &dataOut) const
     return true;
 }
 
-TerraDigitalInputDriver::TerraDigitalInputDriver(uint8_t pin,
+TerraDigitalInputDriver::TerraDigitalInputDriver(pintype_t pin,
                                                  bool activeLow,
                                                  Terra_PinMode pinMode,
                                                  Terra_UnitsType units)
@@ -87,7 +87,7 @@ bool TerraCallbackOutputDriver::write(float value)
     return true;
 }
 
-TerraDigitalOutputDriver::TerraDigitalOutputDriver(uint8_t pin, bool activeLow)
+TerraDigitalOutputDriver::TerraDigitalOutputDriver(pintype_t pin, bool activeLow)
     : _pin(pin, Terra_PinMode_Digital_Output, activeLow)
 { ; }
 
@@ -111,7 +111,7 @@ bool TerraDigitalOutputDriver::getPinData(TerraPinData &dataOut) const
     return true;
 }
 
-TerraAnalogOutputDriver::TerraAnalogOutputDriver(uint8_t pin, uint8_t bitRes)
+TerraAnalogOutputDriver::TerraAnalogOutputDriver(pintype_t pin, uint8_t bitRes)
     : _pin(pin, Terra_PinMode_Analog_Output, bitRes)
 { ; }
 
@@ -136,5 +136,5 @@ bool TerraAnalogOutputDriver::getPinData(TerraPinData &dataOut) const
 
 int TerraAnalogOutputDriver::getMaximumRaw() const
 {
-    return _pin.bitRes && _pin.bitRes < 16 ? (1 << _pin.bitRes) - 1 : 255;
+    return _pin.bitRes.bits && _pin.bitRes.bits < 16 ? (1 << _pin.bitRes.bits) - 1 : 255;
 }

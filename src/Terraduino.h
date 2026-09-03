@@ -215,6 +215,7 @@ extern void miscLoop();
 #include "shared/TerraUIData.h"
 #include "TerraStreams.h"
 #include "TerraTriggers.h"
+#include "TerraBalancers.h"
 #include "TerraDrivers.h"
 #include "TerraActuators.h"
 #include "TerraSensors.h"

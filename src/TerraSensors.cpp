@@ -25,6 +25,38 @@ TerraSensor *newSensorObjectFromData(const TerraSensorData *dataIn)
     }
 }
 
+Terra_UnitsCategory defaultCategoryForSensor(Terra_SensorType sensorType, uint8_t measurementRow)
+{
+    (void)measurementRow;
+
+    switch (sensorType) {
+        case Terra_SensorType_Temperature:
+            return Terra_UnitsCategory_Temperature;
+        case Terra_SensorType_Humidity:
+        case Terra_SensorType_Level:
+            return Terra_UnitsCategory_Percentile;
+        case Terra_SensorType_Pressure:
+            return Terra_UnitsCategory_Pressure;
+        case Terra_SensorType_Rainfall:
+            return Terra_UnitsCategory_Distance;
+        case Terra_SensorType_Flow:
+            return Terra_UnitsCategory_LiqFlowRate;
+        case Terra_SensorType_WindSpeed:
+            return Terra_UnitsCategory_Speed;
+        case Terra_SensorType_WindDirection:
+            return Terra_UnitsCategory_Angle;
+        case Terra_SensorType_SolarRadiation:
+            return Terra_UnitsCategory_Irradiance;
+        case Terra_SensorType_Voltage:
+        case Terra_SensorType_Current:
+            return Terra_UnitsCategory_Power;
+        case Terra_SensorType_Leak:
+            return Terra_UnitsCategory_Raw;
+        default:
+            return Terra_UnitsCategory_Undefined;
+    }
+}
+
 TerraSensor::TerraSensor(Terra_SensorType sensorType, tposi_t sensorIndex, Terra_UnitsType units, int classTypeIn)
     : TerraObject(TerraIdentity(sensorType, sensorIndex)), TerraMeasurementUnitsInterfaceStorageSingle(units),
       classType(static_cast<decltype(Value)>(classTypeIn)),
@@ -141,6 +173,7 @@ bool TerraBinarySensor::takeMeasurement(bool force)
 
 bool TerraBinarySensor::tryRegisterISR(bool anyChange)
 {
+    (void)anyChange;
     #ifdef TERRA_USE_MULTITASKING
         if (!_usingISR && _inputPin.isValid() && checkPinCanInterrupt(_inputPin.pin)) {
             taskManager.addInterrupt(&interruptImpl, _inputPin.pin, !anyChange ? (_inputPin.activeLow ? FALLING : RISING) : CHANGE);
@@ -170,7 +203,7 @@ bool TerraAnalogSensor::takeMeasurement(bool force)
     TerraSingleMeasurement measurement(_inputPin.analogRead(), Terra_UnitsType_Raw_1, now,
                                        getController() ? getController()->getPollingFrame() : (tframe_t)1);
     calibrationTransform(&measurement);
-    if (measurement.units != getMeasurementUnits() && canConvertUnits(measurement.units, getMeasurementUnits())) {
+    if (measurement.units != getMeasurementUnits()) {
         measurement.toUnits(getMeasurementUnits());
     }
     _lastMeasurement = measurement;

@@ -148,7 +148,7 @@ void TerraMeasurementValueTrigger::handleMeasurement(const TerraMeasurement *mea
 
     bool wasState = _triggerState == Terra_TriggerState_Triggered;
     TerraSingleMeasurement measure = getAsSingleMeasurement(measurement, getMeasurementRow());
-    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
+    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits()) {
         measure.toUnits(getMeasurementUnits());
     }
     _sensor.setMeasurement(measure);
@@ -222,7 +222,7 @@ void TerraMeasurementRangeTrigger::handleMeasurement(const TerraMeasurement *mea
 
     bool wasState = _triggerState == Terra_TriggerState_Triggered;
     TerraSingleMeasurement measure = getAsSingleMeasurement(measurement, getMeasurementRow());
-    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits() && canConvertUnits(measure.units, getMeasurementUnits())) {
+    if (getMeasurementUnits() != Terra_UnitsType_Undefined && measure.units != getMeasurementUnits()) {
         measure.toUnits(getMeasurementUnits());
     }
     _sensor.setMeasurement(measure);

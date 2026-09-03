@@ -16,6 +16,7 @@ int main()
     auto volume = controller.addRemoteSensor(Terra_SensorType_Level, Terra_UnitsType_LiqVolume_Liters);
     assert(reservoir && volume);
     reservoir->getWaterVolumeSensorAttachment().setObject(volume);
+    controller.launch();
     volume->receiveReport(2500.0f, Terra_UnitsType_LiqVolume_Liters, 100, true);
     assert(isFPEqual(reservoir->getLevel(true), 50.0f));
 
