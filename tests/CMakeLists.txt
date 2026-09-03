@@ -52,6 +52,9 @@ target_link_libraries(test_hardware PRIVATE terraduino_host)
 add_executable(test_infrastructure host/test_infrastructure.cpp)
 target_link_libraries(test_infrastructure PRIVATE terraduino_host)
 
+add_executable(test_serialization host/test_serialization.cpp)
+target_link_libraries(test_serialization PRIVATE terraduino_host)
+
 add_executable(test_terraduino host/test_terraduino.cpp)
 target_link_libraries(test_terraduino PRIVATE terraduino_host)
 
@@ -60,4 +63,5 @@ add_test(NAME automation COMMAND test_automation)
 add_test(NAME hardening COMMAND test_hardening)
 add_test(NAME hardware COMMAND test_hardware)
 add_test(NAME infrastructure COMMAND test_infrastructure)
+add_test(NAME serialization COMMAND test_serialization)
 add_test(NAME terraduino COMMAND test_terraduino)
